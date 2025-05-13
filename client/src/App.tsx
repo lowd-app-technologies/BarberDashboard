@@ -16,6 +16,9 @@ import Payments from "@/pages/payments";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 
+// Public Pages
+import Booking from "@/pages/booking";
+
 // Other Pages
 import NotFound from "@/pages/not-found";
 
@@ -56,7 +59,18 @@ function Router() {
     );
   }
 
-  // Default - show login for now
+  // Public routes - available to all users, including unauthenticated ones
+  if (location === "/" || location === "/booking") {
+    return (
+      <Switch>
+        <Route path="/" component={Booking} />
+        <Route path="/booking" component={Booking} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Default - show login if nothing matches
   return (
     <Switch>
       <Route path="/" component={Login} />
