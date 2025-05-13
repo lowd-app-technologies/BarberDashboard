@@ -149,6 +149,18 @@ export const clientFavoriteServices = pgTable("client_favorite_services", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Barber invites table
+export const barberInvites = pgTable("barber_invites", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  barberId: text("barber_id").notNull(), // Store as text since it's a custom ID provided by admin
+  createdById: integer("created_by_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isUsed: boolean("is_used").notNull().default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  usedAt: timestamp("used_at"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true });
@@ -186,6 +198,9 @@ export const insertClientNoteSchema = createInsertSchema(clientNotes)
 export const insertClientFavoriteServiceSchema = createInsertSchema(clientFavoriteServices)
   .omit({ id: true, createdAt: true });
 
+export const insertBarberInviteSchema = createInsertSchema(barberInvites)
+  .omit({ id: true, createdAt: true, isUsed: true, usedAt: true });
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -222,6 +237,9 @@ export type InsertClientNote = z.infer<typeof insertClientNoteSchema>;
 
 export type ClientFavoriteService = typeof clientFavoriteServices.$inferSelect;
 export type InsertClientFavoriteService = z.infer<typeof insertClientFavoriteServiceSchema>;
+
+export type BarberInvite = typeof barberInvites.$inferSelect;
+export type InsertBarberInvite = z.infer<typeof insertBarberInviteSchema>;
 
 // Join schemas for API responses
 export type BarberWithUser = Barber & {

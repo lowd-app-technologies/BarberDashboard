@@ -115,6 +115,12 @@ export interface IStorage {
   getClientWithDetails(userId: number): Promise<ClientWithDetails | undefined>;
   getAllClientsWithProfiles(): Promise<ClientWithProfile[]>;
   getRecentClients(limit?: number): Promise<ClientWithProfile[]>;
+  
+  // Barber Invite methods
+  createBarberInvite(invite: InsertBarberInvite): Promise<BarberInvite>;
+  getBarberInviteByToken(token: string): Promise<BarberInvite | undefined>;
+  markBarberInviteAsUsed(id: number): Promise<BarberInvite | undefined>;
+  getBarberInvitesByCreator(createdById: number): Promise<BarberInvite[]>;
 }
 
 // Memory Storage for Development/Testing
