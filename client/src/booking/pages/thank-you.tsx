@@ -1,7 +1,7 @@
 import { Link } from "wouter";
+import { CheckCircle, Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Scissors, Calendar, Check, Instagram, Facebook, Twitter } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ThankYou() {
   return (
@@ -12,82 +12,52 @@ export default function ThankYou() {
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <div className="bg-primary bg-opacity-20 p-2 rounded-full">
-                <Scissors className="h-6 w-6 text-primary" />
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
               <h1 className="text-2xl font-bold">Vossa Barbearia</h1>
             </div>
-            <Link href="/">
-              <Button variant="outline">
-                Voltar para Início
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
       
-      {/* Conteúdo principal */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/20 p-3">
-              <Check className="h-10 w-10 text-primary" />
+      <main className="flex-1 container mx-auto py-16 px-4 flex justify-center items-center">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 bg-green-100 rounded-full p-3 w-16 h-16 flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <CardTitle className="text-2xl">Agendamento Confirmado!</CardTitle>
+            <CardDescription>
+              Seu horário foi agendado com sucesso.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Agradecemos a preferência! Seu agendamento foi confirmado com sucesso.
+          <CardContent className="text-center">
+            <p className="mb-6">
+              Enviamos um e-mail de confirmação com os detalhes do seu agendamento. 
+              O barbeiro também vai entrar em contato para confirmar seu horário.
             </p>
-            <p className="text-muted-foreground">
-              Enviamos os detalhes para seu e-mail e você receberá uma confirmação do barbeiro em breve.
-            </p>
-            
-            <div className="mt-8 pt-4 border-t">
-              <h3 className="font-medium mb-3">Siga-nos nas redes sociais</h3>
-              <div className="flex justify-center space-x-4">
-                <a 
-                  href="https://instagram.com/vossabarbearia" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-full bg-[#833AB4] text-white hover:bg-opacity-80 transition-colors"
-                >
-                  <Instagram className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://facebook.com/vossabarbearia" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-full bg-[#3b5998] text-white hover:bg-opacity-80 transition-colors"
-                >
-                  <Facebook className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://twitter.com/vossabarbearia" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-full bg-[#1DA1F2] text-white hover:bg-opacity-80 transition-colors"
-                >
-                  <Twitter className="h-5 w-5" />
-                </a>
+            <div className="space-y-4 text-sm">
+              <div className="p-3 bg-muted rounded-md">
+                <p className="font-semibold mb-1">Lembrete Importante</p>
+                <p>Caso precise cancelar ou remarcar, faça com antecedência mínima de 1 hora.</p>
               </div>
             </div>
           </CardContent>
-          <CardFooter className="justify-center">
+          <CardFooter className="flex flex-col space-y-2">
+            <Link href="/booking">
+              <Button variant="default" className="w-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar para Agendamentos
+              </Button>
+            </Link>
             <Link href="/">
-              <Button className="w-full">
-                <Calendar className="mr-2 h-4 w-4" /> Fazer Novo Agendamento
+              <Button variant="outline" className="w-full">
+                Voltar para a Página Inicial
               </Button>
             </Link>
           </CardFooter>
         </Card>
-      </div>
-      
-      {/* Footer */}
-      <footer className="py-4 border-t text-center text-sm text-muted-foreground">
-        <div className="container mx-auto">
-          © {new Date().getFullYear()} Vossa Barbearia. Todos os direitos reservados.
-        </div>
-      </footer>
+      </main>
     </div>
   );
 }

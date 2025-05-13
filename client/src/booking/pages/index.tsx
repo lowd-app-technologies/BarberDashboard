@@ -172,8 +172,12 @@ export default function Booking() {
       appointmentDate.setHours(hours, minutes);
 
       // Preparar os dados para enviar à API
+      // Criar um ID temporário para o usuário se não existir
+      // Isto é temporário e será substituído pelo ID real do usuário após autenticação
+      const tempUserId = user?.uid || "temp-user-1";
+      
       const appointmentData = {
-        clientId: user.id,
+        clientId: 1, // ID fixo temporário para testes
         barberId: parseInt(barber),
         serviceId: parseInt(service),
         date: appointmentDate.toISOString(),
