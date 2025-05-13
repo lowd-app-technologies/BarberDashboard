@@ -32,8 +32,9 @@ const registerSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres" }),
   fullName: z.string().min(3, { message: "O nome completo deve ter pelo menos 3 caracteres" }),
-  // Barbeiros são cadastrados apenas pelo admin, então removemos a opção
-  role: z.literal("client"),
+  businessName: z.string().min(2, { message: "O nome da barbearia deve ter pelo menos 2 caracteres" }),
+  // Apenas proprietários de barbearia (admin) podem se registrar diretamente
+  role: z.literal("admin"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -50,7 +51,8 @@ export default function Register() {
       email: "",
       password: "",
       fullName: "",
-      role: "client",
+      businessName: "",
+      role: "admin", // Proprietário/dono da barbearia
     },
   });
   
@@ -91,9 +93,9 @@ export default function Register() {
               <Scissors className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Crie sua conta</CardTitle>
+          <CardTitle className="text-2xl">Cadastro para Proprietários</CardTitle>
           <CardDescription>
-            Cadastre-se para utilizar o sistema BarberPro
+            Este cadastro é exclusivo para donos de barbearias. Barbeiros devem ser convidados pelo proprietário.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -155,7 +157,21 @@ export default function Register() {
                 )}
               />
               
-              {/* O campo role é definido como 'client' por padrão */}
+              <FormField
+                control={form.control}
+                name="businessName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da Barbearia</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da sua barbearia" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* O campo role é definido como 'admin' por padrão para donos de barbearia */}
               
               <Button
                 type="submit"
