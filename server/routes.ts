@@ -53,6 +53,12 @@ const comparePassword = async (password: string, hashedPassword: string): Promis
   return await bcrypt.compare(password, hashedPassword);
 };
 
+// Função para verificar se um userId pertence a um barberId específico
+const isBarberId = async (userId: number, barberId: number): Promise<boolean> => {
+  const barber = await storage.getBarber(barberId);
+  return barber !== undefined && barber.userId === userId;
+};
+
 // Função para gerar um token aleatório
 function generateToken(length = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -997,6 +1003,452 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Erro ao usar convite:', error);
       return res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== Rotas de Produtos =====
+  
+  // Obter todos os produtos
+  app.get('/api/products', async (req: Request, res: Response) => {
+    try {
+      const products = await storage.getAllProducts();
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter produtos ativos
+  app.get('/api/products/active', async (req: Request, res: Response) => {
+    try {
+      const products = await storage.getActiveProducts();
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter produto por ID
+  app.get('/api/products/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Produto não encontrado' });
+      }
+      
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Criar novo produto (apenas admin)
+  app.post('/api/products', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const productData = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(productData);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'create',
+        entity: 'product',
+        entityId: product.id,
+        details: `Criação de produto: ${product.name}`
+      });
+      
+      res.status(201).json(product);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Atualizar produto (apenas admin)
+  app.put('/api/products/:id', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const productData = insertProductSchema.partial().parse(req.body);
+      
+      const product = await storage.updateProduct(id, productData);
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Produto não encontrado' });
+      }
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'update',
+        entity: 'product',
+        entityId: product.id,
+        details: `Atualização de produto: ${product.name}`
+      });
+      
+      res.json(product);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Excluir produto (apenas admin)
+  app.delete('/api/products/:id', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Produto não encontrado' });
+      }
+      
+      await storage.deleteProduct(id);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'delete',
+        entity: 'product',
+        entityId: id,
+        details: `Exclusão de produto: ${product.name}`
+      });
+      
+      res.status(200).json({ message: 'Produto excluído com sucesso' });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== Rotas de Comissões de Produtos =====
+  
+  // Obter todas as comissões de produtos para um barbeiro
+  app.get('/api/product-commissions/barber/:barberId', async (req: Request, res: Response) => {
+    try {
+      const barberId = parseInt(req.params.barberId);
+      const commissions = await storage.getProductCommissionsByBarber(barberId);
+      res.json(commissions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter comissão específica de produto para um barbeiro
+  app.get('/api/product-commissions/barber/:barberId/product/:productId', async (req: Request, res: Response) => {
+    try {
+      const barberId = parseInt(req.params.barberId);
+      const productId = parseInt(req.params.productId);
+      
+      const commission = await storage.getProductCommissionByBarberAndProduct(barberId, productId);
+      
+      if (!commission) {
+        return res.status(404).json({ message: 'Comissão não encontrada' });
+      }
+      
+      res.json(commission);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Criar comissão de produto (apenas admin)
+  app.post('/api/product-commissions', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const commissionData = insertProductCommissionSchema.parse(req.body);
+      
+      // Verificar se já existe comissão para este barbeiro e produto
+      const existingCommission = await storage.getProductCommissionByBarberAndProduct(
+        commissionData.barberId,
+        commissionData.productId
+      );
+      
+      if (existingCommission) {
+        return res.status(400).json({ 
+          message: 'Já existe uma comissão para este barbeiro e produto',
+          existingCommission
+        });
+      }
+      
+      const commission = await storage.createProductCommission(commissionData);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'create',
+        entity: 'product_commission',
+        entityId: commission.id,
+        details: `Criação de comissão de produto para barbeiro ID ${commission.barberId}`
+      });
+      
+      res.status(201).json(commission);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Atualizar comissão de produto (apenas admin)
+  app.put('/api/product-commissions/:id', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const commissionData = insertProductCommissionSchema.partial().parse(req.body);
+      
+      const commission = await storage.updateProductCommission(id, commissionData);
+      
+      if (!commission) {
+        return res.status(404).json({ message: 'Comissão não encontrada' });
+      }
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'update',
+        entity: 'product_commission',
+        entityId: commission.id,
+        details: `Atualização de comissão de produto para barbeiro ID ${commission.barberId}`
+      });
+      
+      res.json(commission);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Excluir comissão de produto (apenas admin)
+  app.delete('/api/product-commissions/:id', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const commission = await storage.getProductCommission(id);
+      
+      if (!commission) {
+        return res.status(404).json({ message: 'Comissão não encontrada' });
+      }
+      
+      await storage.deleteProductCommission(id);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'delete',
+        entity: 'product_commission',
+        entityId: id,
+        details: `Exclusão de comissão de produto para barbeiro ID ${commission.barberId}`
+      });
+      
+      res.status(200).json({ message: 'Comissão excluída com sucesso' });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== Rotas de Vendas de Produtos =====
+  
+  // Obter todas as vendas de produtos
+  app.get('/api/product-sales', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const sales = await storage.getAllProductSales();
+      res.json(sales);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter vendas de produtos por barbeiro
+  app.get('/api/product-sales/barber/:barberId', async (req: Request, res: Response) => {
+    try {
+      const barberId = parseInt(req.params.barberId);
+      
+      // Verificar permissões (apenas admin ou o próprio barbeiro)
+      if (!req.session.userId || 
+          (req.session.userRole !== 'admin' && 
+           !(req.session.userRole === 'barber' && await isBarberId(req.session.userId, barberId)))) {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const sales = await storage.getProductSalesByBarber(barberId);
+      res.json(sales);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter venda de produto por ID
+  app.get('/api/product-sales/:id', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const sale = await storage.getProductSale(id);
+      
+      if (!sale) {
+        return res.status(404).json({ message: 'Venda não encontrada' });
+      }
+      
+      // Verificar permissões (apenas admin ou o barbeiro que fez a venda)
+      if (req.session.userRole !== 'admin' && 
+          !(req.session.userRole === 'barber' && await isBarberId(req.session.userId, sale.barberId))) {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      res.json(sale);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Registrar venda de produto (barbeiros)
+  app.post('/api/product-sales', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || !['admin', 'barber'].includes(req.session.userRole || '')) {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const saleData = insertProductSaleSchema.parse(req.body);
+      
+      // Se for barbeiro, verificar se está registrando venda para si mesmo
+      if (req.session.userRole === 'barber' && !await isBarberId(req.session.userId, saleData.barberId)) {
+        return res.status(403).json({ message: 'Barbeiros só podem registrar vendas para si mesmos' });
+      }
+      
+      const sale = await storage.createProductSale(saleData);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'create',
+        entity: 'product_sale',
+        entityId: sale.id,
+        details: `Venda de produto registrada por barbeiro ID ${sale.barberId}`
+      });
+      
+      res.status(201).json(sale);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Validar venda de produto (apenas admin)
+  app.post('/api/product-sales/:id/validate', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const sale = await storage.validateProductSale(id);
+      
+      if (!sale) {
+        return res.status(404).json({ message: 'Venda não encontrada' });
+      }
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'validate',
+        entity: 'product_sale',
+        entityId: sale.id,
+        details: `Venda de produto validada para barbeiro ID ${sale.barberId}`
+      });
+      
+      res.json(sale);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Excluir venda de produto (apenas admin)
+  app.delete('/api/product-sales/:id', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const sale = await storage.getProductSale(id);
+      
+      if (!sale) {
+        return res.status(404).json({ message: 'Venda não encontrada' });
+      }
+      
+      await storage.deleteProductSale(id);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'delete',
+        entity: 'product_sale',
+        entityId: id,
+        details: `Exclusão de venda de produto para barbeiro ID ${sale.barberId}`
+      });
+      
+      res.status(200).json({ message: 'Venda de produto excluída com sucesso' });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter produtos com comissões para barbeiro
+  app.get('/api/barber/:barberId/products-with-commissions', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const barberId = parseInt(req.params.barberId);
+      
+      // Verificar permissões (apenas admin ou o próprio barbeiro)
+      if (req.session.userRole !== 'admin' && 
+          !(req.session.userRole === 'barber' && await isBarberId(req.session.userId, barberId))) {
+        return res.status(403).json({ message: 'Acesso negado' });
+      }
+      
+      const productsWithCommissions = await storage.getProductsWithCommissionsForBarber(barberId);
+      res.json(productsWithCommissions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

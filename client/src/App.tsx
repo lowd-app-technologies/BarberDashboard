@@ -13,6 +13,8 @@ import Barbers from "@/pages/barbers";
 import Appointments from "@/pages/appointments";
 import Payments from "@/pages/payments";
 import Clients from "@/pages/clients";
+import Products from "@/pages/products";
+import ProductSales from "@/pages/product-sales";
 
 // Barber Pages
 import InviteBarber from "@/pages/barber/invite";
