@@ -9,7 +9,8 @@ import {
   FileText, 
   LogOut,
   DollarSign,
-  UserPlus
+  UserPlus,
+  ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,30 @@ export function Sidebar() {
 
     // Items específicos para barbeiro
     const barberItems = [
+      {
+        title: "Agendamentos",
+        icon: <Calendar className="h-5 w-5" />,
+        path: "/barber/appointments",
+        show: user?.role === "barber"
+      },
+      {
+        title: "Registros de Serviços",
+        icon: <ClipboardCheck className="h-5 w-5" />,
+        path: "/barber/service-records",
+        show: user?.role === "barber"
+      },
+      {
+        title: "Clientes",
+        icon: <Users className="h-5 w-5" />,
+        path: "/barber/clients",
+        show: user?.role === "barber"
+      },
+      {
+        title: "Pagamentos",
+        icon: <DollarSign className="h-5 w-5" />,
+        path: "/barber/payments",
+        show: user?.role === "barber"
+      },
       {
         title: "Relatórios",
         icon: <FileText className="h-5 w-5" />,
