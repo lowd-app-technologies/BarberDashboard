@@ -1,6 +1,6 @@
 import { 
   users, barbers, services, commissions, appointments, payments, completedServices, actionLogs,
-  clientProfiles, clientPreferences, clientNotes, clientFavoriteServices,
+  clientProfiles, clientPreferences, clientNotes, clientFavoriteServices, barberInvites,
   type User, type InsertUser,
   type Barber, type InsertBarber,
   type Service, type InsertService,
@@ -13,6 +13,7 @@ import {
   type ClientPreference, type InsertClientPreference,
   type ClientNote, type InsertClientNote,
   type ClientFavoriteService, type InsertClientFavoriteService,
+  type BarberInvite, type InsertBarberInvite,
   type BarberWithUser,
   type AppointmentWithDetails,
   type PaymentWithBarber,
@@ -137,6 +138,7 @@ export class MemStorage implements IStorage {
   private clientPreferencesData: Map<number, ClientPreference>;
   private clientNotesData: Map<number, ClientNote>;
   private clientFavoriteServicesData: Map<number, ClientFavoriteService>;
+  private barberInvitesData: Map<number, BarberInvite>;
   
   private userIdCounter: number;
   private barberIdCounter: number;
@@ -150,6 +152,7 @@ export class MemStorage implements IStorage {
   private clientPreferenceIdCounter: number;
   private clientNoteIdCounter: number;
   private clientFavoriteServiceIdCounter: number;
+  private barberInviteIdCounter: number;
 
   constructor() {
     this.usersData = new Map();
@@ -164,6 +167,7 @@ export class MemStorage implements IStorage {
     this.clientPreferencesData = new Map();
     this.clientNotesData = new Map();
     this.clientFavoriteServicesData = new Map();
+    this.barberInvitesData = new Map();
     
     this.userIdCounter = 1;
     this.barberIdCounter = 1;
@@ -177,6 +181,7 @@ export class MemStorage implements IStorage {
     this.clientPreferenceIdCounter = 1;
     this.clientNoteIdCounter = 1;
     this.clientFavoriteServiceIdCounter = 1;
+    this.barberInviteIdCounter = 1;
   }
 
   /* User Methods */
