@@ -118,10 +118,10 @@ export function Sidebar() {
         show: user?.role === "barber"
       },
       {
-        title: "Produtos",
+        title: "Visualizar Produtos",
         icon: <Package className="h-5 w-5" />,
         path: "/barber/products",
-        show: user?.role === "barber"
+        show: false // Temporariamente desabilitado
       },
       {
         title: "Vendas de Produtos",

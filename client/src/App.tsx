@@ -92,7 +92,6 @@ function Router() {
         <Route path="/barber/clients" component={Clients} />
         <Route path="/barber/payments" component={Payments} />
         <Route path="/barber/service-records" component={ServiceRecords} />
-        <Route path="/barber/products" component={Products} />
         <Route path="/barber/product-sales" component={ProductSales} />
         <Route component={NotFound} />
       </Switch>
