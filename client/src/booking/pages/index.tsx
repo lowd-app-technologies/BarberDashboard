@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -33,93 +33,44 @@ import {
   ChevronDown,
   LogOut,
   Settings,
-  CalendarDays
+  CalendarDays,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import "../styles/booking.css";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
-// Serviços da Vossa Barbearia
-const services = [
-  {
-    id: 1,
-    name: "Corte pente único",
-    description: "Corte realizado em um único pente a escolha do cliente (raspado).",
-    price: "€10",
-    duration: 30
-  },
-  {
-    id: 2,
-    name: "Corte cabelo",
-    description: "Qualquer tipo e estilo de corte masculino.",
-    price: "€14",
-    duration: 45
-  },
-  {
-    id: 3,
-    name: "Barba Completa",
-    description: "Barba feita com ou sem toalha quente, a escolha do cliente.",
-    price: "€12",
-    duration: 30
-  },
-  {
-    id: 4,
-    name: "Barba só com máquina",
-    description: "Sem a utilização de lâmina.",
-    price: "€8",
-    duration: 20
-  },
-  {
-    id: 5,
-    name: "Corte e barba",
-    description: "Serviço completo com desconto de 11,5%.",
-    price: "€23",
-    duration: 60
-  },
-  {
-    id: 6,
-    name: "Sombracelha",
-    description: "Feito com lâmina.",
-    price: "€5",
-    duration: 15
-  },
-  {
-    id: 7,
-    name: "Combo1: Corte + sobrancelhas",
-    description: "Corte de cabelo e sobrancelhas com desconto.",
-    price: "€16.99",
-    duration: 45
-  },
-  {
-    id: 8,
-    name: "Combo2: Corte + barba + sobrancelha",
-    description: "Serviço completo com desconto.",
-    price: "€24.99",
-    duration: 75
-  },
-  {
-    id: 9,
-    name: "Limpeza facial",
-    description: "Limpeza profunda da pele do rosto.",
-    price: "€9.99",
-    duration: 30
-  },
-  {
-    id: 10,
-    name: "Corte + descoloração",
-    description: "Descolorir ou madeixas (luzes).",
-    price: "€35",
-    duration: 90
-  }
-];
+// Tipos para os dados da API
+type Service = {
+  id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  duration: number;
+  active: boolean;
+  createdAt: string;
+};
 
-// Barbeiros fictícios para demonstração
-const barbers = [
-  { id: 1, name: "João Silva" },
-  { id: 2, name: "Pedro Souza" },
-  { id: 3, name: "Carlos Oliveira" }
-];
+type Barber = {
+  id: number;
+  userId: number;
+  nif: string;
+  iban: string;
+  paymentPeriod: string;
+  active: boolean;
+  createdAt: string;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    fullName: string;
+    role: string;
+    phone: string | null;
+    createdAt: string;
+  };
+};
 
 // Horários disponíveis fictícios
 const generateTimeSlots = () => {
@@ -143,6 +94,18 @@ export default function Booking() {
   const [, navigate] = useLocation();
   const { user, logout } = useAuth();
   const timeSlots = generateTimeSlots();
+  
+  // Buscar serviços da API
+  const { data: services = [], isLoading: isLoadingServices } = useQuery<Service[]>({
+    queryKey: ['/api/services'],
+    staleTime: 60 * 1000, // 1 minuto
+  });
+  
+  // Buscar barbeiros da API
+  const { data: barbers = [], isLoading: isLoadingBarbers } = useQuery<Barber[]>({
+    queryKey: ['/api/barbers'],
+    staleTime: 60 * 1000, // 1 minuto
+  });
   
   // Obter o serviço selecionado
   const selectedService = services.find(s => s.id.toString() === service);
@@ -177,12 +140,12 @@ export default function Booking() {
       const tempUserId = user?.uid || "temp-user-1";
       
       const appointmentData = {
-        clientId: 1, // ID fixo temporário para testes
+        clientId: 2, // Cliente de teste criado automaticamente pelo sistema
         barberId: parseInt(barber),
         serviceId: parseInt(service),
         date: appointmentDate.toISOString(),
         status: "pending",
-        notes: `Agendamento feito pelo cliente: ${selectedService?.name} com ${selectedBarber?.name}`
+        notes: `Agendamento feito pelo cliente: ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
       };
 
       // Enviar para a API
@@ -351,28 +314,36 @@ export default function Booking() {
                 {/* Passo 2: Escolha do barbeiro */}
                 {step === 2 && (
                   <div className="space-y-4">
-                    <Select value={barber} onValueChange={setBarber}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um barbeiro" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {barbers.map(b => (
-                          <SelectItem key={b.id} value={b.id.toString()}>
-                            {b.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    {barber && (
-                      <div className="mt-6 border p-4 rounded-lg bg-background">
-                        <h3 className="font-medium text-lg mb-2">
-                          {barbers.find(b => b.id.toString() === barber)?.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Especialista em cortes modernos e tradicionais.
-                        </p>
+                    {isLoadingBarbers ? (
+                      <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
                       </div>
+                    ) : (
+                      <>
+                        <Select value={barber} onValueChange={setBarber}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um barbeiro" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {barbers.map(b => (
+                              <SelectItem key={b.id} value={b.id.toString()}>
+                                {b.user.fullName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        {barber && (
+                          <div className="mt-6 border p-4 rounded-lg bg-background">
+                            <h3 className="font-medium text-lg mb-2">
+                              {barbers.find(b => b.id.toString() === barber)?.user.fullName}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Especialista em cortes modernos e tradicionais.
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
