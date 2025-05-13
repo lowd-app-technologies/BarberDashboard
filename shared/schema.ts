@@ -83,10 +83,12 @@ export const completedServices = pgTable("completed_services", {
   id: serial("id").primaryKey(),
   barberId: integer("barber_id").notNull().references(() => barbers.id, { onDelete: 'cascade' }),
   serviceId: integer("service_id").notNull().references(() => services.id, { onDelete: 'cascade' }),
+  clientId: integer("client_id").references(() => users.id),
   clientName: text("client_name").notNull(),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
   appointmentId: integer("appointment_id").references(() => appointments.id),
+  validatedByAdmin: boolean("validated_by_admin").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -181,7 +183,7 @@ export const insertPaymentSchema = createInsertSchema(payments)
   .omit({ id: true, createdAt: true });
 
 export const insertCompletedServiceSchema = createInsertSchema(completedServices)
-  .omit({ id: true, createdAt: true });
+  .omit({ id: true, createdAt: true, validatedByAdmin: true });
 
 export const insertActionLogSchema = createInsertSchema(actionLogs)
   .omit({ id: true, createdAt: true });

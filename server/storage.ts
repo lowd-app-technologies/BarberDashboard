@@ -592,8 +592,26 @@ export class MemStorage implements IStorage {
       .filter(cs => cs.barberId === barberId);
   }
   
-  async getAllCompletedServices(): Promise<CompletedService[]> {
-    return Array.from(this.completedServicesData.values());
+  async getAllCompletedServices(): Promise<any[]> {
+    const services = Array.from(this.completedServicesData.values());
+    const result = [];
+    
+    for (const service of services) {
+      const barber = await this.getBarber(service.barberId);
+      const serviceData = await this.getService(service.serviceId);
+      const client = await this.getUser(service.clientId);
+      
+      if (barber && serviceData && client) {
+        result.push({
+          ...service,
+          barber,
+          service: serviceData,
+          client
+        });
+      }
+    }
+    
+    return result;
   }
   
   async createCompletedService(serviceData: InsertCompletedService): Promise<CompletedService> {
