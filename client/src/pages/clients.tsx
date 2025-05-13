@@ -177,12 +177,14 @@ interface ClientWithDetails extends ClientWithPreferences {
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const { toast } = useToast();
   const userRole = useRole();
   const [, navigate] = useLocation();
   const [selectedClient, setSelectedClient] = useState<number | null>(null);
   const [showClientDetailsDialog, setShowClientDetailsDialog] = useState(false);
   const [showAddClientDialog, setShowAddClientDialog] = useState(false);
+  
+  // Mova o useToast para depois de todas as inicializações de estado
+  const { toast } = useToast();
   
   // Fetch clients
   const { 
