@@ -850,6 +850,64 @@ export class MemStorage implements IStorage {
     
     return clients.slice(0, limit);
   }
+
+  /* Barber Invite Methods */
+  async createBarberInvite(inviteData: InsertBarberInvite): Promise<BarberInvite> {
+    const id = this.barberInviteIdCounter++;
+    const createdAt = new Date();
+    
+    const invite: BarberInvite = {
+      id,
+      createdAt,
+      token: inviteData.token,
+      barberId: inviteData.barberId,
+      createdById: inviteData.createdById,
+      isUsed: false, // Initially not used
+      expiresAt: inviteData.expiresAt,
+      usedAt: null
+    };
+    
+    this.barberInvitesData.set(id, invite);
+    return invite;
+  }
+  
+  async getBarberInviteByToken(token: string): Promise<BarberInvite | undefined> {
+    for (const invite of this.barberInvitesData.values()) {
+      if (invite.token === token) {
+        return invite;
+      }
+    }
+    return undefined;
+  }
+  
+  async markBarberInviteAsUsed(id: number): Promise<BarberInvite | undefined> {
+    const invite = this.barberInvitesData.get(id);
+    if (!invite) {
+      return undefined;
+    }
+    
+    const updatedInvite: BarberInvite = {
+      ...invite,
+      isUsed: true,
+      usedAt: new Date()
+    };
+    
+    this.barberInvitesData.set(id, updatedInvite);
+    return updatedInvite;
+  }
+  
+  async getBarberInvitesByCreator(createdById: number): Promise<BarberInvite[]> {
+    const invites: BarberInvite[] = [];
+    
+    for (const invite of this.barberInvitesData.values()) {
+      if (invite.createdById === createdById) {
+        invites.push(invite);
+      }
+    }
+    
+    // Sort by creation date, most recent first
+    return invites.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
 }
 
 // Set up Supabase PostgreSQL connection if URL is available

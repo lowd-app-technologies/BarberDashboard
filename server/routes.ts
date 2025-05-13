@@ -11,9 +11,11 @@ import {
   insertPaymentSchema,
   insertCompletedServiceSchema,
   insertActionLogSchema,
+  insertBarberInviteSchema,
 } from "@shared/schema";
 import { createClient } from "@supabase/supabase-js";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
+import crypto from 'crypto';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -26,6 +28,177 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // BARBER INVITE ROUTES
+  app.post("/api/invites/generate", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only admin users can create invites
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can create barber invites" });
+      }
+      
+      const { barberId } = req.body;
+      
+      if (!barberId) {
+        return res.status(400).json({ message: "Barber ID is required" });
+      }
+      
+      // Generate a random token
+      const randomBytes = crypto.randomBytes(32);
+      const inviteToken = randomBytes.toString('hex');
+      
+      // Set expiration date (48 hours from now)
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48);
+      
+      // Create the invite
+      const invite = await storage.createBarberInvite({
+        token,
+        barberId,
+        createdById: user.id,
+        expiresAt
+      });
+      
+      // Log the action
+      await storage.createActionLog({
+        userId: user.id,
+        action: "create",
+        entity: "barber_invite",
+        entityId: invite.id,
+        details: JSON.stringify({ barberId })
+      });
+      
+      // Return token and not the whole invite for security
+      res.status(201).json({ 
+        token,
+        expiresAt: invite.expiresAt 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/invites/validate", async (req, res) => {
+    try {
+      const { token: inviteToken } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Invalid token" });
+      }
+      
+      // Get the invite
+      const invite = await storage.getBarberInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+      
+      // Check if it's already used
+      if (invite.isUsed) {
+        return res.status(400).json({ message: "This invite has already been used" });
+      }
+      
+      // Check if it's expired
+      const now = new Date();
+      if (now > invite.expiresAt) {
+        return res.status(400).json({ message: "This invite has expired" });
+      }
+      
+      // Return barber ID only 
+      res.json({ 
+        valid: true,
+        barberId: invite.barberId,
+        expiresAt: invite.expiresAt
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/invites/use", async (req, res) => {
+    try {
+      const { token, username, email, password, fullName } = req.body;
+      
+      if (!token || !username || !email || !password || !fullName) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Get the invite
+      const invite = await storage.getBarberInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+      
+      // Check if it's already used
+      if (invite.isUsed) {
+        return res.status(400).json({ message: "This invite has already been used" });
+      }
+      
+      // Check if it's expired
+      const now = new Date();
+      if (now > invite.expiresAt) {
+        return res.status(400).json({ message: "This invite has expired" });
+      }
+      
+      // Create the user with barber role
+      const { data: authData, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            full_name: fullName,
+            role: 'barber'
+          }
+        }
+      });
+      
+      if (error) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      // Create user in our database
+      const user = await storage.createUser({
+        username,
+        email,
+        password: "", // We don't store the actual password
+        fullName,
+        role: 'barber',
+        phone: null
+      });
+      
+      // Mark the invite as used
+      await storage.markBarberInviteAsUsed(invite.id);
+      
+      // Return success
+      res.status(201).json({ 
+        message: "Barber registered successfully",
+        barberId: invite.barberId
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // CLIENT MANAGEMENT ROUTES
   app.get("/api/clients", async (req, res) => {
     try {
