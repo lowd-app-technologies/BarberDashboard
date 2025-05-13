@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import session from "express-session";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 // Declare session properties
 declare module "express-session" {
@@ -72,11 +73,14 @@ async function setupTestData() {
 
     log("Inicializando dados de teste...");
     
+    // Hash a senha padrão para os usuários de teste
+    const hashedPassword = await bcrypt.hash("senha123", 10);
+    
     // Criar usuário admin
     const admin = await storage.createUser({
       username: "admin",
       email: "admin@barberpro.com",
-      password: "senha123",
+      password: hashedPassword,
       fullName: "Administrador",
       role: "admin",
       phone: "+351123456789"
@@ -86,7 +90,7 @@ async function setupTestData() {
     const client = await storage.createUser({
       username: "cliente",
       email: "cliente@exemplo.com",
-      password: "senha123",
+      password: hashedPassword,
       fullName: "Cliente Teste",
       role: "client",
       phone: "+351987654321"
@@ -96,7 +100,7 @@ async function setupTestData() {
     const barberUser = await storage.createUser({
       username: "barbeiro",
       email: "barbeiro@barberpro.com",
-      password: "senha123",
+      password: hashedPassword,
       fullName: "João Silva",
       role: "barber",
       phone: "+351456789123"
