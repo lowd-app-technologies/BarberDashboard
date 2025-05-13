@@ -9,6 +9,7 @@ export const paymentPeriodEnum = pgEnum('payment_period', ['weekly', 'biweekly',
 export const appointmentStatusEnum = pgEnum('appointment_status', ['pending', 'confirmed', 'completed', 'canceled']);
 export const hairTypeEnum = pgEnum('hair_type', ['straight', 'wavy', 'curly', 'coily']);
 export const beardTypeEnum = pgEnum('beard_type', ['none', 'stubble', 'short', 'medium', 'long', 'full']);
+export const productCategoryEnum = pgEnum('product_category', ['shampoo', 'conditioner', 'styling', 'beard', 'skincare', 'equipment', 'other']);
 
 // Users table
 export const users = pgTable("users", {
@@ -151,6 +152,44 @@ export const clientFavoriteServices = pgTable("client_favorite_services", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Products table
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  costPrice: numeric("cost_price", { precision: 10, scale: 2 }).notNull(),
+  category: productCategoryEnum("category").notNull(),
+  sku: text("sku").notNull().unique(),
+  stockQuantity: integer("stock_quantity").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Product commissions table
+export const productCommissions = pgTable("product_commissions", {
+  id: serial("id").primaryKey(),
+  barberId: integer("barber_id").notNull().references(() => barbers.id, { onDelete: 'cascade' }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  percentage: numeric("percentage", { precision: 5, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Product sales table
+export const productSales = pgTable("product_sales", {
+  id: serial("id").primaryKey(),
+  barberId: integer("barber_id").notNull().references(() => barbers.id, { onDelete: 'cascade' }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  clientId: integer("client_id").references(() => users.id),
+  clientName: text("client_name").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+  date: timestamp("date").notNull(),
+  validatedByAdmin: boolean("validated_by_admin").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Barber invites table
 export const barberInvites = pgTable("barber_invites", {
   id: serial("id").primaryKey(),
@@ -200,6 +239,15 @@ export const insertClientNoteSchema = createInsertSchema(clientNotes)
 export const insertClientFavoriteServiceSchema = createInsertSchema(clientFavoriteServices)
   .omit({ id: true, createdAt: true });
 
+export const insertProductSchema = createInsertSchema(products)
+  .omit({ id: true, createdAt: true });
+
+export const insertProductCommissionSchema = createInsertSchema(productCommissions)
+  .omit({ id: true, createdAt: true });
+
+export const insertProductSaleSchema = createInsertSchema(productSales)
+  .omit({ id: true, createdAt: true, validatedByAdmin: true });
+
 export const insertBarberInviteSchema = createInsertSchema(barberInvites)
   .omit({ id: true, createdAt: true, isUsed: true, usedAt: true });
 
@@ -239,6 +287,15 @@ export type InsertClientNote = z.infer<typeof insertClientNoteSchema>;
 
 export type ClientFavoriteService = typeof clientFavoriteServices.$inferSelect;
 export type InsertClientFavoriteService = z.infer<typeof insertClientFavoriteServiceSchema>;
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+
+export type ProductCommission = typeof productCommissions.$inferSelect;
+export type InsertProductCommission = z.infer<typeof insertProductCommissionSchema>;
+
+export type ProductSale = typeof productSales.$inferSelect;
+export type InsertProductSale = z.infer<typeof insertProductSaleSchema>;
 
 export type BarberInvite = typeof barberInvites.$inferSelect;
 export type InsertBarberInvite = z.infer<typeof insertBarberInviteSchema>;
@@ -280,4 +337,13 @@ export type ClientWithDetails = ClientWithPreferences & {
   notes: ClientNote[];
   favoriteServices: (ClientFavoriteService & { service: Service })[];
   appointments: AppointmentWithDetails[];
+};
+
+export type ProductWithCommission = Product & {
+  commission?: ProductCommission;
+};
+
+export type ProductSaleWithDetails = ProductSale & {
+  product: Product;
+  barber: BarberWithUser;
 };

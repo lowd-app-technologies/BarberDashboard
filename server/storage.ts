@@ -1,6 +1,7 @@
 import { 
   users, barbers, services, commissions, appointments, payments, completedServices, actionLogs,
   clientProfiles, clientPreferences, clientNotes, clientFavoriteServices, barberInvites,
+  products, productCommissions, productSales,
   type User, type InsertUser,
   type Barber, type InsertBarber,
   type Service, type InsertService,
@@ -13,13 +14,18 @@ import {
   type ClientPreference, type InsertClientPreference,
   type ClientNote, type InsertClientNote,
   type ClientFavoriteService, type InsertClientFavoriteService,
+  type Product, type InsertProduct,
+  type ProductCommission, type InsertProductCommission,
+  type ProductSale, type InsertProductSale,
   type BarberInvite, type InsertBarberInvite,
   type BarberWithUser,
   type AppointmentWithDetails,
   type PaymentWithBarber,
   type ClientWithProfile,
   type ClientWithPreferences,
-  type ClientWithDetails
+  type ClientWithDetails,
+  type ProductWithCommission,
+  type ProductSaleWithDetails
 } from "@shared/schema";
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
