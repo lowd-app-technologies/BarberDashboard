@@ -121,15 +121,52 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      
+      // Simulando um login com Google
+      // Em um ambiente real, usaríamos o Firebase para obter os dados do Google
+      const mockGoogleData = {
+        email: "teste@gmail.com",
+        name: "Usuário de Teste",
+        provider: "google"
+      };
+      
+      // Chamar nossa API de login social
+      const response = await fetch('/api/auth/social-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mockGoogleData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Falha no login social");
+      }
+      
+      const data = await response.json();
+      
+      // Criar um objeto de usuário semelhante ao Firebase User
+      const extendedUser: ExtendedUser = {
+        ...data.user,
+        uid: data.user.id.toString(),
+        email: data.user.email,
+        displayName: data.user.fullName,
+        getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
+        role: data.user.role,
+        username: data.user.username,
+        fullName: data.user.fullName,
+      } as unknown as ExtendedUser;
+      
+      // Atualizar o estado do usuário
+      setUser(extendedUser);
       
       toast({
         title: "Login bem-sucedido",
         description: "Seja bem-vindo!",
       });
       
-      setLocation('/');
+      setLocation('/dashboard');
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login com Google",
@@ -203,8 +240,10 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   // Logout function
   const logout = async () => {
     try {
-      await signOut(auth);
+      // Como não estamos mais usando Firebase, simplesmente limpamos o estado
+      setUser(null);
       setLocation('/login');
+      
       toast({
         title: "Logout bem-sucedido",
         description: "Você foi desconectado com sucesso.",

@@ -30,6 +30,45 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
+  // Rota para login social (Google)
+  app.post("/api/auth/social-login", async (req, res) => {
+    try {
+      const { email, name, provider } = req.body;
+      
+      if (!email || !name || !provider) {
+        return res.status(400).json({ message: "Dados insuficientes para login social" });
+      }
+      
+      // Verificar se o usuário já existe
+      let user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Criar novo usuário com dados do provedor social
+        const username = email.split('@')[0] + Math.floor(Math.random() * 1000); // Gerar username único
+        
+        user = await storage.createUser({
+          email,
+          password: crypto.randomBytes(20).toString('hex'), // Senha aleatória para contas sociais
+          username,
+          fullName: name,
+          role: "client", // Por padrão, usuários de login social são clientes
+          phone: null
+        });
+      }
+      
+      // Não enviar a senha na resposta
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(200).json({
+        user: userWithoutPassword,
+        token: "jwt-token-placeholder" // Em um ambiente real, seria um JWT
+      });
+    } catch (error: any) {
+      console.error("Erro no login social:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+  
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, username, fullName, role } = req.body;
