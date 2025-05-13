@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
+import { AuthProvider } from "@/hooks/useAuth";
 
 // Admin Pages
 import Dashboard from "@/pages/dashboard";
@@ -16,8 +17,8 @@ import Payments from "@/pages/payments";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 
-// Public Pages
-import Booking from "@/pages/booking";
+// Booking App Pages (Cliente)
+import BookingApp from "@/booking/pages";
 
 // Other Pages
 import NotFound from "@/pages/not-found";
@@ -63,8 +64,8 @@ function Router() {
   if (location === "/" || location === "/booking") {
     return (
       <Switch>
-        <Route path="/" component={Booking} />
-        <Route path="/booking" component={Booking} />
+        <Route path="/" component={BookingApp} />
+        <Route path="/booking" component={BookingApp} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -82,12 +83,14 @@ function Router() {
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
