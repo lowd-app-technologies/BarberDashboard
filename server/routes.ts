@@ -18,6 +18,8 @@ import {
   insertCommissionSchema,
   insertAppointmentSchema,
   insertPaymentSchema,
+  InsertUser,
+  InsertBarber,
   insertCompletedServiceSchema,
   insertActionLogSchema,
   insertBarberInviteSchema,
@@ -419,6 +421,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const barbers = await storage.getTopBarbers();
       res.json(barbers);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Obter um barbeiro específico por ID
+  app.get("/api/barbers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de barbeiro inválido" });
+      }
+      
+      const barber = await storage.getBarber(id);
+      if (!barber) {
+        return res.status(404).json({ message: "Barbeiro não encontrado" });
+      }
+      
+      // Remover a senha do usuário antes de enviar
+      const { password, ...userWithoutPassword } = barber.user;
+      const barberWithoutPassword = {
+        ...barber,
+        user: userWithoutPassword,
+      };
+      
+      res.json(barberWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Atualizar um barbeiro existente
+  app.patch("/api/barbers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de barbeiro inválido" });
+      }
+      
+      // Verificar se o barbeiro existe
+      const existingBarber = await storage.getBarber(id);
+      if (!existingBarber) {
+        return res.status(404).json({ message: "Barbeiro não encontrado" });
+      }
+      
+      const { 
+        fullName, 
+        username, 
+        email, 
+        nif, 
+        iban, 
+        paymentPeriod, 
+        active 
+      } = req.body;
+      
+      // Atualizar os dados do usuário associado
+      if (fullName || username || email) {
+        const userData: Partial<InsertUser> = {};
+        if (fullName) userData.fullName = fullName;
+        if (username) userData.username = username;
+        if (email) userData.email = email;
+        
+        // Verificar se o username já está em uso por outro usuário
+        if (username && username !== existingBarber.user.username) {
+          const existingUserWithUsername = await storage.getUserByUsername(username);
+          if (existingUserWithUsername && existingUserWithUsername.id !== existingBarber.user.id) {
+            return res.status(400).json({ message: "Este nome de usuário já está em uso" });
+          }
+        }
+        
+        // Verificar se o email já está em uso por outro usuário
+        if (email && email !== existingBarber.user.email) {
+          const existingUserWithEmail = await storage.getUserByEmail(email);
+          if (existingUserWithEmail && existingUserWithEmail.id !== existingBarber.user.id) {
+            return res.status(400).json({ message: "Este email já está em uso" });
+          }
+        }
+        
+        await storage.updateUser(existingBarber.user.id, userData);
+      }
+      
+      // Atualizar os dados do barbeiro
+      const barberData: Partial<InsertBarber> = {};
+      if (nif) barberData.nif = nif;
+      if (iban) barberData.iban = iban;
+      if (paymentPeriod) barberData.paymentPeriod = paymentPeriod as any;
+      if (active !== undefined) barberData.active = active;
+      
+      const updatedBarber = await storage.updateBarber(id, barberData);
+      
+      // Buscar o barbeiro atualizado com os dados do usuário
+      const barberWithUser = await storage.getBarber(id);
+      
+      // Remover a senha do usuário antes de enviar
+      const { password, ...userWithoutPassword } = barberWithUser!.user;
+      const response = {
+        ...barberWithUser,
+        user: userWithoutPassword,
+      };
+      
+      res.json(response);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
