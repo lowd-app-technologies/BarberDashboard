@@ -1,5 +1,6 @@
 import { 
   users, barbers, services, commissions, appointments, payments, completedServices, actionLogs,
+  clientProfiles, clientPreferences, clientNotes, clientFavoriteServices,
   type User, type InsertUser,
   type Barber, type InsertBarber,
   type Service, type InsertService,
@@ -8,9 +9,16 @@ import {
   type Payment, type InsertPayment,
   type CompletedService, type InsertCompletedService,
   type ActionLog, type InsertActionLog,
+  type ClientProfile, type InsertClientProfile,
+  type ClientPreference, type InsertClientPreference,
+  type ClientNote, type InsertClientNote,
+  type ClientFavoriteService, type InsertClientFavoriteService,
   type BarberWithUser,
   type AppointmentWithDetails,
-  type PaymentWithBarber
+  type PaymentWithBarber,
+  type ClientWithProfile,
+  type ClientWithPreferences,
+  type ClientWithDetails
 } from "@shared/schema";
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
@@ -118,6 +126,10 @@ export class MemStorage implements IStorage {
   private paymentsData: Map<number, Payment>;
   private completedServicesData: Map<number, CompletedService>;
   private actionLogsData: Map<number, ActionLog>;
+  private clientProfilesData: Map<number, ClientProfile>;
+  private clientPreferencesData: Map<number, ClientPreference>;
+  private clientNotesData: Map<number, ClientNote>;
+  private clientFavoriteServicesData: Map<number, ClientFavoriteService>;
   
   private userIdCounter: number;
   private barberIdCounter: number;
@@ -127,6 +139,10 @@ export class MemStorage implements IStorage {
   private paymentIdCounter: number;
   private completedServiceIdCounter: number;
   private actionLogIdCounter: number;
+  private clientProfileIdCounter: number;
+  private clientPreferenceIdCounter: number;
+  private clientNoteIdCounter: number;
+  private clientFavoriteServiceIdCounter: number;
 
   constructor() {
     this.usersData = new Map();
@@ -137,6 +153,10 @@ export class MemStorage implements IStorage {
     this.paymentsData = new Map();
     this.completedServicesData = new Map();
     this.actionLogsData = new Map();
+    this.clientProfilesData = new Map();
+    this.clientPreferencesData = new Map();
+    this.clientNotesData = new Map();
+    this.clientFavoriteServicesData = new Map();
     
     this.userIdCounter = 1;
     this.barberIdCounter = 1;
@@ -146,6 +166,10 @@ export class MemStorage implements IStorage {
     this.paymentIdCounter = 1;
     this.completedServiceIdCounter = 1;
     this.actionLogIdCounter = 1;
+    this.clientProfileIdCounter = 1;
+    this.clientPreferenceIdCounter = 1;
+    this.clientNoteIdCounter = 1;
+    this.clientFavoriteServiceIdCounter = 1;
   }
 
   /* User Methods */
@@ -566,6 +590,210 @@ export class MemStorage implements IStorage {
     const log: ActionLog = { ...logData, id, createdAt };
     this.actionLogsData.set(id, log);
     return log;
+  }
+
+  /* Client Profile Methods */
+  async getClientProfile(userId: number): Promise<ClientProfile | undefined> {
+    for (const profile of this.clientProfilesData.values()) {
+      if (profile.userId === userId) {
+        return profile;
+      }
+    }
+    return undefined;
+  }
+
+  async createClientProfile(profileData: InsertClientProfile): Promise<ClientProfile> {
+    const id = this.clientProfileIdCounter++;
+    const createdAt = new Date();
+    const profile: ClientProfile = { ...profileData, id, createdAt };
+    this.clientProfilesData.set(id, profile);
+    return profile;
+  }
+
+  async updateClientProfile(userId: number, profileData: Partial<InsertClientProfile>): Promise<ClientProfile | undefined> {
+    for (const [id, profile] of this.clientProfilesData.entries()) {
+      if (profile.userId === userId) {
+        const updatedProfile = { ...profile, ...profileData };
+        this.clientProfilesData.set(id, updatedProfile);
+        return updatedProfile;
+      }
+    }
+    return undefined;
+  }
+
+  /* Client Preferences Methods */
+  async getClientPreferences(clientId: number): Promise<ClientPreference | undefined> {
+    for (const preference of this.clientPreferencesData.values()) {
+      if (preference.clientId === clientId) {
+        return preference;
+      }
+    }
+    return undefined;
+  }
+
+  async createClientPreferences(preferencesData: InsertClientPreference): Promise<ClientPreference> {
+    const id = this.clientPreferenceIdCounter++;
+    const createdAt = new Date();
+    const updatedAt = createdAt;
+    const preferences: ClientPreference = { ...preferencesData, id, createdAt, updatedAt };
+    this.clientPreferencesData.set(id, preferences);
+    return preferences;
+  }
+
+  async updateClientPreferences(clientId: number, preferencesData: Partial<InsertClientPreference>): Promise<ClientPreference | undefined> {
+    for (const [id, preferences] of this.clientPreferencesData.entries()) {
+      if (preferences.clientId === clientId) {
+        const updatedAt = new Date();
+        const updatedPreferences = { ...preferences, ...preferencesData, updatedAt };
+        this.clientPreferencesData.set(id, updatedPreferences);
+        return updatedPreferences;
+      }
+    }
+    return undefined;
+  }
+
+  /* Client Notes Methods */
+  async getClientNotes(clientId: number): Promise<ClientNote[]> {
+    const notes: ClientNote[] = [];
+    for (const note of this.clientNotesData.values()) {
+      if (note.clientId === clientId) {
+        notes.push(note);
+      }
+    }
+    return notes;
+  }
+
+  async getClientNotesByBarber(clientId: number, barberId: number): Promise<ClientNote[]> {
+    const notes: ClientNote[] = [];
+    for (const note of this.clientNotesData.values()) {
+      if (note.clientId === clientId && note.barberId === barberId) {
+        notes.push(note);
+      }
+    }
+    return notes;
+  }
+
+  async createClientNote(noteData: InsertClientNote): Promise<ClientNote> {
+    const id = this.clientNoteIdCounter++;
+    const createdAt = new Date();
+    const note: ClientNote = { ...noteData, id, createdAt };
+    this.clientNotesData.set(id, note);
+    return note;
+  }
+
+  async deleteClientNote(id: number): Promise<void> {
+    this.clientNotesData.delete(id);
+  }
+
+  /* Client Favorite Services Methods */
+  async getClientFavoriteServices(clientId: number): Promise<(ClientFavoriteService & { service: Service })[]> {
+    const favorites: (ClientFavoriteService & { service: Service })[] = [];
+    for (const favorite of this.clientFavoriteServicesData.values()) {
+      if (favorite.clientId === clientId) {
+        const service = this.servicesData.get(favorite.serviceId);
+        if (service) {
+          favorites.push({ ...favorite, service });
+        }
+      }
+    }
+    return favorites;
+  }
+
+  async addClientFavoriteService(favoriteData: InsertClientFavoriteService): Promise<ClientFavoriteService> {
+    const id = this.clientFavoriteServiceIdCounter++;
+    const createdAt = new Date();
+    const favorite: ClientFavoriteService = { ...favoriteData, id, createdAt };
+    this.clientFavoriteServicesData.set(id, favorite);
+    return favorite;
+  }
+
+  async removeClientFavoriteService(id: number): Promise<void> {
+    this.clientFavoriteServicesData.delete(id);
+  }
+
+  /* Client Management Methods */
+  async getClientWithProfile(userId: number): Promise<ClientWithProfile | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    
+    const profile = await this.getClientProfile(userId);
+    if (!profile) return undefined;
+    
+    return { ...user, profile };
+  }
+
+  async getClientWithPreferences(userId: number): Promise<ClientWithPreferences | undefined> {
+    const clientWithProfile = await this.getClientWithProfile(userId);
+    if (!clientWithProfile) return undefined;
+    
+    const preferences = await this.getClientPreferences(userId);
+    if (!preferences) return undefined;
+    
+    return { ...clientWithProfile, preferences };
+  }
+
+  async getClientWithDetails(userId: number): Promise<ClientWithDetails | undefined> {
+    const clientWithPreferences = await this.getClientWithPreferences(userId);
+    if (!clientWithPreferences) return undefined;
+    
+    // Get the client's notes
+    const notes = await this.getClientNotes(userId);
+    
+    // Get the client's favorite services
+    const favoriteServices = await this.getClientFavoriteServices(userId);
+    
+    // Get the client's appointments
+    const appointments: AppointmentWithDetails[] = [];
+    for (const appointment of this.appointmentsData.values()) {
+      if (appointment.clientId === userId) {
+        const client = await this.getUser(appointment.clientId);
+        const barberId = appointment.barberId;
+        const barber = await this.getBarber(barberId);
+        const service = await this.getService(appointment.serviceId);
+        
+        if (client && barber && service) {
+          appointments.push({
+            ...appointment,
+            client,
+            barber,
+            service
+          });
+        }
+      }
+    }
+    
+    return {
+      ...clientWithPreferences,
+      notes,
+      favoriteServices,
+      appointments
+    };
+  }
+
+  async getAllClientsWithProfiles(): Promise<ClientWithProfile[]> {
+    const clients: ClientWithProfile[] = [];
+    for (const user of this.usersData.values()) {
+      if (user.role === 'client') {
+        const profile = await this.getClientProfile(user.id);
+        if (profile) {
+          clients.push({ ...user, profile });
+        }
+      }
+    }
+    return clients;
+  }
+
+  async getRecentClients(limit: number = 10): Promise<ClientWithProfile[]> {
+    const clients = await this.getAllClientsWithProfiles();
+    
+    // Sort by last visit date if available, otherwise by createdAt
+    clients.sort((a, b) => {
+      const dateA = a.profile.lastVisit || a.createdAt;
+      const dateB = b.profile.lastVisit || b.createdAt;
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    return clients.slice(0, limit);
   }
 }
 
