@@ -519,6 +519,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // Rota para gerar um convite para um novo barbeiro
+  app.post('/api/invites/generate', async (req: Request, res: Response) => {
+    try {
+      // Verificar autenticação e permissão (somente administradores)
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autenticado' });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem gerar convites.' });
+      }
+      
+      const { barberId } = req.body;
+      if (!barberId) {
+        return res.status(400).json({ message: 'ID do barbeiro é obrigatório' });
+      }
+      
+      // Gerar token
+      const token = generateToken();
+      
+      // Definir data de expiração (48 horas a partir de agora)
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 48);
+      
+      // Criar convite no banco de dados
+      const invite = await storage.createBarberInvite({
+        token,
+        barberId,
+        createdById: req.session.userId,
+        expiresAt
+      });
+      
+      // Retornar token
+      return res.status(200).json({ token });
+      
+    } catch (error: any) {
+      console.error('Erro ao gerar convite:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Rota para validar um token de convite
+  app.get('/api/invites/validate/:token', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Token é obrigatório' });
+      }
+      
+      // Buscar convite pelo token
+      const invite = await storage.getBarberInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ message: 'Convite não encontrado' });
+      }
+      
+      // Verificar se o convite já foi usado
+      if (invite.isUsed) {
+        return res.status(400).json({ message: 'Este convite já foi usado' });
+      }
+      
+      // Verificar se o convite expirou
+      if (new Date() > invite.expiresAt) {
+        return res.status(400).json({ message: 'Este convite expirou' });
+      }
+      
+      // Retornar informações do convite (sem o token por segurança)
+      return res.status(200).json({
+        barberId: invite.barberId,
+        valid: true,
+        expiresAt: invite.expiresAt
+      });
+      
+    } catch (error: any) {
+      console.error('Erro ao validar convite:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Rota para usar um convite e criar um barbeiro
+  app.post('/api/invites/use', async (req: Request, res: Response) => {
+    try {
+      const { token, username, fullName, email, password } = req.body;
+      
+      if (!token || !username || !fullName || !email || !password) {
+        return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+      }
+      
+      // Buscar convite pelo token
+      const invite = await storage.getBarberInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ message: 'Convite não encontrado' });
+      }
+      
+      // Verificar se o convite já foi usado
+      if (invite.isUsed) {
+        return res.status(400).json({ message: 'Este convite já foi usado' });
+      }
+      
+      // Verificar se o convite expirou
+      if (new Date() > invite.expiresAt) {
+        return res.status(400).json({ message: 'Este convite expirou' });
+      }
+      
+      // Verificar se o email já está em uso
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: 'Este email já está em uso' });
+      }
+      
+      // Verificar se o username já está em uso
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: 'Este nome de usuário já está em uso' });
+      }
+      
+      // Hash da senha
+      const hashedPassword = await hashPassword(password);
+      
+      // Criar usuário com papel de barbeiro
+      const user = await storage.createUser({
+        username,
+        fullName,
+        email,
+        password: hashedPassword,
+        role: 'barber'
+      });
+      
+      // Criar perfil de barbeiro
+      const barber = await storage.createBarber({
+        userId: user.id,
+        nif: "Pendente", // Valores padrão que serão atualizados depois
+        iban: "Pendente",
+        paymentPeriod: 'monthly',
+        active: true
+      });
+      
+      // Marcar convite como usado
+      await storage.markBarberInviteAsUsed(invite.id);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: user.id,
+        action: 'registration',
+        entity: 'barber',
+        entityId: barber.id,
+        details: `Barbeiro registrado através de convite.`
+      });
+      
+      return res.status(200).json({ 
+        message: 'Barbeiro registrado com sucesso',
+        barberId: barber.id
+      });
+      
+    } catch (error: any) {
+      console.error('Erro ao usar convite:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
 

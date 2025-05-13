@@ -64,7 +64,7 @@ export default function BarberRegister() {
   
   const validateToken = async (token: string) => {
     try {
-      const response = await apiRequest("GET", `/api/invites/validate?token=${token}`);
+      const response = await apiRequest("GET", `/api/invites/validate/${token}`);
       const data = await response.json();
       
       if (data.valid) {
