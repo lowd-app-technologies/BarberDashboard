@@ -1,132 +1,160 @@
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
-import { BarChart, Scissors, UserRound, BanknoteIcon, Calendar, BarChart3, Users } from "lucide-react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { 
+  BarChart4, 
+  Calendar, 
+  Home, 
+  Menu, 
+  Users, 
+  Scissors, 
+  FileText, 
+  LogOut,
+  DollarSign
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export function MobileNavigation() {
-  const [location] = useLocation();
-  const { user } = useAuth();
+  const [location, setLocation] = useLocation();
+  const { user, logout } = useAuth();
 
-  // Determina o papel do usuário
-  const userRole = user?.role || 'client';
-  const isAdmin = userRole === 'admin';
-  const isBarber = userRole === 'barber';
+  const isActive = (path: string) => {
+    return location === path || location.startsWith(`${path}/`);
+  };
 
-  const isActive = (path: string) => location === path;
+  const getNavigationItems = () => {
+    // Items comuns a todos os usuários
+    const commonItems = [
+      {
+        title: "Dashboard",
+        icon: <Home className="h-5 w-5" />,
+        path: user?.role === "admin" ? "/admin" : (user?.role === "barber" ? "/barber" : "/"),
+        show: true
+      }
+    ];
+
+    // Items específicos para admin
+    const adminItems = [
+      {
+        title: "Serviços",
+        icon: <Scissors className="h-5 w-5" />,
+        path: "/admin/services",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Barbeiros",
+        icon: <Users className="h-5 w-5" />,
+        path: "/admin/barbers",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Agendamentos",
+        icon: <Calendar className="h-5 w-5" />,
+        path: "/admin/appointments",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Pagamentos",
+        icon: <DollarSign className="h-5 w-5" />,
+        path: "/admin/payments",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Clientes",
+        icon: <Users className="h-5 w-5" />,
+        path: "/admin/clients",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Convidar Barbeiro",
+        icon: <Users className="h-5 w-5" />,
+        path: "/barber/invite",
+        show: user?.role === "admin"
+      }
+    ];
+
+    // Items específicos para barbeiro
+    const barberItems = [
+      {
+        title: "Relatórios",
+        icon: <FileText className="h-5 w-5" />,
+        path: "/barber/reports",
+        show: user?.role === "barber"
+      }
+    ];
+
+    // Combina todos os itens
+    return [...commonItems, ...adminItems, ...barberItems].filter(item => item.show);
+  };
+
+  const items = getNavigationItems();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border md:hidden z-40">
-      <ul className="flex justify-around items-center p-3">
-        {/* Dashboard - disponível para todos */}
-        <li className="text-center">
-          <Link href="/">
-            <div className="flex flex-col items-center">
-              <BarChart className={cn(
-                "text-xl",
-                isActive("/") ? "text-primary" : "text-muted-foreground"
-              )} />
-              <span className={cn(
-                "text-xs mt-1",
-                isActive("/") ? "text-primary" : "text-muted-foreground"
-              )}>
-                Dashboard
-              </span>
-            </div>
-          </Link>
-        </li>
+    <div className="fixed bottom-0 left-0 right-0 z-10 bg-background border-t md:hidden">
+      <div className="flex justify-between items-center p-2">
+        <div className="flex-1 flex items-center justify-center">
+          <Button variant="ghost" size="icon" onClick={() => setLocation(user?.role === "admin" ? "/admin" : (user?.role === "barber" ? "/barber" : "/"))}>
+            <Home className="h-5 w-5" />
+          </Button>
+        </div>
         
-        {/* Menu de Administrador */}
-        {isAdmin && (
-          <>
-            <li className="text-center">
-              <Link href="/appointments">
-                <div className="flex flex-col items-center">
-                  <Calendar className={cn(
-                    "text-xl",
-                    isActive("/appointments") ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "text-xs mt-1",
-                    isActive("/appointments") ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    Agenda
-                  </span>
-                </div>
-              </Link>
-            </li>
-            <li className="text-center">
-              <Link href="/clients">
-                <div className="flex flex-col items-center">
-                  <Users className={cn(
-                    "text-xl",
-                    isActive("/clients") ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "text-xs mt-1",
-                    isActive("/clients") ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    Clientes
-                  </span>
-                </div>
-              </Link>
-            </li>
-            <li className="text-center">
-              <Link href="/services">
-                <div className="flex flex-col items-center">
-                  <Scissors className={cn(
-                    "text-xl",
-                    isActive("/services") ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "text-xs mt-1",
-                    isActive("/services") ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    Serviços
-                  </span>
-                </div>
-              </Link>
-            </li>
-            <li className="text-center">
-              <Link href="/payments">
-                <div className="flex flex-col items-center">
-                  <BanknoteIcon className={cn(
-                    "text-xl",
-                    isActive("/payments") ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "text-xs mt-1",
-                    isActive("/payments") ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    Pagtos
-                  </span>
-                </div>
-              </Link>
-            </li>
-          </>
+        {user?.role === "barber" && (
+          <div className="flex-1 flex items-center justify-center">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/barber/reports")}>
+              <BarChart4 className="h-5 w-5" />
+            </Button>
+          </div>
         )}
         
-        {/* Menu de Barbeiro */}
-        {isBarber && (
-          <>
-            <li className="text-center">
-              <Link href="/reports">
-                <div className="flex flex-col items-center">
-                  <BarChart3 className={cn(
-                    "text-xl",
-                    isActive("/reports") ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "text-xs mt-1",
-                    isActive("/reports") ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    Relatórios
-                  </span>
-                </div>
-              </Link>
-            </li>
-          </>
+        {user?.role === "admin" && (
+          <div className="flex-1 flex items-center justify-center">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/admin/appointments")}>
+              <Calendar className="h-5 w-5" />
+            </Button>
+          </div>
         )}
-      </ul>
-    </nav>
+        
+        <div className="flex-1 flex items-center justify-center">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <div className="py-4">
+                <nav className="flex flex-col gap-2">
+                  {items.map((item, index) => (
+                    <Button
+                      key={index}
+                      variant={isActive(item.path) ? "default" : "ghost"}
+                      className="justify-start"
+                      onClick={() => setLocation(item.path)}
+                    >
+                      {item.icon}
+                      <span className="ml-2">{item.title}</span>
+                    </Button>
+                  ))}
+                  
+                  <Button variant="ghost" className="justify-start text-destructive" onClick={logout}>
+                    <LogOut className="h-5 w-5 mr-2" />
+                    Sair
+                  </Button>
+                </nav>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </div>
   );
 }

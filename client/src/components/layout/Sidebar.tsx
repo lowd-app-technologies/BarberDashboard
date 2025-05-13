@@ -1,221 +1,150 @@
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { 
-  BarChart, 
-  Scissors, 
-  UserRound, 
+  BarChart4, 
   Calendar, 
-  BanknoteIcon, 
-  BarChart3, 
-  Settings, 
+  Home, 
+  Users, 
+  Scissors, 
+  FileText, 
   LogOut,
-  Users
+  DollarSign,
+  UserPlus
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 export function Sidebar() {
-  const [location] = useLocation();
-  const { logout, user } = useAuth();
+  const [location, setLocation] = useLocation();
+  const { user, logout } = useAuth();
 
-  const isActive = (path: string) => location === path;
-  
-  // Determina o papel do usuário
-  const userRole = user?.role || 'client';
-  const isAdmin = userRole === 'admin';
-  const isBarber = userRole === 'barber';
-  
-  // Recupera o nome do usuário
-  const userName = user?.fullName || 'Usuário';
-  const userInitials = userName 
-    ? userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'US';
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const isActive = (path: string) => {
+    return location === path || location.startsWith(`${path}/`);
+  };
+
+  const getNavigationItems = () => {
+    // Items comuns a todos os usuários
+    const commonItems = [
+      {
+        title: "Dashboard",
+        icon: <Home className="h-5 w-5" />,
+        path: user?.role === "admin" ? "/admin" : (user?.role === "barber" ? "/barber" : "/"),
+        show: true
+      }
+    ];
+
+    // Items específicos para admin
+    const adminItems = [
+      {
+        title: "Serviços",
+        icon: <Scissors className="h-5 w-5" />,
+        path: "/admin/services",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Barbeiros",
+        icon: <Users className="h-5 w-5" />,
+        path: "/admin/barbers",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Agendamentos",
+        icon: <Calendar className="h-5 w-5" />,
+        path: "/admin/appointments",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Pagamentos",
+        icon: <DollarSign className="h-5 w-5" />,
+        path: "/admin/payments",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Clientes",
+        icon: <Users className="h-5 w-5" />,
+        path: "/admin/clients",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Convidar Barbeiro",
+        icon: <UserPlus className="h-5 w-5" />,
+        path: "/barber/invite",
+        show: user?.role === "admin"
+      }
+    ];
+
+    // Items específicos para barbeiro
+    const barberItems = [
+      {
+        title: "Relatórios",
+        icon: <FileText className="h-5 w-5" />,
+        path: "/barber/reports",
+        show: user?.role === "barber"
+      }
+    ];
+
+    // Combina todos os itens
+    return [...commonItems, ...adminItems, ...barberItems].filter(item => item.show);
+  };
+
+  const items = getNavigationItems();
 
   return (
-    <aside className="fixed hidden md:flex flex-col w-64 h-screen bg-card border-r border-border">
-      <div className="flex items-center justify-center h-20 border-b border-border">
-        <h1 className="text-primary text-2xl font-bold">BarberPro</h1>
-      </div>
-      
-      <div className="px-4 py-6">
-        <div className="flex items-center mb-6">
-          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-accent-foreground">
-            {userInitials}
-          </div>
-          <div className="ml-3">
-            <p className="text-foreground font-semibold subheading">
-              {userName}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {isAdmin ? 'Administrador' : isBarber ? 'Barbeiro' : 'Cliente'}
-            </p>
-          </div>
+    <div className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r bg-background md:flex">
+      <div className="flex h-14 items-center border-b px-4">
+        <div className="flex items-center gap-2">
+          <Scissors className="h-6 w-6" />
+          <span className="text-lg font-bold">BarberPRO</span>
         </div>
-        
-        <nav className="mt-8">
-          <ul className="space-y-2">
-            {/* Dashboard - disponível para todos */}
-            <li>
-              <Link href="/">
-                <div 
-                  className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                    isActive("/") 
-                      ? "bg-primary bg-opacity-20 text-primary" 
-                      : "text-foreground hover:bg-accent"
-                  )}
-                >
-                  <BarChart className="w-5 h-5" />
-                  <span className="ml-3">Dashboard</span>
-                </div>
-              </Link>
-            </li>
-            
-            {/* Menu de Administradores */}
-            {isAdmin && (
-              <>
-                <li>
-                  <Link href="/services">
-                    <div 
-                      className={cn(
-                        "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                        isActive("/services") 
-                          ? "bg-primary bg-opacity-20 text-primary" 
-                          : "text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <Scissors className="w-5 h-5" />
-                      <span className="ml-3">Serviços</span>
-                    </div>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/barbers">
-                    <div 
-                      className={cn(
-                        "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                        isActive("/barbers") 
-                          ? "bg-primary bg-opacity-20 text-primary" 
-                          : "text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <UserRound className="w-5 h-5" />
-                      <span className="ml-3">Barbeiros</span>
-                    </div>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/appointments">
-                    <div 
-                      className={cn(
-                        "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                        isActive("/appointments") 
-                          ? "bg-primary bg-opacity-20 text-primary" 
-                          : "text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <Calendar className="w-5 h-5" />
-                      <span className="ml-3">Agendamentos</span>
-                    </div>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/payments">
-                    <div 
-                      className={cn(
-                        "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                        isActive("/payments") 
-                          ? "bg-primary bg-opacity-20 text-primary" 
-                          : "text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <BanknoteIcon className="w-5 h-5" />
-                      <span className="ml-3">Pagamentos</span>
-                    </div>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/clients">
-                    <div 
-                      className={cn(
-                        "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                        isActive("/clients") 
-                          ? "bg-primary bg-opacity-20 text-primary" 
-                          : "text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <Users className="w-5 h-5" />
-                      <span className="ml-3">Clientes</span>
-                    </div>
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/settings">
-                    <div 
-                      className={cn(
-                        "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                        isActive("/settings") 
-                          ? "bg-primary bg-opacity-20 text-primary" 
-                          : "text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <Settings className="w-5 h-5" />
-                      <span className="ml-3">Configurações</span>
-                    </div>
-                  </Link>
-                </li>
-              </>
-            )}
-            
-            {/* Menu dos barbeiros - apenas Dashboard e Relatórios */}
-            {isBarber && (
-              <li>
-                <Link href="/reports">
-                  <div 
-                    className={cn(
-                      "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                      isActive("/reports") 
-                        ? "bg-primary bg-opacity-20 text-primary" 
-                        : "text-foreground hover:bg-accent"
-                    )}
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    <span className="ml-3">Relatórios</span>
-                  </div>
-                </Link>
-              </li>
-            )}
-            
-            {/* Relatórios - para administrador e barbeiro */}
-            {isAdmin && (
-              <li>
-                <Link href="/reports">
-                  <div 
-                    className={cn(
-                      "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
-                      isActive("/reports") 
-                        ? "bg-primary bg-opacity-20 text-primary" 
-                        : "text-foreground hover:bg-accent"
-                    )}
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    <span className="ml-3">Relatórios</span>
-                  </div>
-                </Link>
-              </li>
-            )}
-          </ul>
+      </div>
+      <div className="flex-1 overflow-auto py-2">
+        <nav className="grid items-start px-2 text-sm font-medium">
+          {items.map((item, index) => (
+            <Button
+              key={index}
+              variant={isActive(item.path) ? "default" : "ghost"}
+              className={cn("justify-start", isActive(item.path) && "bg-primary text-primary-foreground")}
+              onClick={() => setLocation(item.path)}
+            >
+              {item.icon}
+              <span className="ml-2">{item.title}</span>
+            </Button>
+          ))}
         </nav>
       </div>
-      
-      <div className="mt-auto p-4 border-t border-border">
-        <div 
-          onClick={() => logout()} 
-          className="flex items-center text-muted-foreground hover:text-secondary transition duration-200 cursor-pointer"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="ml-3">Sair</span>
-        </div>
+      <div className="mt-auto border-t p-4">
+        {user && (
+          <div className="flex items-center gap-2 pb-4">
+            <Avatar>
+              <AvatarFallback>
+                {user.fullName ? getInitials(user.fullName) : 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid gap-0.5">
+              <div className="font-medium">{user.fullName}</div>
+              <div className="text-xs text-muted-foreground">
+                {user.role === "admin" ? "Administrador" : (user.role === "barber" ? "Barbeiro" : "Cliente")}
+              </div>
+            </div>
+          </div>
+        )}
+        <Separator className="my-4" />
+        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </Button>
       </div>
-    </aside>
+    </div>
   );
 }

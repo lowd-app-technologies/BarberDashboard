@@ -14,6 +14,10 @@ import Appointments from "@/pages/appointments";
 import Payments from "@/pages/payments";
 import Clients from "@/pages/clients";
 
+// Barber Pages
+import InviteBarber from "@/pages/barber/invite";
+import BarberRegister from "@/pages/barber/register";
+
 // Auth Pages
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -37,12 +41,13 @@ function Router() {
     role = 'barber';
   }
 
-  // Auth routes
-  if (location === "/login" || location === "/register") {
+  // Auth routes and Barber Registration routes
+  if (location === "/login" || location === "/register" || location === "/barber/register") {
     return (
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/barber/register" component={BarberRegister} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -58,6 +63,7 @@ function Router() {
         <Route path="/admin/appointments" component={Appointments} />
         <Route path="/admin/payments" component={Payments} />
         <Route path="/admin/clients" component={Clients} />
+        <Route path="/barber/invite" component={InviteBarber} />
         <Route component={NotFound} />
       </Switch>
     );
