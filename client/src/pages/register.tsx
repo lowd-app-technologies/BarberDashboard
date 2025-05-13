@@ -23,13 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Scissors } from "lucide-react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
+// Importações do Select removidas, pois agora o campo role é fixo como 'client'
 import { Separator } from "@/components/ui/separator";
 import { FcGoogle } from "react-icons/fc";
 
@@ -38,9 +32,8 @@ const registerSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres" }),
   fullName: z.string().min(3, { message: "O nome completo deve ter pelo menos 3 caracteres" }),
-  role: z.enum(["client", "barber"], { 
-    required_error: "Selecione um perfil" 
-  }),
+  // Barbeiros são cadastrados apenas pelo admin, então removemos a opção
+  role: z.literal("client"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -162,30 +155,7 @@ export default function Register() {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Perfil</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um perfil" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="client">Cliente</SelectItem>
-                        <SelectItem value="barber">Barbeiro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* O campo role é definido como 'client' por padrão */}
               
               <Button
                 type="submit"

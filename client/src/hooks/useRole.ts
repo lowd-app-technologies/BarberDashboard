@@ -7,7 +7,7 @@ export const useRole = (): Role => {
   
   if (!user) return null;
   
-  // Get role from user metadata
-  const userMetadata = user.user_metadata;
-  return (userMetadata?.role as Role) || 'client';
+  // Obter a função do usuário diretamente da propriedade role
+  // Adicionamos essa propriedade ao usuário estendido em useAuth.ts
+  return user.role || 'client';
 };

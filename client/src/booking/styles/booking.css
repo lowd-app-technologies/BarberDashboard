@@ -1,0 +1,35 @@
+.step-item {
+  text-align: center;
+  position: relative;
+  flex: 1;
+}
+
+.step-item:not(:last-child):after {
+  content: '';
+  position: absolute;
+  width: calc(100% - 40px);
+  height: 2px;
+  background-color: #333;
+  top: 18px;
+  left: calc(50% + 20px);
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  color: white;
+}
+
+.step-item.active .step-circle {
+  background-color: hsl(var(--primary));
+}
+
+.step-item.active .step-title {
+  color: hsl(var(--primary));
+}
