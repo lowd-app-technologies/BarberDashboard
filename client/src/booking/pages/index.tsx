@@ -223,15 +223,15 @@ export default function Booking() {
                     {services.map(svc => (
                       <div 
                         key={svc.id} 
-                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${service === svc.id.toString() ? 'border-primary bg-primary bg-opacity-10' : 'hover:border-gray-400'}`}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${service === svc.id.toString() ? 'border-primary bg-primary' : 'hover:border-gray-400'}`}
                         onClick={() => setService(svc.id.toString())}
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-medium">{svc.name}</h3>
-                          <span className="font-bold">{svc.price}</span>
+                          <h3 className={`font-medium ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.name}</h3>
+                          <span className={`font-bold ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.price}</span>
                         </div>
-                        <p className="text-sm text-gray-500 mb-2">{svc.description}</p>
-                        <div className="text-xs text-gray-400 flex items-center">
+                        <p className={`text-sm mb-2 ${service === svc.id.toString() ? 'text-white text-opacity-90' : 'text-gray-500'}`}>{svc.description}</p>
+                        <div className={`text-xs flex items-center ${service === svc.id.toString() ? 'text-white text-opacity-80' : 'text-gray-400'}`}>
                           <Clock className="h-3 w-3 mr-1" /> {svc.duration} min
                         </div>
                       </div>
@@ -318,29 +318,29 @@ export default function Booking() {
                         <h3 className="font-medium text-lg">Resumo do Agendamento</h3>
                       </div>
                       <div className="p-4 space-y-4">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Serviço:</span>
-                          <span className="font-medium">{selectedService?.name}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-opacity-60">Serviço</span>
+                          <span className="font-bold text-lg">{selectedService?.name}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Preço:</span>
-                          <span className="font-medium">{selectedService?.price}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-opacity-60">Preço</span>
+                          <span className="font-bold text-lg">{selectedService?.price}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Duração:</span>
-                          <span className="font-medium">{selectedService?.duration} min</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-opacity-60">Duração</span>
+                          <span className="font-bold">{selectedService?.duration} min</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Barbeiro:</span>
-                          <span className="font-medium">{barbers.find(b => b.id.toString() === barber)?.name}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-opacity-60">Barbeiro</span>
+                          <span className="font-bold">{barbers.find(b => b.id.toString() === barber)?.name}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Data:</span>
-                          <span className="font-medium">{date ? format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : ""}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-opacity-60">Data</span>
+                          <span className="font-bold">{date ? format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : ""}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Horário:</span>
-                          <span className="font-medium">{time}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white text-opacity-60">Horário</span>
+                          <span className="font-bold">{time}</span>
                         </div>
                       </div>
                     </div>
