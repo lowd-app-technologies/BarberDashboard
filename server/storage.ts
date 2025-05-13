@@ -129,6 +129,34 @@ export interface IStorage {
   getBarberInviteByToken(token: string): Promise<BarberInvite | undefined>;
   markBarberInviteAsUsed(id: number): Promise<BarberInvite | undefined>;
   getBarberInvitesByCreator(createdById: number): Promise<BarberInvite[]>;
+  
+  // Product methods
+  getProduct(id: number): Promise<Product | undefined>;
+  getAllProducts(): Promise<Product[]>;
+  getActiveProducts(): Promise<Product[]>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number): Promise<void>;
+  
+  // Product Commission methods
+  getProductCommission(id: number): Promise<ProductCommission | undefined>;
+  getProductCommissionByBarberAndProduct(barberId: number, productId: number): Promise<ProductCommission | undefined>;
+  getProductCommissionsByBarber(barberId: number): Promise<ProductCommission[]>;
+  createProductCommission(commission: InsertProductCommission): Promise<ProductCommission>;
+  updateProductCommission(id: number, commission: Partial<InsertProductCommission>): Promise<ProductCommission | undefined>;
+  deleteProductCommission(id: number): Promise<void>;
+  
+  // Product Sales methods
+  getProductSale(id: number): Promise<ProductSaleWithDetails | undefined>;
+  getProductSalesByBarber(barberId: number): Promise<ProductSaleWithDetails[]>;
+  getAllProductSales(): Promise<ProductSaleWithDetails[]>;
+  createProductSale(sale: InsertProductSale): Promise<ProductSale>;
+  updateProductSale(id: number, sale: Partial<InsertProductSale>): Promise<ProductSale | undefined>;
+  validateProductSale(id: number): Promise<ProductSale | undefined>;
+  deleteProductSale(id: number): Promise<void>;
+  
+  // Product with commissions
+  getProductsWithCommissionsForBarber(barberId: number): Promise<ProductWithCommission[]>;
 }
 
 // Memory Storage for Development/Testing
@@ -146,6 +174,9 @@ export class MemStorage implements IStorage {
   private clientNotesData: Map<number, ClientNote>;
   private clientFavoriteServicesData: Map<number, ClientFavoriteService>;
   private barberInvitesData: Map<number, BarberInvite>;
+  private productsData: Map<number, Product>;
+  private productCommissionsData: Map<number, ProductCommission>;
+  private productSalesData: Map<number, ProductSale>;
   
   private userIdCounter: number;
   private barberIdCounter: number;
@@ -160,6 +191,9 @@ export class MemStorage implements IStorage {
   private clientNoteIdCounter: number;
   private clientFavoriteServiceIdCounter: number;
   private barberInviteIdCounter: number;
+  private productIdCounter: number;
+  private productCommissionIdCounter: number;
+  private productSaleIdCounter: number;
 
   constructor() {
     this.usersData = new Map();
@@ -175,6 +209,9 @@ export class MemStorage implements IStorage {
     this.clientNotesData = new Map();
     this.clientFavoriteServicesData = new Map();
     this.barberInvitesData = new Map();
+    this.productsData = new Map();
+    this.productCommissionsData = new Map();
+    this.productSalesData = new Map();
     
     this.userIdCounter = 1;
     this.barberIdCounter = 1;
@@ -189,6 +226,9 @@ export class MemStorage implements IStorage {
     this.clientNoteIdCounter = 1;
     this.clientFavoriteServiceIdCounter = 1;
     this.barberInviteIdCounter = 1;
+    this.productIdCounter = 1;
+    this.productCommissionIdCounter = 1;
+    this.productSaleIdCounter = 1;
   }
 
   /* User Methods */
@@ -944,6 +984,228 @@ export class MemStorage implements IStorage {
     
     // Sort by creation date, most recent first
     return invites.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  /* Product Methods */
+  async getProduct(id: number): Promise<Product | undefined> {
+    return this.productsData.get(id);
+  }
+
+  async getAllProducts(): Promise<Product[]> {
+    return Array.from(this.productsData.values());
+  }
+
+  async getActiveProducts(): Promise<Product[]> {
+    return Array.from(this.productsData.values())
+      .filter(product => product.active)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const id = this.productIdCounter++;
+    const newProduct: Product = {
+      id,
+      createdAt: new Date(),
+      ...product,
+    };
+    
+    this.productsData.set(id, newProduct);
+    return newProduct;
+  }
+
+  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+    const existingProduct = this.productsData.get(id);
+    
+    if (!existingProduct) {
+      return undefined;
+    }
+    
+    const updatedProduct: Product = {
+      ...existingProduct,
+      ...product,
+    };
+    
+    this.productsData.set(id, updatedProduct);
+    return updatedProduct;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    this.productsData.delete(id);
+  }
+
+  /* Product Commission Methods */
+  async getProductCommission(id: number): Promise<ProductCommission | undefined> {
+    return this.productCommissionsData.get(id);
+  }
+
+  async getProductCommissionByBarberAndProduct(barberId: number, productId: number): Promise<ProductCommission | undefined> {
+    return Array.from(this.productCommissionsData.values()).find(
+      commission => commission.barberId === barberId && commission.productId === productId
+    );
+  }
+
+  async getProductCommissionsByBarber(barberId: number): Promise<ProductCommission[]> {
+    return Array.from(this.productCommissionsData.values())
+      .filter(commission => commission.barberId === barberId);
+  }
+
+  async createProductCommission(commission: InsertProductCommission): Promise<ProductCommission> {
+    const id = this.productCommissionIdCounter++;
+    const newCommission: ProductCommission = {
+      id,
+      createdAt: new Date(),
+      ...commission,
+    };
+    
+    this.productCommissionsData.set(id, newCommission);
+    return newCommission;
+  }
+
+  async updateProductCommission(id: number, commission: Partial<InsertProductCommission>): Promise<ProductCommission | undefined> {
+    const existingCommission = this.productCommissionsData.get(id);
+    
+    if (!existingCommission) {
+      return undefined;
+    }
+    
+    const updatedCommission: ProductCommission = {
+      ...existingCommission,
+      ...commission,
+    };
+    
+    this.productCommissionsData.set(id, updatedCommission);
+    return updatedCommission;
+  }
+
+  async deleteProductCommission(id: number): Promise<void> {
+    this.productCommissionsData.delete(id);
+  }
+
+  /* Product Sales Methods */
+  async getProductSale(id: number): Promise<ProductSaleWithDetails | undefined> {
+    const sale = this.productSalesData.get(id);
+    
+    if (!sale) {
+      return undefined;
+    }
+    
+    const product = await this.getProduct(sale.productId);
+    const barber = await this.getBarber(sale.barberId);
+    
+    if (!product || !barber) {
+      return undefined;
+    }
+    
+    return {
+      ...sale,
+      product,
+      barber
+    };
+  }
+
+  async getProductSalesByBarber(barberId: number): Promise<ProductSaleWithDetails[]> {
+    const sales: ProductSaleWithDetails[] = [];
+    
+    for (const sale of this.productSalesData.values()) {
+      if (sale.barberId === barberId) {
+        const product = await this.getProduct(sale.productId);
+        const barber = await this.getBarber(sale.barberId);
+        
+        if (product && barber) {
+          sales.push({
+            ...sale,
+            product,
+            barber
+          });
+        }
+      }
+    }
+    
+    // Sort by date, most recent first
+    return sales.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async getAllProductSales(): Promise<ProductSaleWithDetails[]> {
+    const sales: ProductSaleWithDetails[] = [];
+    
+    for (const sale of this.productSalesData.values()) {
+      const product = await this.getProduct(sale.productId);
+      const barber = await this.getBarber(sale.barberId);
+      
+      if (product && barber) {
+        sales.push({
+          ...sale,
+          product,
+          barber
+        });
+      }
+    }
+    
+    // Sort by date, most recent first
+    return sales.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async createProductSale(sale: InsertProductSale): Promise<ProductSale> {
+    const id = this.productSaleIdCounter++;
+    const newSale: ProductSale = {
+      id,
+      createdAt: new Date(),
+      validatedByAdmin: false,
+      ...sale,
+    };
+    
+    this.productSalesData.set(id, newSale);
+    return newSale;
+  }
+
+  async updateProductSale(id: number, sale: Partial<InsertProductSale>): Promise<ProductSale | undefined> {
+    const existingSale = this.productSalesData.get(id);
+    
+    if (!existingSale) {
+      return undefined;
+    }
+    
+    const updatedSale: ProductSale = {
+      ...existingSale,
+      ...sale,
+    };
+    
+    this.productSalesData.set(id, updatedSale);
+    return updatedSale;
+  }
+
+  async validateProductSale(id: number): Promise<ProductSale | undefined> {
+    const existingSale = this.productSalesData.get(id);
+    
+    if (!existingSale) {
+      return undefined;
+    }
+    
+    const validatedSale: ProductSale = {
+      ...existingSale,
+      validatedByAdmin: true,
+    };
+    
+    this.productSalesData.set(id, validatedSale);
+    return validatedSale;
+  }
+
+  async deleteProductSale(id: number): Promise<void> {
+    this.productSalesData.delete(id);
+  }
+
+  /* Products with Commissions */
+  async getProductsWithCommissionsForBarber(barberId: number): Promise<ProductWithCommission[]> {
+    const activeProducts = await this.getActiveProducts();
+    const commissions = await this.getProductCommissionsByBarber(barberId);
+    
+    return activeProducts.map(product => {
+      const commission = commissions.find(c => c.productId === product.id);
+      return {
+        ...product,
+        commission
+      };
+    });
   }
 }
 

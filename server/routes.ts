@@ -23,6 +23,9 @@ import {
   insertCompletedServiceSchema,
   insertActionLogSchema,
   insertBarberInviteSchema,
+  insertProductSchema,
+  insertProductCommissionSchema,
+  insertProductSaleSchema,
 } from "@shared/schema";
 import { createClient } from "@supabase/supabase-js";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
