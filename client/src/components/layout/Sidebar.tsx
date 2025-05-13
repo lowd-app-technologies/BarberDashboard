@@ -46,9 +46,9 @@ export function Sidebar() {
           <ul className="space-y-2">
             <li>
               <Link href="/">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -56,14 +56,14 @@ export function Sidebar() {
                 >
                   <BarChart className="w-5 h-5" />
                   <span className="ml-3">Dashboard</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/services">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/services") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -71,14 +71,14 @@ export function Sidebar() {
                 >
                   <Scissors className="w-5 h-5" />
                   <span className="ml-3">Serviços</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/barbers">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/barbers") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -86,14 +86,14 @@ export function Sidebar() {
                 >
                   <UserRound className="w-5 h-5" />
                   <span className="ml-3">Barbeiros</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/appointments">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/appointments") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -101,14 +101,14 @@ export function Sidebar() {
                 >
                   <Calendar className="w-5 h-5" />
                   <span className="ml-3">Agendamentos</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/payments">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/payments") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -116,14 +116,14 @@ export function Sidebar() {
                 >
                   <BanknoteIcon className="w-5 h-5" />
                   <span className="ml-3">Pagamentos</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/clients">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/clients") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -131,14 +131,14 @@ export function Sidebar() {
                 >
                   <Users className="w-5 h-5" />
                   <span className="ml-3">Clientes</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/reports">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/reports") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -146,14 +146,14 @@ export function Sidebar() {
                 >
                   <BarChart3 className="w-5 h-5" />
                   <span className="ml-3">Relatórios</span>
-                </a>
+                </div>
               </Link>
             </li>
             <li>
               <Link href="/settings">
-                <a 
+                <div 
                   className={cn(
-                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    "flex items-center px-4 py-3 rounded transition duration-200 cursor-pointer",
                     isActive("/settings") 
                       ? "bg-primary bg-opacity-20 text-primary" 
                       : "text-foreground hover:bg-accent"
@@ -161,7 +161,7 @@ export function Sidebar() {
                 >
                   <Settings className="w-5 h-5" />
                   <span className="ml-3">Configurações</span>
-                </a>
+                </div>
               </Link>
             </li>
           </ul>
@@ -169,13 +169,13 @@ export function Sidebar() {
       </div>
       
       <div className="mt-auto p-4 border-t border-border">
-        <button 
+        <div 
           onClick={() => logout()} 
-          className="flex items-center text-muted-foreground hover:text-secondary transition duration-200"
+          className="flex items-center text-muted-foreground hover:text-secondary transition duration-200 cursor-pointer"
         >
           <LogOut className="w-5 h-5" />
           <span className="ml-3">Sair</span>
-        </button>
+        </div>
       </div>
     </aside>
   );
