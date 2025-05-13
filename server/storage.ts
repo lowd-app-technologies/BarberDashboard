@@ -67,6 +67,7 @@ export interface IStorage {
   getAvailableTimeSlots(barberId: number, date: Date): Promise<string[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined>;
   deleteAppointment(id: number): Promise<void>;
 
   // Payment methods
@@ -481,6 +482,23 @@ export class MemStorage implements IStorage {
   
   async deleteAppointment(id: number): Promise<void> {
     this.appointmentsData.delete(id);
+  }
+  
+  async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> {
+    const appointment = this.appointmentsData.get(id);
+    if (!appointment) return undefined;
+    
+    // Validate status
+    if (!["pending", "confirmed", "completed", "canceled"].includes(status)) {
+      throw new Error(`Invalid status: ${status}`);
+    }
+    
+    const updatedAppointment = { 
+      ...appointment, 
+      status: status as "pending" | "confirmed" | "completed" | "canceled"
+    };
+    this.appointmentsData.set(id, updatedAppointment);
+    return updatedAppointment;
   }
 
   /* Payment Methods */
