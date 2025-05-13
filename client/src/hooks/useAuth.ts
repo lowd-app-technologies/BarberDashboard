@@ -68,14 +68,44 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      
+      // Chamar a nossa API em vez do Firebase
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Falha na autenticação");
+      }
+      
+      const data = await response.json();
+      
+      // Criar um objeto de usuário semelhante ao Firebase User
+      const extendedUser: ExtendedUser = {
+        ...data.user,
+        uid: data.user.id.toString(),
+        email: data.user.email,
+        displayName: data.user.fullName,
+        getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
+        role: data.user.role,
+        username: data.user.username,
+        fullName: data.user.fullName,
+      } as unknown as ExtendedUser;
+      
+      // Atualizar o estado do usuário
+      setUser(extendedUser);
       
       toast({
         title: "Login bem-sucedido",
         description: "Seja bem-vindo de volta!",
       });
 
-      setLocation('/');
+      setLocation('/dashboard');
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",
@@ -115,26 +145,44 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   const register = async (email: string, password: string, username: string, fullName: string, role: string) => {
     try {
       setLoading(true);
-      // Create the user
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update the user profile with additional information
-      await updateProfile(userCredential.user, {
-        displayName: fullName
+      // Registrar usuário através da nossa API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          username,
+          fullName,
+          role
+        }),
       });
       
-      // Store additional user data in database
-      // Here we would typically store the user in our database with role info
-      // For now, we'll just extend the user object
-      const extendedUser = userCredential.user as ExtendedUser;
-      extendedUser.username = username;
-      extendedUser.fullName = fullName;
-      extendedUser.role = role as UserRole;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Falha no registro");
+      }
       
-      // After setting up user in DB, we'd typically set custom claims via cloud functions
-      // For now, we'll just set the user state
+      const data = await response.json();
+      
+      // Criar um objeto de usuário semelhante ao Firebase User
+      const extendedUser: ExtendedUser = {
+        ...data.user,
+        uid: data.user.id.toString(),
+        email: data.user.email,
+        displayName: data.user.fullName,
+        getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
+        role: data.user.role,
+        username: data.user.username,
+        fullName: data.user.fullName,
+      } as unknown as ExtendedUser;
+      
+      // Atualizar o estado do usuário
       setUser(extendedUser);
-
+      
       toast({
         title: "Registro bem-sucedido",
         description: "Sua conta foi criada com sucesso!",

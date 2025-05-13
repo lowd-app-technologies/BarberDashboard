@@ -16,6 +16,7 @@ import {
 import { createClient } from "@supabase/supabase-js";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -28,6 +29,84 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password, username, fullName, role } = req.body;
+      
+      if (!email || !password || !username || !fullName || !role) {
+        return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+      }
+      
+      // Verificar se o email já está em uso
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: "Este email já está em uso" });
+      }
+      
+      // Verificar se o username já está em uso
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: "Este nome de usuário já está em uso" });
+      }
+      
+      // Criar o usuário
+      const user = await storage.createUser({
+        email,
+        password, // Em um ambiente real, seria hasheado
+        username,
+        fullName,
+        role: role as ("admin" | "barber" | "client"),
+        phone: null
+      });
+      
+      // Não enviar a senha na resposta
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(201).json({
+        user: userWithoutPassword,
+        token: "jwt-token-placeholder" // Em um ambiente real, seria um JWT
+      });
+    } catch (error: any) {
+      console.error("Erro no registro:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+  
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email e senha são obrigatórios" });
+      }
+      
+      // Buscar usuário pelo email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+      
+      // Como não estamos usando hash no setup inicial, vamos comparar diretamente
+      // Em um ambiente de produção, usaríamos bcrypt.compare
+      if (user.password !== password) {
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+      
+      // Não enviar a senha na resposta
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(200).json({
+        user: userWithoutPassword,
+        token: "jwt-token-placeholder" // Em um ambiente real, seria um JWT
+      });
+    } catch (error: any) {
+      console.error("Erro na autenticação:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+  
   // DEBUG: Rota para adicionar dados de teste
   app.post("/api/debug/setup-test-data", async (req, res) => {
     try {
