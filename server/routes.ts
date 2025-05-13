@@ -420,7 +420,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/barbers/top", async (req, res) => {
     try {
       const barbers = await storage.getTopBarbers();
-      res.json(barbers);
+      
+      // Adicionar informações de ganhos para cada barbeiro
+      // No mundo real, esses dados viriam do banco com base em pagamentos/serviços
+      const barbersWithEarnings = barbers.map(barber => {
+        // Adicionar um valor simulado de ganhos para demonstração
+        return {
+          ...barber,
+          earnings: Math.floor(Math.random() * 1000) + 500 // Valor entre 500 e 1500
+        };
+      });
+      
+      res.json(barbersWithEarnings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

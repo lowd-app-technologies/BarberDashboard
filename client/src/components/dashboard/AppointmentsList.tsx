@@ -48,8 +48,8 @@ export function AppointmentsList({
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
         {showAllLink && (
-          <Link href={showAllLink}>
-            <a className="text-primary text-sm hover:underline">Ver todos</a>
+          <Link href={showAllLink} className="text-primary text-sm hover:underline">
+            Ver todos
           </Link>
         )}
       </CardHeader>
