@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+import { NotificationsPanel } from "@/components/barber/NotificationsPanel";
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { formatDate, formatTime } from "@/lib/utils";
 import { 
   AlertDialog,
@@ -67,6 +70,7 @@ export default function Appointments() {
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
   const [barberFilter, setBarberFilter] = useState("all");
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Fetch appointments
   const { data: appointments, isLoading: isLoadingAppointments } = useQuery({
@@ -165,26 +169,34 @@ export default function Appointments() {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Sidebar />
       
+      {/* Header with Notifications */}
+      <div className="hidden md:block">
+        <Header />
+      </div>
+      
       {/* Mobile Header */}
       <header className="bg-card p-4 flex justify-between items-center md:hidden">
         <h1 className="text-primary text-xl font-bold">BarberPro</h1>
-        <button className="text-foreground">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="10" r="3" />
-            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {user?.role === "barber" && <NotificationsPanel />}
+          <button className="text-foreground">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
