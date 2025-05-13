@@ -20,6 +20,18 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  // Função para determinar o redirecionamento com base no papel do usuário (admin/barber)
+  const redirectUserBasedOnRole = (user: User) => {
+    if (user.role === 'admin') {
+      setLocation('/admin');
+    } else if (user.role === 'barber') {
+      setLocation('/barber');
+    } else {
+      // Fallback para a raiz (embora não deva ocorrer)
+      setLocation('/');
+    }
+  };
+
   // Login with email and password
   const login = async (email: string, password: string, isClientArea: boolean = false) => {
     try {
@@ -40,7 +52,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       if (isClientArea) {
         setLocation('/booking');
       } else {
-        setLocation('/dashboard');
+        redirectUserBasedOnRole(user);
       }
     } catch (error: any) {
       toast({
@@ -73,7 +85,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       if (isClientArea) {
         setLocation('/booking');
       } else {
-        setLocation('/dashboard');
+        redirectUserBasedOnRole(user);
       }
     } catch (error: any) {
       toast({
@@ -106,7 +118,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       if (isClientArea) {
         setLocation('/booking');
       } else {
-        setLocation('/dashboard');
+        redirectUserBasedOnRole(user);
       }
     } catch (error: any) {
       toast({
