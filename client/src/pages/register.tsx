@@ -30,6 +30,8 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { FcGoogle } from "react-icons/fc";
 
 const registerSchema = z.object({
   username: z.string().min(3, { message: "O nome de usuário deve ter pelo menos 3 caracteres" }),
@@ -45,7 +47,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { register, loginWithGoogle } = useAuth();
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -73,6 +76,16 @@ export default function Register() {
       // Error handling is done in the auth hook
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      // Error handling is done in the auth hook
+      setIsGoogleLoading(false);
     }
   };
 
@@ -180,6 +193,28 @@ export default function Register() {
                 disabled={isLoading}
               >
                 {isLoading ? "Cadastrando..." : "Cadastrar"}
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Ou continue com
+                  </span>
+                </div>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoading}
+              >
+                <FcGoogle className="h-5 w-5" />
+                {isGoogleLoading ? "Conectando..." : "Google"}
               </Button>
             </form>
           </Form>

@@ -23,6 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Scissors } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { FcGoogle } from "react-icons/fc";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -33,7 +35,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { login, loginWithGoogle } = useAuth();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -52,6 +55,16 @@ export default function Login() {
       // Error handling is done in the auth hook
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      // Error handling is done in the auth hook
+      setIsGoogleLoading(false);
     }
   };
 
@@ -106,6 +119,28 @@ export default function Login() {
                 disabled={isLoading}
               >
                 {isLoading ? "Entrando..." : "Entrar"}
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Ou continue com
+                  </span>
+                </div>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoading}
+              >
+                <FcGoogle className="h-5 w-5" />
+                {isGoogleLoading ? "Conectando..." : "Google"}
               </Button>
             </form>
           </Form>
