@@ -209,12 +209,15 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       // Atualizar o estado do usuário
       setUser(extendedUser);
       
+      // Salvar na sessão
+      sessionStorage.setItem('currentUser', JSON.stringify(extendedUser));
+      
       toast({
         title: "Registro bem-sucedido",
         description: "Sua conta foi criada com sucesso!",
       });
 
-      setLocation('/');
+      setLocation('/dashboard');
     } catch (error: any) {
       toast({
         title: "Erro ao criar conta",
@@ -229,8 +232,18 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   // Logout function
   const logout = async () => {
     try {
-      // Como não estamos mais usando Firebase, simplesmente limpamos o estado
+      // Chamar a API de logout
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      // Limpar os dados da sessão
+      sessionStorage.removeItem('currentUser');
+      
+      // Limpar o estado do usuário
       setUser(null);
+      
+      // Redirecionar para a página de login
       setLocation('/login');
       
       toast({

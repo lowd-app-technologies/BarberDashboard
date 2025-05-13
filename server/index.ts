@@ -2,10 +2,33 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import session from "express-session";
+import crypto from "crypto";
+
+// Declare session properties
+declare module "express-session" {
+  interface SessionData {
+    userId: number;
+    userRole: string;
+  }
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure session middleware
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'barbershop-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    }
+  })
+);
 
 app.use((req, res, next) => {
   const start = Date.now();

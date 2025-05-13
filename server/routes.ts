@@ -1,4 +1,13 @@
-import type { Express } from "express";
+import type { Express, Request as ExpressRequest, Response } from "express";
+import type { Session } from "express-session";
+
+// Extend the Express Request type to include session
+interface Request extends ExpressRequest {
+  session: Session & {
+    userId?: number;
+    userRole?: string;
+  };
+}
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -28,1003 +37,187 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Função para gerar hash de senha
+const hashPassword = async (password: string): Promise<string> => {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(password, salt);
+};
+
+// Função para verificar senha
+const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
+  return await bcrypt.compare(password, hashedPassword);
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth routes
-  // Rota para login social (Google)
-  app.post("/api/auth/social-login", async (req, res) => {
-    try {
-      const { email, name, provider } = req.body;
-      
-      if (!email || !name || !provider) {
-        return res.status(400).json({ message: "Dados insuficientes para login social" });
-      }
-      
-      // Verificar se o usuário já existe
-      let user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        // Criar novo usuário com dados do provedor social
-        const username = email.split('@')[0] + Math.floor(Math.random() * 1000); // Gerar username único
-        
-        user = await storage.createUser({
-          email,
-          password: crypto.randomBytes(20).toString('hex'), // Senha aleatória para contas sociais
-          username,
-          fullName: name,
-          role: "client", // Por padrão, usuários de login social são clientes
-          phone: null
-        });
-      }
-      
-      // Não enviar a senha na resposta
-      const { password: _, ...userWithoutPassword } = user;
-      
-      res.status(200).json({
-        user: userWithoutPassword,
-        token: "jwt-token-placeholder" // Em um ambiente real, seria um JWT
-      });
-    } catch (error: any) {
-      console.error("Erro no login social:", error);
-      res.status(500).json({ message: "Erro interno do servidor" });
-    }
-  });
-  
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const { email, password, username, fullName, role } = req.body;
-      
-      if (!email || !password || !username || !fullName || !role) {
-        return res.status(400).json({ message: "Todos os campos são obrigatórios" });
-      }
-      
-      // Verificar se o email já está em uso
-      const existingUserByEmail = await storage.getUserByEmail(email);
-      if (existingUserByEmail) {
-        return res.status(400).json({ message: "Este email já está em uso" });
-      }
-      
-      // Verificar se o username já está em uso
-      const existingUserByUsername = await storage.getUserByUsername(username);
-      if (existingUserByUsername) {
-        return res.status(400).json({ message: "Este nome de usuário já está em uso" });
-      }
-      
-      // Criar o usuário
-      const user = await storage.createUser({
-        email,
-        password, // Em um ambiente real, seria hasheado
-        username,
-        fullName,
-        role: role as ("admin" | "barber" | "client"),
-        phone: null
-      });
-      
-      // Não enviar a senha na resposta
-      const { password: _, ...userWithoutPassword } = user;
-      
-      res.status(201).json({
-        user: userWithoutPassword,
-        token: "jwt-token-placeholder" // Em um ambiente real, seria um JWT
-      });
-    } catch (error: any) {
-      console.error("Erro no registro:", error);
-      res.status(500).json({ message: "Erro interno do servidor" });
-    }
-  });
-  
-  app.post("/api/auth/login", async (req, res) => {
+  // Rotas de autenticação
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
       
       if (!email || !password) {
-        return res.status(400).json({ message: "Email e senha são obrigatórios" });
+        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
       }
       
       // Buscar usuário pelo email
       const user = await storage.getUserByEmail(email);
       
       if (!user) {
-        return res.status(401).json({ message: "Credenciais inválidas" });
+        return res.status(401).json({ message: 'Credenciais inválidas' });
       }
       
-      // Como não estamos usando hash no setup inicial, vamos comparar diretamente
-      // Em um ambiente de produção, usaríamos bcrypt.compare
-      if (user.password !== password) {
-        return res.status(401).json({ message: "Credenciais inválidas" });
+      // Verificar senha
+      const isPasswordValid = await comparePassword(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
       }
       
-      // Não enviar a senha na resposta
+      // Configurar sessão do usuário
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
+      }
+      
+      // Retornar dados do usuário (exceto a senha)
       const { password: _, ...userWithoutPassword } = user;
       
-      res.status(200).json({
-        user: userWithoutPassword,
-        token: "jwt-token-placeholder" // Em um ambiente real, seria um JWT
-      });
+      res.status(200).json({ user: userWithoutPassword });
     } catch (error: any) {
-      console.error("Erro na autenticação:", error);
-      res.status(500).json({ message: "Erro interno do servidor" });
+      console.error('Erro no login:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
     }
   });
   
-  // DEBUG: Rota para adicionar dados de teste
-  app.post("/api/debug/setup-test-data", async (req, res) => {
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
-      // Criar usuário admin
-      const admin = await storage.createUser({
-        username: "admin",
-        email: "admin@barberpro.com",
-        password: "senha123",
-        fullName: "Administrador",
-        role: "admin",
-        phone: "+351123456789"
-      });
+      const { email, password, username, fullName, role, phone } = req.body;
       
-      // Criar usuário cliente
-      const client = await storage.createUser({
-        username: "cliente",
-        email: "cliente@exemplo.com",
-        password: "senha123",
-        fullName: "Cliente Teste",
-        role: "client",
-        phone: "+351987654321"
-      });
-      
-      // Criar usuário barbeiro
-      const barberUser = await storage.createUser({
-        username: "barbeiro",
-        email: "barbeiro@barberpro.com",
-        password: "senha123",
-        fullName: "João Silva",
-        role: "barber",
-        phone: "+351456789123"
-      });
-      
-      // Criar registro de barbeiro
-      const barber = await storage.createBarber({
-        userId: barberUser.id,
-        nif: "123456789",
-        iban: "PT50000201231234567890154",
-        paymentPeriod: "monthly",
-        active: true
-      });
-      
-      // Criar serviços
-      const service1 = await storage.createService({
-        name: "Corte de Cabelo",
-        description: "Corte masculino básico",
-        price: "15.00",
-        duration: 30,
-        active: true
-      });
-      
-      const service2 = await storage.createService({
-        name: "Barba",
-        description: "Aparo e modelagem de barba",
-        price: "10.00",
-        duration: 20,
-        active: true
-      });
-      
-      const service3 = await storage.createService({
-        name: "Corte e Barba",
-        description: "Corte masculino completo com barba",
-        price: "22.00",
-        duration: 45,
-        active: true
-      });
-      
-      // Registrar comissões
-      await storage.createCommission({
-        barberId: barber.id,
-        serviceId: service1.id,
-        percentage: "70.00"
-      });
-      
-      await storage.createCommission({
-        barberId: barber.id,
-        serviceId: service2.id,
-        percentage: "70.00"
-      });
-      
-      await storage.createCommission({
-        barberId: barber.id,
-        serviceId: service3.id,
-        percentage: "70.00"
-      });
-      
-      res.json({ 
-        message: "Dados de teste criados com sucesso",
-        users: { admin, client, barberUser },
-        barber,
-        services: { service1, service2, service3 }
-      });
-    } catch (error: any) {
-      console.error("Erro ao criar dados de teste:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  // BARBER INVITE ROUTES
-  app.post("/api/invites/generate", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
+      if (!email || !password || !username || !fullName || !role) {
+        return res.status(400).json({ message: 'Dados incompletos' });
       }
       
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
+      // Verificar se o email já está em uso
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: 'Este email já está em uso' });
       }
       
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      // Verificar se o username já está em uso
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: 'Este nome de usuário já está em uso' });
       }
       
-      // Only admin users can create invites
-      if (user.role !== 'admin') {
-        return res.status(403).json({ message: "Only administrators can create barber invites" });
-      }
+      // Hash da senha
+      const hashedPassword = await hashPassword(password);
       
-      const { barberId } = req.body;
-      
-      if (!barberId) {
-        return res.status(400).json({ message: "Barber ID is required" });
-      }
-      
-      // Generate a random token
-      const randomBytes = crypto.randomBytes(32);
-      const inviteToken = randomBytes.toString('hex');
-      
-      // Set expiration date (48 hours from now)
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 48);
-      
-      // Create the invite
-      const invite = await storage.createBarberInvite({
-        token: inviteToken,
-        barberId,
-        createdById: user.id,
-        expiresAt
-      });
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: user.id,
-        action: "create",
-        entity: "barber_invite",
-        entityId: invite.id,
-        details: JSON.stringify({ barberId })
-      });
-      
-      // Return token and not the whole invite for security
-      res.status(201).json({ 
-        token: inviteToken,
-        expiresAt: invite.expiresAt 
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.get("/api/invites/validate", async (req, res) => {
-    try {
-      const { token: inviteToken } = req.query;
-      
-      if (!inviteToken || typeof inviteToken !== 'string') {
-        return res.status(400).json({ message: "Invalid token" });
-      }
-      
-      // Get the invite
-      const invite = await storage.getBarberInviteByToken(inviteToken);
-      
-      if (!invite) {
-        return res.status(404).json({ message: "Invite not found" });
-      }
-      
-      // Check if it's already used
-      if (invite.isUsed) {
-        return res.status(400).json({ message: "This invite has already been used" });
-      }
-      
-      // Check if it's expired
-      const now = new Date();
-      if (now > invite.expiresAt) {
-        return res.status(400).json({ message: "This invite has expired" });
-      }
-      
-      // Return barber ID only 
-      res.json({ 
-        valid: true,
-        barberId: invite.barberId,
-        expiresAt: invite.expiresAt
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.post("/api/invites/use", async (req, res) => {
-    try {
-      const { token: inviteToken, username, email, password, fullName } = req.body;
-      
-      if (!inviteToken || !username || !email || !password || !fullName) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-      
-      // Get the invite
-      const invite = await storage.getBarberInviteByToken(inviteToken);
-      
-      if (!invite) {
-        return res.status(404).json({ message: "Invite not found" });
-      }
-      
-      // Check if it's already used
-      if (invite.isUsed) {
-        return res.status(400).json({ message: "This invite has already been used" });
-      }
-      
-      // Check if it's expired
-      const now = new Date();
-      if (now > invite.expiresAt) {
-        return res.status(400).json({ message: "This invite has expired" });
-      }
-      
-      // Create the user with barber role
-      const { data: authData, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            full_name: fullName,
-            role: 'barber'
-          }
-        }
-      });
-      
-      if (error) {
-        return res.status(400).json({ message: error.message });
-      }
-      
-      // Create user in our database
+      // Criar usuário
       const user = await storage.createUser({
+        email,
+        password: hashedPassword,
         username,
-        email,
-        password: "", // We don't store the actual password
         fullName,
-        role: 'barber',
-        phone: null
-      });
-      
-      // Mark the invite as used
-      await storage.markBarberInviteAsUsed(invite.id);
-      
-      // Return success
-      res.status(201).json({ 
-        message: "Barber registered successfully",
-        barberId: invite.barberId
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  // CLIENT MANAGEMENT ROUTES
-  app.get("/api/clients", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Check permissions (only admin and barbers can view all clients)
-      if (user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to view clients" });
-      }
-      
-      const clients = await storage.getAllClientsWithProfiles();
-      res.json(clients);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.get("/api/clients/recent", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Check permissions (only admin and barbers can view clients)
-      if (user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to view clients" });
-      }
-      
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const recentClients = await storage.getRecentClients(limit);
-      
-      res.json(recentClients);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.get("/api/clients/:id", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const clientId = parseInt(req.params.id);
-      
-      // Check permissions (users can only view their own profile unless admin/barber)
-      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to view this client" });
-      }
-      
-      const client = await storage.getClientWithDetails(clientId);
-      if (!client) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-      
-      res.json(client);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.post("/api/clients/:id/profile", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const clientId = parseInt(req.params.id);
-      
-      // Check permissions (users can only update their own profile unless admin)
-      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin') {
-        return res.status(403).json({ message: "Not authorized to update this client profile" });
-      }
-      
-      // Check if client exists
-      const clientUser = await storage.getUser(clientId);
-      if (!clientUser) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-      
-      // Check if profile already exists
-      const existingProfile = await storage.getClientProfile(clientId);
-      
-      let profile;
-      if (existingProfile) {
-        // Update existing profile
-        profile = await storage.updateClientProfile(clientId, req.body);
-      } else {
-        // Create new profile
-        profile = await storage.createClientProfile({
-          userId: clientId,
-          ...req.body
-        });
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: user.id,
-        action: existingProfile ? "update" : "create",
-        entity: "client_profile",
-        entityId: profile.id,
-        details: JSON.stringify(req.body)
-      });
-      
-      res.json(profile);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.post("/api/clients/:id/preferences", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const clientId = parseInt(req.params.id);
-      
-      // Check permissions
-      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to update this client's preferences" });
-      }
-      
-      // Check if client exists
-      const clientUser = await storage.getUser(clientId);
-      if (!clientUser) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-      
-      // Check if preferences already exist
-      const existingPreferences = await storage.getClientPreferences(clientId);
-      
-      let preferences;
-      if (existingPreferences) {
-        // Update existing preferences
-        preferences = await storage.updateClientPreferences(clientId, req.body);
-      } else {
-        // Create new preferences
-        preferences = await storage.createClientPreferences({
-          clientId,
-          ...req.body
-        });
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: user.id,
-        action: existingPreferences ? "update" : "create",
-        entity: "client_preferences",
-        entityId: preferences.id,
-        details: JSON.stringify(req.body)
-      });
-      
-      res.json(preferences);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.post("/api/clients/:id/notes", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Only barbers and admins can add notes
-      if (user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to add client notes" });
-      }
-      
-      const clientId = parseInt(req.params.id);
-      
-      // Check if client exists
-      const clientUser = await storage.getUser(clientId);
-      if (!clientUser) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-      
-      // Get barber ID
-      let barberId;
-      if (user.role === 'barber') {
-        const barber = await storage.getBarber(user.id);
-        if (!barber) {
-          return res.status(404).json({ message: "Barber not found" });
-        }
-        barberId = barber.id;
-      } else {
-        // For admin, they need to specify the barber ID
-        if (!req.body.barberId) {
-          return res.status(400).json({ message: "Barber ID is required" });
-        }
-        barberId = req.body.barberId;
-      }
-      
-      // Create the note
-      const note = await storage.createClientNote({
-        clientId,
-        barberId,
-        note: req.body.note,
-        appointmentId: req.body.appointmentId || null
-      });
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: user.id,
-        action: "create",
-        entity: "client_note",
-        entityId: note.id,
-        details: JSON.stringify(req.body)
-      });
-      
-      res.status(201).json(note);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.post("/api/clients/:id/favorite-services", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const clientId = parseInt(req.params.id);
-      
-      // Check permissions
-      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to update favorite services for this client" });
-      }
-      
-      // Check if client exists
-      const clientUser = await storage.getUser(clientId);
-      if (!clientUser) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-      
-      // Check if service exists
-      const service = await storage.getService(req.body.serviceId);
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-      
-      // Add favorite service
-      const favoriteService = await storage.addClientFavoriteService({
-        clientId,
-        serviceId: req.body.serviceId
-      });
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: user.id,
-        action: "create",
-        entity: "client_favorite_service",
-        entityId: favoriteService.id,
-        details: JSON.stringify({ serviceId: req.body.serviceId })
-      });
-      
-      res.status(201).json(favoriteService);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.delete("/api/clients/:clientId/favorite-services/:id", async (req, res) => {
-    try {
-      // Check authentication from Supabase
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const token = authHeader.split(' ')[1];
-      const { data: authData, error } = await supabase.auth.getUser(token);
-      
-      if (error || !authData.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Get user from our database
-      const user = await storage.getUserByEmail(authData.user.email!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const clientId = parseInt(req.params.clientId);
-      const favoriteId = parseInt(req.params.id);
-      
-      // Check permissions
-      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
-        return res.status(403).json({ message: "Not authorized to remove favorite services for this client" });
-      }
-      
-      // Remove the favorite service
-      await storage.removeClientFavoriteService(favoriteId);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: user.id,
-        action: "delete",
-        entity: "client_favorite_service",
-        entityId: favoriteId
-      });
-      
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  const httpServer = createServer(app);
-
-  // AUTH ROUTES
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const data = insertUserSchema.parse(req.body);
-      const { email, password, username, fullName, role, phone } = data;
-      
-      // Create user in Supabase Auth
-      const { data: authData, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            full_name: fullName,
-            role
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Create user in our database
-      const user = await storage.createUser({
-        username,
-        email,
-        password: "", // We don't store the actual password
-        fullName,
-        role,
+        role: role as 'admin' | 'barber' | 'client',
         phone: phone || null
       });
       
-      res.status(201).json({ user, message: "User registered successfully" });
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      
-      const user = await storage.getUserByEmail(email);
-      if (!user) throw new Error("User not found");
-      
-      res.status(200).json({ user, session: data.session });
-    } catch (error: any) {
-      res.status(401).json({ message: error.message });
-    }
-  });
-
-  // USER ROUTES
-  app.get("/api/users/me", async (req, res) => {
-    try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        return res.status(401).json({ message: "Unauthorized" });
+      // Configurar sessão do usuário
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
       }
       
-      const token = authHeader.split(' ')[1];
-      const { data, error } = await supabase.auth.getUser(token);
+      // Retornar dados do usuário (exceto a senha)
+      const { password: _, ...userWithoutPassword } = user;
       
-      if (error || !data.user) {
-        return res.status(401).json({ message: "Unauthorized" });
+      res.status(201).json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Erro ao registrar:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    }
+  });
+  
+  app.post('/api/auth/social-login', async (req: Request, res: Response) => {
+    try {
+      const { email, name, provider } = req.body;
+      
+      if (!email || !name || !provider) {
+        return res.status(400).json({ message: 'Dados incompletos' });
       }
       
-      const user = await storage.getUserByEmail(data.user.email!);
+      // Verificar se o usuário já existe
+      let user = await storage.getUserByEmail(email);
+      
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        // Criar um username único baseado no nome
+        const baseUsername = name.toLowerCase().replace(/\s+/g, '.');
+        let username = baseUsername;
+        let counter = 1;
+        
+        // Verificar se o username já existe
+        while (await storage.getUserByUsername(username)) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
+        
+        // Criar um novo usuário
+        user = await storage.createUser({
+          email,
+          password: await hashPassword(crypto.randomBytes(16).toString('hex')), // Senha aleatória
+          username,
+          fullName: name,
+          role: 'client', // Usuários de login social são clientes por padrão
+          phone: null
+        });
       }
       
-      res.json(user);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // SERVICE ROUTES
-  app.get("/api/services", async (req, res) => {
-    try {
-      const services = await storage.getAllServices();
-      res.json(services);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/services/active", async (req, res) => {
-    try {
-      const services = await storage.getActiveServices();
-      res.json(services);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/services/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const service = await storage.getService(id);
-      
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
+      // Configurar sessão do usuário
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
       }
       
-      res.json(service);
+      // Retornar dados do usuário (exceto a senha)
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(200).json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Erro no login social:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    }
+  });
+  
+  app.post('/api/auth/logout', (req: Request, res: Response) => {
+    // Destruir a sessão
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Erro ao fazer logout', error: err.message });
+        }
+        
+        res.clearCookie('connect.sid'); // Limpar o cookie da sessão
+        res.status(200).json({ message: 'Logout realizado com sucesso' });
+      });
+    } else {
+      res.status(200).json({ message: 'Nenhuma sessão para encerrar' });
+    }
+  });
+
+  // Rotas de usuários
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      }));
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/services", async (req, res) => {
-    try {
-      const data = insertServiceSchema.parse(req.body);
-      const service = await storage.createService(data);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.userId || 1, // Default to admin if not provided
-        action: "create",
-        entity: "service",
-        entityId: service.id,
-        details: JSON.stringify(service)
-      });
-      
-      res.status(201).json(service);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/services/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const data = insertServiceSchema.partial().parse(req.body);
-      
-      const updatedService = await storage.updateService(id, data);
-      
-      if (!updatedService) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.userId || 1,
-        action: "update",
-        entity: "service",
-        entityId: id,
-        details: JSON.stringify(data)
-      });
-      
-      res.json(updatedService);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/services/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteService(id);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.userId || 1,
-        action: "delete",
-        entity: "service",
-        entityId: id
-      });
-      
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // BARBER ROUTES
+  // Rotas de barbeiros
   app.get("/api/barbers", async (req, res) => {
-    try {
-      const barbers = await storage.getAllBarbers();
-      res.json(barbers);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barbers/active", async (req, res) => {
     try {
       const barbers = await storage.getActiveBarbers();
       res.json(barbers);
@@ -1032,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
-
+  
   app.get("/api/barbers/top", async (req, res) => {
     try {
       const barbers = await storage.getTopBarbers();
@@ -1042,267 +235,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/barbers/:id", async (req, res) => {
+  // Rotas de serviços
+  app.get("/api/services", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const barber = await storage.getBarber(id);
-      
-      if (!barber) {
-        return res.status(404).json({ message: "Barber not found" });
-      }
-      
-      res.json(barber);
+      const services = await storage.getActiveServices();
+      res.json(services);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/barbers", async (req, res) => {
-    try {
-      const userData = {
-        username: req.body.username,
-        email: req.body.email,
-        password: req.body.password || "default", // Only used for new users
-        fullName: req.body.fullName,
-        phone: req.body.phone,
-        role: "barber"
-      };
-      
-      const user = await storage.createUser(userData);
-      
-      const barberData = {
-        userId: user.id,
-        nif: req.body.nif,
-        iban: req.body.iban,
-        paymentPeriod: req.body.paymentPeriod || "monthly",
-        active: req.body.active !== undefined ? req.body.active : true
-      };
-      
-      const barber = await storage.createBarber(barberData);
-      
-      // Create in Supabase Auth if password provided
-      if (req.body.password) {
-        await supabase.auth.signUp({
-          email: userData.email,
-          password: req.body.password,
-          options: {
-            data: {
-              username: userData.username,
-              full_name: userData.fullName,
-              role: "barber"
-            }
-          }
-        });
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "create",
-        entity: "barber",
-        entityId: barber.id,
-        details: JSON.stringify({ ...barberData, userId: user.id })
-      });
-      
-      const barberWithUser = await storage.getBarber(barber.id);
-      res.status(201).json(barberWithUser);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/barbers/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const barber = await storage.getBarber(id);
-      
-      if (!barber) {
-        return res.status(404).json({ message: "Barber not found" });
-      }
-      
-      // Update user data if provided
-      if (req.body.username || req.body.email || req.body.fullName || req.body.phone) {
-        const userData = {
-          username: req.body.username,
-          email: req.body.email,
-          fullName: req.body.fullName,
-          phone: req.body.phone
-        };
-        
-        await storage.updateUser(barber.userId, userData);
-      }
-      
-      // Update barber data
-      const barberData = {
-        nif: req.body.nif,
-        iban: req.body.iban,
-        paymentPeriod: req.body.paymentPeriod,
-        active: req.body.active
-      };
-      
-      await storage.updateBarber(id, barberData);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "update",
-        entity: "barber",
-        entityId: id,
-        details: JSON.stringify({ ...barberData, user: { 
-          username: req.body.username,
-          email: req.body.email,
-          fullName: req.body.fullName
-        }})
-      });
-      
-      const updatedBarber = await storage.getBarber(id);
-      res.json(updatedBarber);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/barbers/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const barber = await storage.getBarber(id);
-      
-      if (!barber) {
-        return res.status(404).json({ message: "Barber not found" });
-      }
-      
-      // Delete barber and its user
-      await storage.deleteBarber(id);
-      await storage.deleteUser(barber.userId);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "delete",
-        entity: "barber",
-        entityId: id
-      });
-      
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // COMMISSION ROUTES
-  app.get("/api/commissions", async (req, res) => {
-    try {
-      const commissions = await storage.getAllCommissions();
-      res.json(commissions);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/commissions/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const commission = await storage.getCommission(id);
-      
-      if (!commission) {
-        return res.status(404).json({ message: "Commission not found" });
-      }
-      
-      res.json(commission);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/commissions", async (req, res) => {
-    try {
-      const data = insertCommissionSchema.parse(req.body);
-      
-      // Check if commission already exists
-      const existingCommission = await storage.getCommissionByBarberAndService(
-        data.barberId,
-        data.serviceId
-      );
-      
-      if (existingCommission) {
-        return res.status(400).json({ 
-          message: "A commission already exists for this barber and service" 
-        });
-      }
-      
-      const commission = await storage.createCommission(data);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "create",
-        entity: "commission",
-        entityId: commission.id,
-        details: JSON.stringify(commission)
-      });
-      
-      res.status(201).json(commission);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/commissions/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const data = insertCommissionSchema.partial().parse(req.body);
-      
-      const updatedCommission = await storage.updateCommission(id, data);
-      
-      if (!updatedCommission) {
-        return res.status(404).json({ message: "Commission not found" });
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "update",
-        entity: "commission",
-        entityId: id,
-        details: JSON.stringify(data)
-      });
-      
-      res.json(updatedCommission);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/commissions/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteCommission(id);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "delete",
-        entity: "commission",
-        entityId: id
-      });
-      
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // APPOINTMENT ROUTES
+  // Rotas de agendamentos
   app.get("/api/appointments", async (req, res) => {
-    try {
-      const appointments = await storage.getAllAppointments();
-      res.json(appointments);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/appointments/upcoming", async (req, res) => {
     try {
       const appointments = await storage.getUpcomingAppointments();
       res.json(appointments);
@@ -1311,20 +255,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/appointments/available-slots", async (req, res) => {
+  app.post("/api/appointments", async (req, res) => {
     try {
-      const { barberId, date } = req.query;
+      const appointmentData = req.body;
       
-      if (!barberId || !date) {
-        return res.status(400).json({ message: "barberId and date are required" });
+      try {
+        // Validate input data using zod
+        const validatedData = insertAppointmentSchema.parse(appointmentData);
+        const appointment = await storage.createAppointment(validatedData);
+        res.status(201).json(appointment);
+      } catch (validationError: any) {
+        res.status(400).json({ message: "Dados inválidos", error: validationError.errors });
       }
-      
-      const slots = await storage.getAvailableTimeSlots(
-        parseInt(barberId as string),
-        new Date(date as string)
-      );
-      
-      res.json(slots);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1332,82 +274,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/appointments/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const appointment = await storage.getAppointment(id);
-      
-      if (!appointment) {
-        return res.status(404).json({ message: "Appointment not found" });
+      const appointment = await storage.getAppointment(parseInt(req.params.id));
+      if (appointment) {
+        res.json(appointment);
+      } else {
+        res.status(404).json({ message: "Agendamento não encontrado" });
       }
-      
-      res.json(appointment);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/appointments", async (req, res) => {
+  app.patch("/api/appointments/:id", async (req, res) => {
     try {
-      // Usando modo simples sem dependências em email/login para facilitar o teste
-      const { clientId, barberId, serviceId, date, status, notes } = req.body;
-
-      if (!clientId || !barberId || !serviceId || !date) {
-        return res.status(400).json({ message: "Missing required fields: clientId, barberId, serviceId, date" });
+      const id = parseInt(req.params.id);
+      const appointment = await storage.updateAppointment(id, req.body);
+      if (appointment) {
+        res.json(appointment);
+      } else {
+        res.status(404).json({ message: "Agendamento não encontrado" });
       }
-
-      // Verificar se o cliente existe
-      const client = await storage.getUser(Number(clientId));
-      let clientIdToUse = Number(clientId);
-      
-      // Se cliente não existir, criar um cliente temporário para testes
-      if (!client) {
-        const tempClient = await storage.createUser({
-          username: `temp-user-${clientId}`,
-          email: `temp-user-${clientId}@example.com`,
-          password: "password123",
-          fullName: "Cliente Temporário",
-          role: "client",
-          phone: null
-        });
-        clientIdToUse = tempClient.id;
-      }
-      
-      // Verificar se o barbeiro existe
-      const barber = await storage.getBarber(Number(barberId));
-      if (!barber) {
-        return res.status(404).json({ message: "Barber not found" });
-      }
-      
-      // Verificar se o serviço existe
-      const service = await storage.getService(Number(serviceId));
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-      
-      // Criar o agendamento
-      const appointmentData = {
-        clientId: clientIdToUse,
-        barberId: Number(barberId),
-        serviceId: Number(serviceId),
-        date: new Date(date),
-        status: status || "pending",
-        notes: notes || null
-      };
-      
-      const appointment = await storage.createAppointment(appointmentData);
-      
-      // Log da ação
-      await storage.createActionLog({
-        userId: clientIdToUse,
-        action: "create",
-        entity: "appointment",
-        entityId: appointment.id,
-        details: JSON.stringify(appointmentData)
-      });
-      
-      res.status(201).json(appointment);
     } catch (error: any) {
-      console.error("Error creating appointment:", error);
-      res.status(400).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -1415,365 +303,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { status } = req.body;
+      const appointment = await storage.updateAppointmentStatus(id, status);
+      if (appointment) {
+        res.json(appointment);
+      } else {
+        res.status(404).json({ message: "Agendamento não encontrado" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/barbers/:barberId/available-slots", async (req, res) => {
+    try {
+      const barberId = parseInt(req.params.barberId);
+      const dateParam = req.query.date as string;
       
-      if (!status || !["pending", "confirmed", "completed", "canceled"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+      if (!dateParam) {
+        return res.status(400).json({ message: "Data é obrigatória" });
       }
       
-      const updatedAppointment = await storage.updateAppointmentStatus(id, status);
-      
-      if (!updatedAppointment) {
-        return res.status(404).json({ message: "Appointment not found" });
-      }
-      
-      // If status is completed, create a completed service entry
-      if (status === "completed") {
-        const appointment = await storage.getAppointment(id);
-        
-        if (appointment) {
-          await storage.createCompletedService({
-            barberId: appointment.barberId,
-            serviceId: appointment.serviceId,
-            clientName: appointment.client.fullName,
-            price: appointment.service.price,
-            date: appointment.date,
-            appointmentId: appointment.id
-          });
-        }
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.userId || 1,
-        action: "update",
-        entity: "appointment",
-        entityId: id,
-        details: JSON.stringify({ status })
-      });
-      
-      res.json(updatedAppointment);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // PAYMENT ROUTES
-  app.get("/api/payments", async (req, res) => {
-    try {
-      const payments = await storage.getAllPayments();
-      res.json(payments);
+      const date = new Date(dateParam);
+      const availableSlots = await storage.getAvailableTimeSlots(barberId, date);
+      res.json(availableSlots);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.get("/api/payments/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const payment = await storage.getPayment(id);
-      
-      if (!payment) {
-        return res.status(404).json({ message: "Payment not found" });
-      }
-      
-      res.json(payment);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/payments", async (req, res) => {
-    try {
-      const data = insertPaymentSchema.parse(req.body);
-      const payment = await storage.createPayment(data);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "create",
-        entity: "payment",
-        entityId: payment.id,
-        details: JSON.stringify(payment)
-      });
-      
-      res.status(201).json(payment);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/payments/:id/pay", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updatedPayment = await storage.markPaymentAsPaid(id);
-      
-      if (!updatedPayment) {
-        return res.status(404).json({ message: "Payment not found" });
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.adminId || 1,
-        action: "update",
-        entity: "payment",
-        entityId: id,
-        details: "Payment marked as paid"
-      });
-      
-      res.json(updatedPayment);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // COMPLETED SERVICES ROUTES
-  app.post("/api/barber/completed-services", async (req, res) => {
-    try {
-      const data = insertCompletedServiceSchema.parse(req.body);
-      const completedService = await storage.createCompletedService(data);
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.barberId || data.barberId,
-        action: "create",
-        entity: "completed_service",
-        entityId: completedService.id,
-        details: JSON.stringify(completedService)
-      });
-      
-      res.status(201).json(completedService);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // BARBER DASHBOARD ROUTES
-  app.get("/api/barber/dashboard", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      
-      // Get monthly earnings
-      const monthlyEarnings = await storage.getBarberMonthlyEarnings(barberId);
-      
-      // Get services count
-      const servicesCount = await storage.getBarberServicesCount(barberId);
-      
-      // Get next payment date
-      const nextPayment = await storage.getBarberNextPayment(barberId);
-      
-      // Calculate previous month growth
-      const previousMonthEarnings = await storage.getBarberPreviousMonthEarnings(barberId);
-      const previousMonthGrowth = previousMonthEarnings > 0 
-        ? ((monthlyEarnings - previousMonthEarnings) / previousMonthEarnings) * 100 
-        : 0;
-      
-      // Get sales chart data
-      const salesChart = await storage.getBarberSalesChartData(barberId);
-      
-      res.json({
-        barber: {
-          monthlyEarnings,
-          servicesCount,
-          nextPaymentDate: nextPayment?.periodEnd || null,
-          previousMonthGrowth: Math.round(previousMonthGrowth)
-        },
-        salesChart
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barber/appointments", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      const appointments = await storage.getBarberAppointments(barberId);
-      res.json(appointments);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barber/appointments/today", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      const appointments = await storage.getBarberTodayAppointments(barberId);
-      res.json(appointments);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/barber/appointments/:id/status", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { status } = req.body;
-      
-      if (!status || !["completed", "canceled"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
-      }
-      
-      const updatedAppointment = await storage.updateAppointmentStatus(id, status);
-      
-      if (!updatedAppointment) {
-        return res.status(404).json({ message: "Appointment not found" });
-      }
-      
-      // If status is completed, create a completed service entry
-      if (status === "completed") {
-        const appointment = await storage.getAppointment(id);
-        
-        if (appointment) {
-          await storage.createCompletedService({
-            barberId: appointment.barberId,
-            serviceId: appointment.serviceId,
-            clientName: appointment.client.fullName,
-            price: appointment.service.price,
-            date: appointment.date,
-            appointmentId: appointment.id
-          });
-        }
-      }
-      
-      // Log the action
-      await storage.createActionLog({
-        userId: req.body.barberId || updatedAppointment.barberId,
-        action: "update",
-        entity: "appointment",
-        entityId: id,
-        details: JSON.stringify({ status })
-      });
-      
-      res.json(updatedAppointment);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barber/services/recent", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      const services = await storage.getBarberRecentServices(barberId);
-      res.json(services);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barber/services/history", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      const period = req.query.period as string || "month";
-      const services = await storage.getBarberServicesHistory(barberId, period);
-      res.json(services);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barber/payments/history", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      const period = req.query.period as string || "month";
-      const payments = await storage.getBarberPaymentsHistory(barberId, period);
-      res.json(payments);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/barber/earnings", async (req, res) => {
-    try {
-      const barberId = parseInt(req.query.barberId as string || "1");
-      const period = req.query.period as string || "month";
-      
-      // Get period earnings
-      const earnings = await storage.getBarberEarningsByPeriod(barberId, period);
-      
-      // Get previous period earnings
-      const previousEarnings = await storage.getBarberPreviousPeriodEarnings(barberId, period);
-      
-      // Calculate change percentage
-      const change = previousEarnings > 0 
-        ? ((earnings - previousEarnings) / previousEarnings) * 100
-        : 0;
-      
-      // Get chart data
-      const chartData = await storage.getBarberEarningsChartData(barberId, period);
-      
-      res.json({
-        total: earnings,
-        previous: previousEarnings,
-        change: Math.round(change),
-        chartData
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // ADMIN DASHBOARD ROUTES
-  app.get("/api/dashboard", async (req, res) => {
-    try {
-      const period = req.query.period as string || "week";
-      
-      // Get stats
-      const todaySales = await storage.getTodaySales();
-      const appointmentsCount = await storage.getAppointmentsCountByPeriod(period);
-      const pendingPayments = await storage.getPendingPaymentsTotal();
-      const newClients = await storage.getNewClientsCountByPeriod(period);
-      
-      // Get trends
-      const previousPeriodSales = await storage.getPreviousPeriodSales(period);
-      const currentPeriodSales = await storage.getCurrentPeriodSales(period);
-      const salesTrend = previousPeriodSales > 0 
-        ? ((currentPeriodSales - previousPeriodSales) / previousPeriodSales) * 100
-        : 0;
-      
-      const previousPeriodAppointments = await storage.getPreviousPeriodAppointmentsCount(period);
-      const appointmentsTrend = previousPeriodAppointments > 0 
-        ? ((appointmentsCount - previousPeriodAppointments) / previousPeriodAppointments) * 100
-        : 0;
-      
-      const previousPendingPayments = await storage.getPreviousPendingPaymentsTotal();
-      const pendingPaymentsTrend = previousPendingPayments > 0 
-        ? ((pendingPayments - previousPendingPayments) / previousPendingPayments) * 100
-        : 0;
-      
-      const previousNewClients = await storage.getPreviousPeriodNewClientsCount(period);
-      const newClientsTrend = previousNewClients > 0 
-        ? ((newClients - previousNewClients) / previousNewClients) * 100
-        : 0;
-      
-      // Get sales chart data
-      const salesChart = await storage.getSalesChartData(period);
-      
-      res.json({
-        stats: {
-          sales: todaySales,
-          appointments: appointmentsCount,
-          pendingPayments,
-          newClients,
-          salesTrend: Math.round(salesTrend),
-          appointmentsTrend: Math.round(appointmentsTrend),
-          pendingPaymentsTrend: Math.round(pendingPaymentsTrend),
-          newClientsTrend: Math.round(newClientsTrend)
-        },
-        salesChart
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/services/popular", async (req, res) => {
-    try {
-      const popularServices = await storage.getPopularServices();
-      res.json(popularServices);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+  const httpServer = createServer(app);
 
   return httpServer;
 }
