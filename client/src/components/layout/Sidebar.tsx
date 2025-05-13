@@ -90,6 +90,12 @@ export function Sidebar() {
         show: user?.role === "admin"
       },
       {
+        title: "Vendas de Produtos",
+        icon: <FileText className="h-5 w-5" />,
+        path: "/admin/product-sales",
+        show: user?.role === "admin"
+      },
+      {
         title: "Convidar Barbeiro",
         icon: <UserPlus className="h-5 w-5" />,
         path: "/admin/invite-barber",
@@ -112,9 +118,15 @@ export function Sidebar() {
         show: user?.role === "barber"
       },
       {
-        title: "Venda de Produtos",
+        title: "Produtos",
         icon: <Package className="h-5 w-5" />,
         path: "/barber/products",
+        show: user?.role === "barber"
+      },
+      {
+        title: "Vendas de Produtos",
+        icon: <FileText className="h-5 w-5" />,
+        path: "/barber/product-sales",
         show: user?.role === "barber"
       },
       {

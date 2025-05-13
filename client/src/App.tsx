@@ -74,6 +74,8 @@ function Router() {
         <Route path="/admin/appointments" component={Appointments} />
         <Route path="/admin/payments" component={Payments} />
         <Route path="/admin/clients" component={Clients} />
+        <Route path="/admin/products" component={Products} />
+        <Route path="/admin/product-sales" component={ProductSales} />
         <Route path="/admin/invite-barber" component={InviteBarber} />
         <Route path="/barber/invite" component={InviteBarber} />
         <Route component={NotFound} />
@@ -90,6 +92,8 @@ function Router() {
         <Route path="/barber/clients" component={Clients} />
         <Route path="/barber/payments" component={Payments} />
         <Route path="/barber/service-records" component={ServiceRecords} />
+        <Route path="/barber/products" component={Products} />
+        <Route path="/barber/product-sales" component={ProductSales} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -100,7 +104,9 @@ function Router() {
       location === "/services" || 
       location === "/barbers" || 
       location === "/clients" || 
-      location === "/payments") {
+      location === "/payments" ||
+      location === "/products" ||
+      location === "/product-sales") {
     return (
       <Switch>
         <Route path="/" component={Dashboard} />
@@ -109,6 +115,8 @@ function Router() {
         <Route path="/barbers" component={Barbers} />
         <Route path="/clients" component={Clients} />
         <Route path="/payments" component={Payments} />
+        <Route path="/products" component={Products} />
+        <Route path="/product-sales" component={ProductSales} />
         <Route component={NotFound} />
       </Switch>
     );
