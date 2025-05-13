@@ -156,6 +156,7 @@ export function ServiceForm({ serviceId, onSuccess, onCancel }: ServiceFormProps
                 <Textarea 
                   placeholder="Descreva o serviço em poucas palavras..." 
                   {...field} 
+                  value={field.value || ''}
                 />
               </FormControl>
               <FormMessage />

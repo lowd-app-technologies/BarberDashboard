@@ -59,6 +59,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDate, getInitials } from "@/lib/utils";
 import { Users, UserPlus, Search, MoreHorizontal, Calendar, Scissors, Heart, NotebookPen, UserCircle2, Clock, Phone, Mail, MapPin } from "lucide-react";
 
+// Interfaces
 interface ClientProfile {
   id: number;
   userId: number;
@@ -117,22 +118,28 @@ interface ClientFavoriteService {
 interface User {
   id: number;
   username: string;
-  email: string;
   password: string;
+  email: string;
   fullName: string;
   phone: string | null;
   role: "admin" | "barber" | "client";
+  active: boolean;
   createdAt: Date;
 }
 
-interface BarberWithUser {
+interface Barber {
   id: number;
   userId: number;
   nif: string;
-  iban: string;
-  paymentPeriod: "weekly" | "biweekly" | "monthly";
+  iban: string | null;
+  bio: string | null;
+  yearsOfExperience: number | null;
+  specialty: string | null;
   active: boolean;
   createdAt: Date;
+}
+
+interface BarberWithUser extends Barber {
   user: User;
 }
 
@@ -206,17 +213,22 @@ export default function Clients() {
   });
   
   // Handle search
-  const filteredClients = clients.filter((client: ClientWithProfile) => {
-    if (!searchTerm) return true;
+  const getFilteredClients = () => {
+    if (!searchTerm) return clients;
     
     const searchLower = searchTerm.toLowerCase();
-    return (
-      client.fullName.toLowerCase().includes(searchLower) ||
-      client.email.toLowerCase().includes(searchLower) ||
-      (client.phone && client.phone.toLowerCase().includes(searchLower)) ||
-      (client.profile.city && client.profile.city.toLowerCase().includes(searchLower))
-    );
-  });
+    return clients.filter((client: ClientWithProfile) => {
+      return (
+        client.fullName.toLowerCase().includes(searchLower) ||
+        client.email.toLowerCase().includes(searchLower) ||
+        (client.phone && client.phone.toLowerCase().includes(searchLower)) ||
+        (client.profile.city && client.profile.city.toLowerCase().includes(searchLower))
+      );
+    });
+  };
+  
+  // Calculate filtered clients outside of render
+  const filteredClients = getFilteredClients();
   
   // Show client details
   const handleViewClient = (clientId: number) => {
@@ -261,20 +273,26 @@ export default function Clients() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Recent Clients</CardTitle>
+              <CardTitle className="text-lg font-medium">New Clients (30d)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{recentClients.length}</div>
-              <p className="text-xs text-muted-foreground">New clients in last 30 days</p>
+              <div className="text-3xl font-bold">
+                {clients.filter(c => {
+                  const thirtyDaysAgo = new Date();
+                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                  return new Date(c.createdAt) >= thirtyDaysAgo;
+                }).length}
+              </div>
+              <p className="text-xs text-muted-foreground">Clients added in the last 30 days</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Upcoming Appointments</CardTitle>
+              <CardTitle className="text-lg font-medium">Average Visits</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">Scheduled for next 7 days</p>
+              <div className="text-3xl font-bold">2.4</div>
+              <p className="text-xs text-muted-foreground">Avg. visits per client</p>
             </CardContent>
           </Card>
         </div>
@@ -283,8 +301,7 @@ export default function Clients() {
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              type="search"
-              placeholder="Search clients by name, email, or phone..."
+              placeholder="Search clients..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -292,24 +309,23 @@ export default function Clients() {
           </div>
         </div>
         
-        <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
             <TabsTrigger value="all">All Clients</TabsTrigger>
             <TabsTrigger value="recent">Recent Clients</TabsTrigger>
             <TabsTrigger value="favorites">Favorites</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="all">
+          <TabsContent value="all" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>All Clients</CardTitle>
+                <CardTitle>Client List</CardTitle>
                 <CardDescription>
-                  View and manage all your clients
+                  Manage and view all your clients
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoadingClients ? (
-                  <div className="flex justify-center items-center h-48">
+                  <div className="flex justify-center py-8">
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                   </div>
                 ) : filteredClients.length === 0 ? (
@@ -317,136 +333,166 @@ export default function Clients() {
                     <Users className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
                     <h3 className="mt-4 text-lg font-semibold">No clients found</h3>
                     <p className="text-muted-foreground">
-                      {searchTerm ? "No results match your search criteria." : "Start by adding a new client."}
+                      {searchTerm ? "Try a different search term" : "Add clients to get started"}
                     </p>
                   </div>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Client</TableHead>
-                          <TableHead>Contact Info</TableHead>
-                          <TableHead>Last Visit</TableHead>
-                          <TableHead>Preferred Barber</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredClients.map((client) => (
-                          <TableRow key={client.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center space-x-3">
-                                <Avatar>
-                                  <AvatarFallback>{getInitials(client.fullName)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-semibold">{client.fullName}</div>
-                                  <div className="text-sm text-muted-foreground">{client.profile?.city || "No location"}</div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <div className="flex items-center">
-                                  <Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                                  <span className="text-sm">{client.email}</span>
-                                </div>
-                                {client.phone && (
-                                  <div className="flex items-center mt-1">
-                                    <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                                    <span className="text-sm">{client.phone}</span>
-                                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Last Visit</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => (
+                        <TableRow key={client.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              <Avatar className="h-8 w-8 mr-2">
+                                <AvatarImage src="" />
+                                <AvatarFallback>{getInitials(client.fullName)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                {client.fullName}
+                                {client.profile.notes && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="ml-2 text-xs">Note</Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="max-w-xs">{client.profile.notes}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              {client.profile?.lastVisit ? (
-                                <div className="flex items-center">
-                                  <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                                  <span>{formatDate(client.profile.lastVisit)}</span>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">Never</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {/* Since ClientWithProfile doesn't have preferences property, use a placeholder */}
-                              <span className="text-muted-foreground text-sm">Not specified</span>
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => handleViewClient(client.id)}>
-                                    <UserCircle2 className="mr-2 h-4 w-4" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    Schedule Appointment
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <NotebookPen className="mr-2 h-4 w-4" />
-                                    Add Note
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive">
-                                    Delete Client
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{client.email}</div>
+                              {client.phone && <div className="text-muted-foreground">{client.phone}</div>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {client.profile.city ? (
+                              client.profile.city
+                            ) : (
+                              <span className="text-muted-foreground">Not specified</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {client.profile.lastVisit ? (
+                              formatDate(client.profile.lastVisit)
+                            ) : (
+                              <span className="text-muted-foreground">Never</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleViewClient(client.id)}>
+                                  View details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>Edit client</DropdownMenuItem>
+                                <DropdownMenuItem>Add note</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem>Book appointment</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Showing {filteredClients.length} of {clients.length} clients
-                </div>
-              </CardFooter>
             </Card>
           </TabsContent>
           
-          <TabsContent value="recent">
+          <TabsContent value="recent" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Recent Clients</CardTitle>
                 <CardDescription>
-                  View your recent clients and their last appointments
+                  Clients who have recently visited your shop
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoadingRecentClients ? (
-                  <div className="flex justify-center items-center h-48">
+                  <div className="flex justify-center py-8">
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                   </div>
                 ) : recentClients.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
                     <h3 className="mt-4 text-lg font-semibold">No recent clients</h3>
-                    <p className="text-muted-foreground">No clients have visited recently.</p>
+                    <p className="text-muted-foreground">
+                      Clients who visit will appear here
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {/* Recent clients grid */}
+                    {recentClients.map((client) => (
+                      <Card key={client.id} className="overflow-hidden">
+                        <CardHeader className="p-4">
+                          <div className="flex items-center space-x-2">
+                            <Avatar>
+                              <AvatarImage src="" />
+                              <AvatarFallback>{getInitials(client.fullName)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <CardTitle className="text-base">{client.fullName}</CardTitle>
+                              <CardDescription>{client.email}</CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <div className="text-sm space-y-2">
+                            {client.profile.lastVisit && (
+                              <div className="flex items-center text-muted-foreground">
+                                <Clock className="mr-2 h-4 w-4" />
+                                <span>Last visit: {formatDate(client.profile.lastVisit)}</span>
+                              </div>
+                            )}
+                            {client.profile.city && (
+                              <div className="flex items-center text-muted-foreground">
+                                <MapPin className="mr-2 h-4 w-4" />
+                                <span>{client.profile.city}</span>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                        <CardFooter className="border-t p-4">
+                          <Button 
+                            variant="ghost" 
+                            className="w-full" 
+                            onClick={() => handleViewClient(client.id)}
+                          >
+                            View Details
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="favorites">
+          <TabsContent value="favorites" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Favorite Clients</CardTitle>
@@ -505,206 +551,188 @@ export default function Clients() {
                           <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                           <span>
                             {clientDetails.profile.address}, 
-                            {clientDetails.profile.city}, 
-                            {clientDetails.profile.postalCode}
+                            {clientDetails.profile.city && ` ${clientDetails.profile.city}`}
+                            {clientDetails.profile.postalCode && ` ${clientDetails.profile.postalCode}`}
                           </span>
                         </div>
                       )}
                       {clientDetails.profile.birthdate && (
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>Born: {formatDate(clientDetails.profile.birthdate)}</span>
-                        </div>
-                      )}
-                      {clientDetails.profile.lastVisit && (
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>Last visit: {formatDate(clientDetails.profile.lastVisit)}</span>
+                          <span>Birthdate: {formatDate(clientDetails.profile.birthdate)}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <Button>Edit Profile</Button>
-                </div>
-                
-                {/* Client Preferences */}
-                <div className="flex-1 space-y-4">
+                  
+                  {/* Client Preferences */}
                   <div className="border rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-4">Client Preferences</h3>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                    <h3 className="text-lg font-semibold mb-4">Preferences</h3>
+                    {clientDetails.preferences ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <span className="text-sm">Hair Type:</span>
-                          <p className="font-medium">
-                            {clientDetails.preferences?.hairType || "Not specified"}
-                          </p>
+                          <h4 className="font-medium mb-2">Hair & Beard</h4>
+                          <ul className="space-y-2">
+                            <li className="flex items-start">
+                              <span className="font-medium mr-2">Hair Type:</span>
+                              <span>{clientDetails.preferences.hairType || "Not specified"}</span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-medium mr-2">Beard Type:</span>
+                              <span>{clientDetails.preferences.beardType || "Not specified"}</span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-medium mr-2">Preferred Style:</span>
+                              <span>{clientDetails.preferences.preferredHairStyle || "Not specified"}</span>
+                            </li>
+                          </ul>
                         </div>
                         <div>
-                          <span className="text-sm">Beard Type:</span>
-                          <p className="font-medium">
-                            {clientDetails.preferences?.beardType || "Not specified"}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-sm">Preferred Hair Style:</span>
-                          <p className="font-medium">
-                            {clientDetails.preferences?.preferredHairStyle || "Not specified"}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-sm">Preferred Beard Style:</span>
-                          <p className="font-medium">
-                            {clientDetails.preferences?.preferredBeardStyle || "Not specified"}
-                          </p>
+                          <h4 className="font-medium mb-2">Scheduling</h4>
+                          <ul className="space-y-2">
+                            <li className="flex items-start">
+                              <span className="font-medium mr-2">Preferred Day:</span>
+                              <span>
+                                {clientDetails.preferences.preferredDayOfWeek !== null 
+                                  ? new Date(0, 0, clientDetails.preferences.preferredDayOfWeek).toLocaleString('en-US', { weekday: 'long' })
+                                  : "Not specified"}
+                              </span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-medium mr-2">Preferred Time:</span>
+                              <span>{clientDetails.preferences.preferredTimeOfDay || "Not specified"}</span>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="font-medium mr-2">Allergies:</span>
+                              <span>{clientDetails.preferences.allergies || "None"}</span>
+                            </li>
+                          </ul>
                         </div>
                       </div>
-                      
-                      <div className="border-t pt-4">
-                        <h4 className="font-medium mb-2">Scheduling Preferences</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-sm">Preferred Day:</span>
-                            <p className="font-medium">
-                              {clientDetails.preferences?.preferredDayOfWeek ? 
-                                ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][clientDetails.preferences.preferredDayOfWeek] : 
-                                "Not specified"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm">Preferred Time:</span>
-                            <p className="font-medium">
-                              {clientDetails.preferences?.preferredTimeOfDay || "Not specified"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm">Allergies:</span>
-                            <p className="font-medium">
-                              {clientDetails.preferences?.allergies || "None reported"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 flex justify-end">
-                    <Button variant="outline" size="sm">Edit Preferences</Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Appointment History */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Appointment History</h3>
-                {clientDetails.appointments && clientDetails.appointments.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Service</TableHead>
-                          <TableHead>Barber</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {/* Appointments here */}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 border rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-4">No appointments found</p>
-                    <Button>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Schedule Appointment
-                    </Button>
-                  </div>
-                )}
-              </div>
-              
-              {/* Notes and Favorites */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-4">Client Notes</h3>
-                  {clientDetails.notes && clientDetails.notes.length > 0 ? (
-                    <div className="space-y-3">
-                      {/* Notes here */}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">No notes yet</p>
-                    </div>
-                  )}
-                  <div className="mt-3">
-                    <Button variant="outline" size="sm" className="w-full">Add Note</Button>
+                    ) : (
+                      <div className="text-muted-foreground">No preferences set</div>
+                    )}
                   </div>
                 </div>
                 
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-4">Favorite Services</h3>
-                  {clientDetails.favoriteServices && clientDetails.favoriteServices.length > 0 ? (
-                    <div className="space-y-3">
-                      {clientDetails.favoriteServices.map(favorite => (
-                        <div key={favorite.id} className="flex justify-between items-center p-2 border rounded-md">
-                          <div className="flex items-center">
-                            <Scissors className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{favorite.service.name}</span>
+                <div className="flex-1 space-y-4">
+                  {/* Recent Appointments */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Recent Appointments</h3>
+                      <Button variant="outline" size="sm">Book New</Button>
+                    </div>
+                    
+                    {clientDetails.appointments.length > 0 ? (
+                      <div className="space-y-3">
+                        {clientDetails.appointments.slice(0, 3).map(appointment => (
+                          <div key={appointment.id} className="flex justify-between p-2 bg-muted/50 rounded">
+                            <div>
+                              <div className="font-medium">{appointment.service.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                with {appointment.barber.user.fullName}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">{formatDate(appointment.date)}</div>
+                              <div className="text-xs text-muted-foreground">
+                                Status: {appointment.status}
+                              </div>
+                            </div>
                           </div>
-                          <Badge variant="outline">${favorite.service.price}</Badge>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">No appointment history</div>
+                    )}
+                  </div>
+                  
+                  {/* Favorite Services */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-4">Favorite Services</h3>
+                    
+                    {clientDetails.favoriteServices.length > 0 ? (
+                      <div className="space-y-2">
+                        {clientDetails.favoriteServices.map(favorite => (
+                          <div key={favorite.id} className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <Scissors className="h-4 w-4 mr-2 text-muted-foreground" />
+                              <span>{favorite.service.name}</span>
+                            </div>
+                            <Badge>{favorite.service.price}€</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">No favorite services</div>
+                    )}
+                  </div>
+                  
+                  {/* Notes */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Notes</h3>
+                      <Button variant="outline" size="sm">Add Note</Button>
                     </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">No favorite services</p>
-                    </div>
-                  )}
-                  <div className="mt-3">
-                    <Button variant="outline" size="sm" className="w-full">Add Favorite Service</Button>
+                    
+                    {clientDetails.notes.length > 0 ? (
+                      <div className="space-y-3">
+                        {clientDetails.notes.map(note => (
+                          <div key={note.id} className="border-l-2 border-primary pl-3">
+                            <p className="text-sm">{note.note}</p>
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                by Barber #{note.barberId}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(note.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">No notes yet</div>
+                    )}
                   </div>
                 </div>
               </div>
+            </div>
+          ) : isLoadingClientDetails ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <p>No client details available</p>
+            <div className="text-center py-8 text-muted-foreground">
+              Client details not available
             </div>
           )}
-          
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowClientDetailsDialog(false)}>Close</Button>
-            <Button>
-              <Calendar className="mr-2 h-4 w-4" />
-              Schedule Appointment
+            <Button variant="outline" onClick={() => setShowClientDetailsDialog(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
       {/* Add Client Dialog */}
+      {/* This would be implemented with a form for adding new clients */}
       <Dialog open={showAddClientDialog} onOpenChange={setShowAddClientDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Client</DialogTitle>
             <DialogDescription>
-              Enter the details of the new client
+              Enter the details for the new client
             </DialogDescription>
           </DialogHeader>
-          
-          {/* Add client form would go here */}
           <div className="py-4">
-            <p className="text-center text-muted-foreground">Form will be implemented here</p>
+            <p className="text-center text-muted-foreground">
+              This feature is coming soon
+            </p>
           </div>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddClientDialog(false)}>
-              Cancel
-            </Button>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Client
-            </Button>
+            <Button variant="outline" onClick={() => setShowAddClientDialog(false)}>Cancel</Button>
+            <Button>Add Client</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
