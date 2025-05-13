@@ -180,7 +180,9 @@ export default function ProductSales() {
 
   // Efeito para atualizar o nome do cliente quando um cliente for selecionado
   const watchClientId = form.watch('clientId');
-  const selectedClient = clients?.find(c => c.id === watchClientId);
+  const selectedClient = Array.isArray(clients) 
+    ? clients.find(c => c.id === watchClientId)
+    : null;
 
   if (selectedClient && !form.getValues('clientName')) {
     form.setValue('clientName', selectedClient.fullName);
@@ -539,11 +541,11 @@ export default function ProductSales() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="">Sem cliente registrado</SelectItem>
-                        {clients?.map((client) => (
+                        {Array.isArray(clients) ? clients.map((client) => (
                           <SelectItem key={client.id} value={client.id.toString()}>
                             {client.fullName}
                           </SelectItem>
-                        ))}
+                        )) : null}
                       </SelectContent>
                     </Select>
                     <FormDescription>
