@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -223,13 +224,15 @@ export default function Clients() {
   };
   
   // Error handling
-  if (clientsError) {
-    toast({
-      title: "Error loading clients",
-      description: "There was a problem loading the client list.",
-      variant: "destructive",
-    });
-  }
+  useEffect(() => {
+    if (clientsError) {
+      toast({
+        title: "Error loading clients",
+        description: "There was a problem loading the client list.",
+        variant: "destructive",
+      });
+    }
+  }, [clientsError, toast]);
   
   return (
     <div className="container mx-auto py-8">

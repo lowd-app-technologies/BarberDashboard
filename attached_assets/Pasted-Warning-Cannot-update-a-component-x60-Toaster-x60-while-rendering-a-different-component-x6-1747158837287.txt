@@ -1,0 +1,50 @@
+Warning: Cannot update a component (&#x60;Toaster&#x60;) while rendering a different component (&#x60;Clients&#x60;). To locate the bad setState() call inside &#x60;Clients&#x60;, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
+    at Clients (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/pages/clients.tsx:75:39)
+    at Route (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:323:16)
+    at Switch (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:379:17)
+    at Router (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/App.tsx?v=KcNP0XmxbzUyIU4GFifW:42:22)
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at TooltipProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3d0b2431:60:5)
+    at QueryClientProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3d0b2431:2805:3)
+    at AuthProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/hooks/useAuth.ts:6:27)
+    at V (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:44:25)
+    at J (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:42:18)
+    at App
+Too many re-renders. React limits the number of renders to prevent an infinite loop.
+Too many re-renders. React limits the number of renders to prevent an infinite loop.
+The above error occurred in the <Clients> component:
+
+    at Clients (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/pages/clients.tsx:75:39)
+    at Route (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:323:16)
+    at Switch (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:379:17)
+    at Router (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/App.tsx?v=KcNP0XmxbzUyIU4GFifW:42:22)
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at TooltipProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3d0b2431:60:5)
+    at QueryClientProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3d0b2431:2805:3)
+    at AuthProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/hooks/useAuth.ts:6:27)
+    at V (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:44:25)
+    at J (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:42:18)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at Clients (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/pages/clients.tsx:75:39)
+at Route (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:323:16)
+at Switch (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:379:17)
+at Router (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/App.tsx?v=KcNP0XmxbzUyIU4GFifW:42:22)
+at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+at TooltipProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3d0b2431:60:5)
+at QueryClientProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3d0b2431:2805:3)
+at AuthProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/hooks/useAuth.ts:6:27)
+at V (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:44:25)
+at J (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:42:18)
+at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Too many re-renders. React limits the number of renders to prevent an infinite loop.
