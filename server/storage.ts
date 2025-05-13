@@ -605,7 +605,19 @@ export class MemStorage implements IStorage {
   async createClientProfile(profileData: InsertClientProfile): Promise<ClientProfile> {
     const id = this.clientProfileIdCounter++;
     const createdAt = new Date();
-    const profile: ClientProfile = { ...profileData, id, createdAt };
+    // Ensure all required fields have default values
+    const profile: ClientProfile = {
+      ...profileData,
+      id,
+      createdAt,
+      birthdate: profileData.birthdate || null,
+      address: profileData.address || null,
+      city: profileData.city || null,
+      postalCode: profileData.postalCode || null,
+      referralSource: profileData.referralSource || null,
+      notes: profileData.notes || null, 
+      lastVisit: profileData.lastVisit || null
+    };
     this.clientProfilesData.set(id, profile);
     return profile;
   }
@@ -635,7 +647,21 @@ export class MemStorage implements IStorage {
     const id = this.clientPreferenceIdCounter++;
     const createdAt = new Date();
     const updatedAt = createdAt;
-    const preferences: ClientPreference = { ...preferencesData, id, createdAt, updatedAt };
+    // Ensure all required fields have default values
+    const preferences: ClientPreference = {
+      ...preferencesData,
+      id,
+      createdAt,
+      updatedAt,
+      preferredBarberId: preferencesData.preferredBarberId || null,
+      preferredDayOfWeek: preferencesData.preferredDayOfWeek || null,
+      preferredTimeOfDay: preferencesData.preferredTimeOfDay || null,
+      hairType: preferencesData.hairType || null,
+      beardType: preferencesData.beardType || null,
+      preferredHairStyle: preferencesData.preferredHairStyle || null,
+      preferredBeardStyle: preferencesData.preferredBeardStyle || null,
+      allergies: preferencesData.allergies || null
+    };
     this.clientPreferencesData.set(id, preferences);
     return preferences;
   }

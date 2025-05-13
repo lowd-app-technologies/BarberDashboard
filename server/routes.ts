@@ -26,6 +26,422 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // CLIENT MANAGEMENT ROUTES
+  app.get("/api/clients", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check permissions (only admin and barbers can view all clients)
+      if (user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to view clients" });
+      }
+      
+      const clients = await storage.getAllClientsWithProfiles();
+      res.json(clients);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/clients/recent", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check permissions (only admin and barbers can view clients)
+      if (user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to view clients" });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const recentClients = await storage.getRecentClients(limit);
+      
+      res.json(recentClients);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/clients/:id", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const clientId = parseInt(req.params.id);
+      
+      // Check permissions (users can only view their own profile unless admin/barber)
+      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to view this client" });
+      }
+      
+      const client = await storage.getClientWithDetails(clientId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json(client);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/clients/:id/profile", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const clientId = parseInt(req.params.id);
+      
+      // Check permissions (users can only update their own profile unless admin)
+      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin') {
+        return res.status(403).json({ message: "Not authorized to update this client profile" });
+      }
+      
+      // Check if client exists
+      const clientUser = await storage.getUser(clientId);
+      if (!clientUser) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if profile already exists
+      const existingProfile = await storage.getClientProfile(clientId);
+      
+      let profile;
+      if (existingProfile) {
+        // Update existing profile
+        profile = await storage.updateClientProfile(clientId, req.body);
+      } else {
+        // Create new profile
+        profile = await storage.createClientProfile({
+          userId: clientId,
+          ...req.body
+        });
+      }
+      
+      // Log the action
+      await storage.createActionLog({
+        userId: user.id,
+        action: existingProfile ? "update" : "create",
+        entity: "client_profile",
+        entityId: profile.id,
+        details: JSON.stringify(req.body)
+      });
+      
+      res.json(profile);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/clients/:id/preferences", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const clientId = parseInt(req.params.id);
+      
+      // Check permissions
+      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to update this client's preferences" });
+      }
+      
+      // Check if client exists
+      const clientUser = await storage.getUser(clientId);
+      if (!clientUser) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if preferences already exist
+      const existingPreferences = await storage.getClientPreferences(clientId);
+      
+      let preferences;
+      if (existingPreferences) {
+        // Update existing preferences
+        preferences = await storage.updateClientPreferences(clientId, req.body);
+      } else {
+        // Create new preferences
+        preferences = await storage.createClientPreferences({
+          clientId,
+          ...req.body
+        });
+      }
+      
+      // Log the action
+      await storage.createActionLog({
+        userId: user.id,
+        action: existingPreferences ? "update" : "create",
+        entity: "client_preferences",
+        entityId: preferences.id,
+        details: JSON.stringify(req.body)
+      });
+      
+      res.json(preferences);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/clients/:id/notes", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only barbers and admins can add notes
+      if (user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to add client notes" });
+      }
+      
+      const clientId = parseInt(req.params.id);
+      
+      // Check if client exists
+      const clientUser = await storage.getUser(clientId);
+      if (!clientUser) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Get barber ID
+      let barberId;
+      if (user.role === 'barber') {
+        const barber = await storage.getBarber(user.id);
+        if (!barber) {
+          return res.status(404).json({ message: "Barber not found" });
+        }
+        barberId = barber.id;
+      } else {
+        // For admin, they need to specify the barber ID
+        if (!req.body.barberId) {
+          return res.status(400).json({ message: "Barber ID is required" });
+        }
+        barberId = req.body.barberId;
+      }
+      
+      // Create the note
+      const note = await storage.createClientNote({
+        clientId,
+        barberId,
+        note: req.body.note,
+        appointmentId: req.body.appointmentId || null
+      });
+      
+      // Log the action
+      await storage.createActionLog({
+        userId: user.id,
+        action: "create",
+        entity: "client_note",
+        entityId: note.id,
+        details: JSON.stringify(req.body)
+      });
+      
+      res.status(201).json(note);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/clients/:id/favorite-services", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const clientId = parseInt(req.params.id);
+      
+      // Check permissions
+      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to update favorite services for this client" });
+      }
+      
+      // Check if client exists
+      const clientUser = await storage.getUser(clientId);
+      if (!clientUser) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if service exists
+      const service = await storage.getService(req.body.serviceId);
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      
+      // Add favorite service
+      const favoriteService = await storage.addClientFavoriteService({
+        clientId,
+        serviceId: req.body.serviceId
+      });
+      
+      // Log the action
+      await storage.createActionLog({
+        userId: user.id,
+        action: "create",
+        entity: "client_favorite_service",
+        entityId: favoriteService.id,
+        details: JSON.stringify({ serviceId: req.body.serviceId })
+      });
+      
+      res.status(201).json(favoriteService);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.delete("/api/clients/:clientId/favorite-services/:id", async (req, res) => {
+    try {
+      // Check authentication from Supabase
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: authData, error } = await supabase.auth.getUser(token);
+      
+      if (error || !authData.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get user from our database
+      const user = await storage.getUserByEmail(authData.user.email!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const clientId = parseInt(req.params.clientId);
+      const favoriteId = parseInt(req.params.id);
+      
+      // Check permissions
+      if (user.role === 'client' && user.id !== clientId && user.role !== 'admin' && user.role !== 'barber') {
+        return res.status(403).json({ message: "Not authorized to remove favorite services for this client" });
+      }
+      
+      // Remove the favorite service
+      await storage.removeClientFavoriteService(favoriteId);
+      
+      // Log the action
+      await storage.createActionLog({
+        userId: user.id,
+        action: "delete",
+        entity: "client_favorite_service",
+        entityId: favoriteId
+      });
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // AUTH ROUTES

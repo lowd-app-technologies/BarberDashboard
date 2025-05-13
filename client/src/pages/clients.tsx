@@ -4,7 +4,115 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
+
+interface ClientProfile {
+  id: number;
+  userId: number;
+  createdAt: Date;
+  birthdate: Date | null;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  referralSource: string | null;
+  notes: string | null;
+  lastVisit: Date | null;
+}
+
+interface ClientPreference {
+  id: number;
+  clientId: number;
+  createdAt: Date;
+  updatedAt: Date;
+  preferredBarberId: number | null;
+  preferredDayOfWeek: number | null;
+  preferredTimeOfDay: string | null;
+  hairType: "straight" | "wavy" | "curly" | "coily" | null;
+  beardType: "none" | "stubble" | "short" | "medium" | "long" | "full" | null;
+  preferredHairStyle: string | null;
+  preferredBeardStyle: string | null;
+  allergies: string | null;
+}
+
+interface ClientNote {
+  id: number;
+  barberId: number;
+  clientId: number;
+  createdAt: Date;
+  note: string;
+  appointmentId: number | null;
+}
+
+interface Service {
+  id: number;
+  name: string;
+  price: string;
+  duration: number;
+  description: string | null;
+  active: boolean;
+  createdAt: Date;
+}
+
+interface ClientFavoriteService {
+  id: number;
+  clientId: number;
+  serviceId: number;
+  createdAt: Date;
+  service: Service;
+}
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string | null;
+  role: "admin" | "barber" | "client";
+  createdAt: Date;
+}
+
+interface BarberWithUser {
+  id: number;
+  userId: number;
+  nif: string;
+  iban: string;
+  paymentPeriod: "weekly" | "biweekly" | "monthly";
+  active: boolean;
+  createdAt: Date;
+  user: User;
+}
+
+interface Appointment {
+  id: number;
+  date: Date;
+  barberId: number;
+  serviceId: number;
+  clientId: number;
+  status: "pending" | "confirmed" | "completed" | "canceled";
+  notes: string | null;
+  createdAt: Date;
+}
+
+interface AppointmentWithDetails extends Appointment {
+  client: User;
+  barber: BarberWithUser;
+  service: Service;
+}
+
+interface ClientWithProfile extends User {
+  profile: ClientProfile;
+}
+
+interface ClientWithPreferences extends ClientWithProfile {
+  preferences: ClientPreference;
+}
+
+interface ClientWithDetails extends ClientWithPreferences {
+  notes: ClientNote[];
+  favoriteServices: ClientFavoriteService[];
+  appointments: AppointmentWithDetails[];
+}
 import {
   Card,
   CardContent,
@@ -63,25 +171,25 @@ export default function Clients() {
   const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
   const userRole = useRole();
-  const [, navigate] = useNavigate();
+  const [, navigate] = useLocation();
   const [selectedClient, setSelectedClient] = useState<number | null>(null);
   const [showClientDetailsDialog, setShowClientDetailsDialog] = useState(false);
   
   // Fetch clients
   const { 
-    data: clients = [],
+    data: clients = [] as ClientWithProfile[],
     isLoading: isLoadingClients,
     error: clientsError,
-  } = useQuery({
+  } = useQuery<ClientWithProfile[]>({
     queryKey: ['/api/clients'],
     enabled: userRole === 'admin' || userRole === 'barber'
   });
   
   // Fetch recent clients
   const { 
-    data: recentClients = [],
+    data: recentClients = [] as ClientWithProfile[],
     isLoading: isLoadingRecentClients,
-  } = useQuery({
+  } = useQuery<ClientWithProfile[]>({
     queryKey: ['/api/clients/recent'],
     enabled: userRole === 'admin' || userRole === 'barber'
   });
@@ -90,21 +198,21 @@ export default function Clients() {
   const {
     data: clientDetails,
     isLoading: isLoadingClientDetails,
-  } = useQuery({
+  } = useQuery<ClientWithDetails>({
     queryKey: ['/api/clients', selectedClient],
     enabled: !!selectedClient && showClientDetailsDialog,
   });
   
   // Handle search
-  const filteredClients = clients.filter((client) => {
+  const filteredClients = clients.filter((client: ClientWithProfile) => {
     if (!searchTerm) return true;
     
     const searchLower = searchTerm.toLowerCase();
     return (
-      client.fullName?.toLowerCase().includes(searchLower) ||
-      client.email?.toLowerCase().includes(searchLower) ||
-      client.phone?.toLowerCase().includes(searchLower) ||
-      client.profile?.city?.toLowerCase().includes(searchLower)
+      client.fullName.toLowerCase().includes(searchLower) ||
+      client.email.toLowerCase().includes(searchLower) ||
+      (client.phone && client.phone.toLowerCase().includes(searchLower)) ||
+      (client.profile.city && client.profile.city.toLowerCase().includes(searchLower))
     );
   });
   
@@ -258,16 +366,8 @@ export default function Clients() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {client.preferences?.preferredBarberId ? (
-                              <div className="flex items-center">
-                                <Avatar className="h-6 w-6 mr-2">
-                                  <AvatarFallback className="text-xs">AB</AvatarFallback>
-                                </Avatar>
-                                <span>Preferred Barber Name</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">None</span>
-                            )}
+                            {/* Since ClientWithProfile doesn't have preferences property, use a placeholder */}
+                            <span className="text-muted-foreground text-sm">Not specified</span>
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -560,8 +660,8 @@ export default function Clients() {
                               <Badge 
                                 variant={
                                   appointment.status === "completed" ? "default" :
-                                  appointment.status === "confirmed" ? "success" :
-                                  appointment.status === "pending" ? "warning" : "destructive"
+                                  appointment.status === "confirmed" ? "secondary" :
+                                  appointment.status === "pending" ? "outline" : "destructive"
                                 }
                               >
                                 {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
