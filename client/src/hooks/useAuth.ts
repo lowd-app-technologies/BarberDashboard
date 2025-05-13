@@ -22,6 +22,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
 
   // Função para determinar o redirecionamento com base no papel do usuário (admin/barber)
   const redirectUserBasedOnRole = (user: User) => {
+    console.log("Redirecionando usuário com papel:", user.role);
     if (user.role === 'admin') {
       setLocation('/admin');
     } else if (user.role === 'barber') {
@@ -48,11 +49,16 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         description: "Seja bem-vindo de volta!",
       });
 
+      console.log("Login bem-sucedido, redirecionando usuário:", user);
+
       // Redirecionar para a área correta com base no tipo de login
       if (isClientArea) {
         setLocation('/booking');
       } else {
-        redirectUserBasedOnRole(user);
+        // Usar setTimeout para garantir que o redirecionamento aconteça depois do ciclo de renderização
+        setTimeout(() => {
+          redirectUserBasedOnRole(user);
+        }, 100);
       }
     } catch (error: any) {
       toast({
@@ -81,11 +87,16 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         description: "Seja bem-vindo!",
       });
       
+      console.log("Login com Google bem-sucedido, redirecionando usuário:", user);
+      
       // Redirecionar para a área correta com base no tipo de login
       if (isClientArea) {
         setLocation('/booking');
       } else {
-        redirectUserBasedOnRole(user);
+        // Usar setTimeout para garantir que o redirecionamento aconteça depois do ciclo de renderização
+        setTimeout(() => {
+          redirectUserBasedOnRole(user);
+        }, 100);
       }
     } catch (error: any) {
       toast({

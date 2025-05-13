@@ -35,13 +35,19 @@ import NotFound from "@/pages/not-found";
 function Router() {
   const [location] = useLocation();
   
-  // For development purposes, hardcode role depending on path
+  // Determinar o papel com base no caminho atual
   let role = 'client';
+  
+  console.log("Current location:", location);
   
   if (location.startsWith("/admin")) {
     role = 'admin';
+    console.log("Role set to admin based on path");
   } else if (location.startsWith("/barber")) {
     role = 'barber';
+    console.log("Role set to barber based on path");
+  } else {
+    console.log("Default role: client");
   }
 
   // Auth routes and Barber Registration routes

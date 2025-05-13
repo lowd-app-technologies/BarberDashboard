@@ -54,6 +54,8 @@ class CustomAuth {
       // Determine which endpoint to use based on the area (client or admin/barber)
       const endpoint = isClientArea ? '/api/auth/client/login' : '/api/auth/login';
       
+      console.log(`Attempting to login with email: ${email} to endpoint: ${endpoint}`);
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -75,6 +77,7 @@ class CustomAuth {
       let data;
       try {
         data = await response.json();
+        console.log("Login response data:", data);
       } catch (jsonError) {
         throw new Error("Erro ao processar resposta do servidor. Por favor, tente novamente.");
       }
@@ -93,6 +96,8 @@ class CustomAuth {
         fullName: data.user.fullName,
         getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
       };
+      
+      console.log("Created user object:", user);
       
       // Update current user
       this.currentUser = user;
