@@ -291,24 +291,32 @@ export default function Booking() {
               <CardContent>
                 {/* Passo 1: Escolha do serviço */}
                 {step === 1 && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {services.map(svc => (
-                      <div 
-                        key={svc.id} 
-                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${service === svc.id.toString() ? 'border-primary bg-primary' : 'hover:border-gray-400'}`}
-                        onClick={() => setService(svc.id.toString())}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className={`font-medium ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.name}</h3>
-                          <span className={`font-bold ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.price}</span>
-                        </div>
-                        <p className={`text-sm mb-2 ${service === svc.id.toString() ? 'text-white text-opacity-90' : 'text-gray-500'}`}>{svc.description}</p>
-                        <div className={`text-xs flex items-center ${service === svc.id.toString() ? 'text-white text-opacity-80' : 'text-gray-400'}`}>
-                          <Clock className="h-3 w-3 mr-1" /> {svc.duration} min
-                        </div>
+                  <>
+                    {isLoadingServices ? (
+                      <div className="flex justify-center items-center h-40">
+                        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
                       </div>
-                    ))}
-                  </div>
+                    ) : (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {services.filter(svc => svc.active).map(svc => (
+                          <div 
+                            key={svc.id} 
+                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${service === svc.id.toString() ? 'border-primary bg-primary' : 'hover:border-gray-400'}`}
+                            onClick={() => setService(svc.id.toString())}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className={`font-medium ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.name}</h3>
+                              <span className={`font-bold ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.price}</span>
+                            </div>
+                            <p className={`text-sm mb-2 ${service === svc.id.toString() ? 'text-white text-opacity-90' : 'text-gray-500'}`}>{svc.description}</p>
+                            <div className={`text-xs flex items-center ${service === svc.id.toString() ? 'text-white text-opacity-80' : 'text-gray-400'}`}>
+                              <Clock className="h-3 w-3 mr-1" /> {svc.duration} min
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
                 
                 {/* Passo 2: Escolha do barbeiro */}
@@ -412,7 +420,7 @@ export default function Booking() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-white text-opacity-60">Barbeiro</span>
-                          <span className="font-bold">{barbers.find(b => b.id.toString() === barber)?.name}</span>
+                          <span className="font-bold">{barbers.find(b => b.id.toString() === barber)?.user?.fullName || "Carregando..."}</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-white text-opacity-60">Data</span>
