@@ -63,11 +63,25 @@ class CustomAuth {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Authentication failed");
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Authentication failed");
+        } catch (jsonError) {
+          // Se não for possível tratar como JSON, retornamos uma mensagem genérica
+          throw new Error("Falha na autenticação. Por favor, tente novamente.");
+        }
       }
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error("Erro ao processar resposta do servidor. Por favor, tente novamente.");
+      }
+      
+      if (!data || !data.user) {
+        throw new Error("Resposta do servidor inválida. Por favor, tente novamente.");
+      }
       
       // Create a user object similar to Firebase User
       const user: User = {
@@ -123,18 +137,32 @@ class CustomAuth {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        
-        // Se o erro for que a conta não existe e estamos na área administrativa,
-        // vamos dar uma mensagem mais clara
-        if (!isClientArea && response.status === 404) {
-          throw new Error("Você precisa se registrar primeiro como administrador para usar o login com Google na área administrativa.");
+        try {
+          const errorData = await response.json();
+          
+          // Se o erro for que a conta não existe e estamos na área administrativa,
+          // vamos dar uma mensagem mais clara
+          if (!isClientArea && response.status === 404) {
+            throw new Error("Você precisa se registrar primeiro como administrador para usar o login com Google na área administrativa.");
+          }
+          
+          throw new Error(errorData.message || "Social login failed");
+        } catch (jsonError) {
+          // Se não for possível tratar como JSON, retornamos uma mensagem genérica
+          throw new Error("Falha na autenticação com Google. Por favor, tente novamente.");
         }
-        
-        throw new Error(errorData.message || "Social login failed");
       }
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error("Erro ao processar resposta do servidor. Por favor, tente novamente.");
+      }
+      
+      if (!data || !data.user) {
+        throw new Error("Resposta do servidor inválida. Por favor, tente novamente.");
+      }
       
       // Create a user object similar to Firebase User
       const user: User = {
@@ -149,6 +177,13 @@ class CustomAuth {
       
       // Update current user
       this.currentUser = user;
+      
+      // Validate the user role if they're logging into a specific area
+      if (isClientArea && user.role !== 'client') {
+        throw new Error("Esta área é exclusiva para clientes. Por favor, utilize a área administrativa para acessar sua conta.");
+      } else if (!isClientArea && user.role === 'client') {
+        throw new Error("Esta área é exclusiva para administradores e barbeiros. Por favor, utilize a área de clientes para acessar sua conta.");
+      }
       
       return { user };
     } catch (error: any) {
@@ -184,11 +219,25 @@ class CustomAuth {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Registration failed");
+        } catch (jsonError) {
+          // Se não for possível tratar como JSON, retornamos uma mensagem genérica
+          throw new Error("Falha no registro. Por favor, tente novamente.");
+        }
       }
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error("Erro ao processar resposta do servidor. Por favor, tente novamente.");
+      }
+      
+      if (!data || !data.user) {
+        throw new Error("Resposta do servidor inválida. Por favor, tente novamente.");
+      }
       
       // Create a user object similar to Firebase User
       const user: User = {
@@ -221,15 +270,22 @@ class CustomAuth {
   // Sign out
   async signOut(): Promise<void> {
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
       });
       
-      // Clear current user
+      // Mesmo que o logout falhe no servidor, limparemos o usuário local
+      // para garantir que o cliente sempre possa sair
       this.currentUser = null;
+      
+      // Verificamos se houve erro no servidor apenas para logar
+      if (!response.ok) {
+        console.warn("Logout não foi completado no servidor, mas o usuário foi desconectado localmente");
+      }
     } catch (error: any) {
+      // Mesmo com erro, limparemos o usuário local
+      this.currentUser = null;
       console.error("Logout error:", error);
-      throw error;
     }
   }
 }
