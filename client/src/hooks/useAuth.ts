@@ -7,9 +7,9 @@ import { auth, googleProvider, User, UserRole } from '@/lib/firebase';
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  register: (email: string, password: string, username: string, fullName: string, role: string) => Promise<void>;
+  login: (email: string, password: string, isClientArea?: boolean) => Promise<void>;
+  loginWithGoogle: (isClientArea?: boolean) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, role: string, isClientArea?: boolean) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -21,12 +21,12 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   // Login with email and password
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, isClientArea: boolean = false) => {
     try {
       setLoading(true);
       
       // Use our custom auth wrapper
-      const { user } = await auth.signInWithEmailAndPassword(email, password);
+      const { user } = await auth.signInWithEmailAndPassword(email, password, isClientArea);
       
       // Update user state
       setUser(user);
@@ -36,7 +36,12 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         description: "Seja bem-vindo de volta!",
       });
 
-      setLocation('/dashboard');
+      // Redirecionar para a área correta com base no tipo de login
+      if (isClientArea) {
+        setLocation('/booking');
+      } else {
+        setLocation('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",
@@ -49,12 +54,12 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   };
 
   // Login with Google OAuth
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (isClientArea: boolean = false) => {
     try {
       setLoading(true);
       
       // Use our custom auth wrapper with Google provider
-      const { user } = await auth.signInWithPopup(googleProvider);
+      const { user } = await auth.signInWithPopup(googleProvider, isClientArea);
       
       // Update user state
       setUser(user);
@@ -64,7 +69,12 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         description: "Seja bem-vindo!",
       });
       
-      setLocation('/dashboard');
+      // Redirecionar para a área correta com base no tipo de login
+      if (isClientArea) {
+        setLocation('/booking');
+      } else {
+        setLocation('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login com Google",
@@ -77,12 +87,12 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   };
 
   // Register function
-  const register = async (email: string, password: string, username: string, fullName: string, role: string) => {
+  const register = async (email: string, password: string, username: string, fullName: string, role: string, isClientArea: boolean = false) => {
     try {
       setLoading(true);
       
       // Use our custom auth wrapper for registration
-      const { user } = await auth.register(email, password, username, fullName, role);
+      const { user } = await auth.register(email, password, username, fullName, role, isClientArea);
       
       // Update user state
       setUser(user);
@@ -92,7 +102,12 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
         description: "Sua conta foi criada com sucesso!",
       });
 
-      setLocation('/dashboard');
+      // Redirecionar para a área correta com base no tipo de registro
+      if (isClientArea) {
+        setLocation('/booking');
+      } else {
+        setLocation('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao criar conta",
@@ -151,9 +166,9 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: false,
-  login: async () => {},
-  loginWithGoogle: async () => {},
-  register: async () => {},
+  login: async (_email: string, _password: string, _isClientArea?: boolean) => {},
+  loginWithGoogle: async (_isClientArea?: boolean) => {},
+  register: async (_email: string, _password: string, _username: string, _fullName: string, _role: string, _isClientArea?: boolean) => {},
   logout: async () => {},
 });
 

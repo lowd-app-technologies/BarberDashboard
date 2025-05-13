@@ -62,13 +62,14 @@ export default function ClientRegister() {
     setIsLoading(true);
     
     try {
-      // Registrar o usuário com o role de client
+      // Registrar o usuário com o role de client e indicando que estamos na área de clientes
       await register(
         data.email, 
         data.password, 
         data.username, 
         data.fullName, 
-        data.role
+        data.role,
+        true // isClientArea = true
       );
       
       // Redirecionar para a página de agendamento
@@ -79,7 +80,11 @@ export default function ClientRegister() {
       
       setLocation('/booking');
     } catch (error: any) {
-      // Error handling is done in the auth hook
+      toast({
+        title: "Erro ao criar conta",
+        description: error.message || "Ocorreu um erro ao criar sua conta. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -88,11 +93,15 @@ export default function ClientRegister() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      // O login com Google registra o usuário como client por padrão
-      await loginWithGoogle();
+      // O login com Google para clientes
+      await loginWithGoogle(true); // isClientArea = true
       setLocation('/booking');
-    } catch (error) {
-      // Error handling is done in the auth hook
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer login com Google",
+        description: error.message || "Ocorreu um erro com a autenticação do Google.",
+        variant: "destructive",
+      });
     } finally {
       setIsGoogleLoading(false);
     }

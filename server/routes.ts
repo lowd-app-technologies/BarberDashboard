@@ -50,6 +50,7 @@ const comparePassword = async (password: string, hashedPassword: string): Promis
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Rotas de autenticação
+  // Rota de login para área administrativa (barbeiros e administradores)
   app.post('/api/auth/login', async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
@@ -72,6 +73,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Credenciais inválidas' });
       }
       
+      // Verificar se o usuário é admin ou barber
+      if (user.role === 'client') {
+        return res.status(403).json({ 
+          message: "Esta área é exclusiva para administradores e barbeiros. Por favor, utilize a área de clientes para acessar sua conta."
+        });
+      }
+      
       // Configurar sessão do usuário
       if (req.session) {
         req.session.userId = user.id;
@@ -88,12 +96,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota de login para área de clientes
+  app.post('/api/auth/client/login', async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
+      }
+      
+      // Buscar usuário pelo email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
+      }
+      
+      // Verificar senha
+      const isPasswordValid = await comparePassword(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
+      }
+      
+      // Verificar se o usuário é cliente
+      if (user.role !== 'client') {
+        return res.status(403).json({ 
+          message: "Esta área é exclusiva para clientes. Por favor, utilize a área administrativa para acessar sua conta."
+        });
+      }
+      
+      // Configurar sessão do usuário
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
+      }
+      
+      // Retornar dados do usuário (exceto a senha)
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(200).json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Erro no login de cliente:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    }
+  });
+  
+  // Rota de registro para área administrativa (barbeiros e administradores)
   app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
       const { email, password, username, fullName, role, phone } = req.body;
       
       if (!email || !password || !username || !fullName || !role) {
         return res.status(400).json({ message: 'Dados incompletos' });
+      }
+      
+      // Validar o papel do usuário
+      if (!['admin', 'barber'].includes(role)) {
+        return res.status(400).json({ message: 'Papel de usuário inválido para esta área' });
       }
       
       // Verificar se o email já está em uso
@@ -117,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: hashedPassword,
         username,
         fullName,
-        role: role as 'admin' | 'barber' | 'client',
+        role: role as 'admin' | 'barber',
         phone: phone || null
       });
       
@@ -137,7 +197,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota de registro para área de clientes
+  app.post('/api/auth/client/register', async (req: Request, res: Response) => {
+    try {
+      const { email, password, username, fullName, phone } = req.body;
+      
+      if (!email || !password || !username || !fullName) {
+        return res.status(400).json({ message: 'Dados incompletos' });
+      }
+            
+      // Verificar se o email já está em uso
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: 'Este email já está em uso' });
+      }
+      
+      // Verificar se o username já está em uso
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: 'Este nome de usuário já está em uso' });
+      }
+      
+      // Hash da senha
+      const hashedPassword = await hashPassword(password);
+      
+      // Criar usuário com papel fixo de cliente
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        username,
+        fullName,
+        role: 'client',
+        phone: phone || null
+      });
+      
+      // Criar perfil de cliente automaticamente
+      await storage.createClientProfile({
+        userId: user.id,
+        address: null,
+        notes: null,
+        birthdate: null,
+        city: null,
+        postalCode: null,
+        referralSource: null
+      });
+      
+      // Configurar sessão do usuário
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
+      }
+      
+      // Retornar dados do usuário (exceto a senha)
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(201).json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Erro ao registrar cliente:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    }
+  });
+  
+  // Rota de login social para área administrativa
   app.post('/api/auth/social-login', async (req: Request, res: Response) => {
+    try {
+      const { email, name, provider } = req.body;
+      
+      if (!email || !name || !provider) {
+        return res.status(400).json({ message: 'Dados incompletos' });
+      }
+      
+      // Verificar se o usuário já existe
+      let user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(404).json({ 
+          message: "Conta não encontrada. Para usar o login social na área administrativa, primeiro registre-se normalmente."
+        });
+      }
+      
+      // Verificar se o usuário tem permissão para essa área
+      if (user.role === 'client') {
+        return res.status(403).json({ 
+          message: "Esta área é exclusiva para administradores e barbeiros. Por favor, utilize a área de clientes para acessar sua conta."
+        });
+      }
+      
+      // Configurar sessão do usuário
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
+      }
+      
+      // Retornar dados do usuário (exceto a senha)
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.status(200).json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Erro no login social:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    }
+  });
+  
+  // Rota de login social para área de clientes
+  app.post('/api/auth/client/social-login', async (req: Request, res: Response) => {
     try {
       const { email, name, provider } = req.body;
       
@@ -169,6 +332,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: 'client', // Usuários de login social são clientes por padrão
           phone: null
         });
+        
+        // Criar perfil de cliente automaticamente
+        await storage.createClientProfile({
+          userId: user.id,
+          address: null,
+          notes: null,
+          birthdate: null,
+          city: null,
+          postalCode: null,
+          referralSource: null
+        });
+      } else if (user.role !== 'client') {
+        // Se o usuário existe mas não é cliente
+        return res.status(403).json({ 
+          message: "Esta área é exclusiva para clientes. Por favor, utilize a área administrativa para acessar sua conta."
+        });
       }
       
       // Configurar sessão do usuário
@@ -182,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json({ user: userWithoutPassword });
     } catch (error: any) {
-      console.error('Erro no login social:', error);
+      console.error('Erro no login social de cliente:', error);
       res.status(500).json({ message: 'Erro no servidor', error: error.message });
     }
   });
