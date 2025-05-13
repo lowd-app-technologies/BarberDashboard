@@ -79,7 +79,7 @@ export function Sidebar() {
       {
         title: "Convidar Barbeiro",
         icon: <UserPlus className="h-5 w-5" />,
-        path: "/barber/invite",
+        path: "/admin/invite-barber",
         show: user?.role === "admin"
       }
     ];

@@ -65,6 +65,7 @@ function Router() {
         <Route path="/admin/appointments" component={Appointments} />
         <Route path="/admin/payments" component={Payments} />
         <Route path="/admin/clients" component={Clients} />
+        <Route path="/admin/invite-barber" component={InviteBarber} />
         <Route path="/barber/invite" component={InviteBarber} />
         <Route component={NotFound} />
       </Switch>
