@@ -49,10 +49,10 @@ export function Header() {
         {isBarber && <NotificationsPanel />}
         
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <button className="text-muted-foreground hover:text-foreground transition-colors duration-200">
+          <DropdownMenuTrigger asChild>
+            <div className="text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer">
               <MoreVertical className="h-5 w-5" />
-            </button>
+            </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem 

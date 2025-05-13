@@ -1,0 +1,33 @@
+Warning: validateDOMNesting(...): <button> cannot appear as a descendant of &lt;button&gt;.
+    at button
+    at button
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=3d0b2431:42:13
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=3d0b2431:79:13
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=3d0b2431:56:13
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=3d0b2431:42:13
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-36QEEYDD.js?v=3d0b2431:1961:13
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=3d0b2431:141:13
+    at https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=3d0b2431:940:13
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at Popper (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-36QEEYDD.js?v=3d0b2431:1953:11)
+    at Menu (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=3d0b2431:95:11)
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at DropdownMenu (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=3d0b2431:906:5)
+    at div
+    at header
+    at Header (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/components/layout/Header.tsx:30:28)
+    at div
+    at div
+    at Appointments (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/pages/appointments.tsx:74:39)
+    at Route (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:323:16)
+    at Switch (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=3d0b2431:379:17)
+    at Router (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/App.tsx?v=nJqs-u8oVUCvjTdDUDPb_:42:22)
+    at Provider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-E7IAXTU4.js?v=3d0b2431:38:15)
+    at TooltipProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=3d0b2431:60:5)
+    at QueryClientProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=3d0b2431:2805:3)
+    at AuthProvider (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/src/hooks/useAuth.ts:6:27)
+    at V (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:44:25)
+    at J (https://a2dd5265-2f6d-4ebd-bac9-e4c3d49ba8cc-00-1irl9y8movhu9.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/next-themes.js?v=3d0b2431:42:18)
+    at App
