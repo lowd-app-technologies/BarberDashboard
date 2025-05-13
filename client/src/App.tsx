@@ -12,6 +12,7 @@ import Services from "@/pages/services";
 import Barbers from "@/pages/barbers";
 import Appointments from "@/pages/appointments";
 import Payments from "@/pages/payments";
+import Clients from "@/pages/clients";
 
 // Auth Pages
 import Login from "@/pages/login";
@@ -56,6 +57,7 @@ function Router() {
         <Route path="/admin/barbers" component={Barbers} />
         <Route path="/admin/appointments" component={Appointments} />
         <Route path="/admin/payments" component={Payments} />
+        <Route path="/admin/clients" component={Clients} />
         <Route component={NotFound} />
       </Switch>
     );

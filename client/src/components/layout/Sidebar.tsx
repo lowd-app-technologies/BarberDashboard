@@ -9,7 +9,8 @@ import {
   BanknoteIcon, 
   BarChart3, 
   Settings, 
-  LogOut 
+  LogOut,
+  Users
 } from "lucide-react";
 
 export function Sidebar() {
@@ -115,6 +116,21 @@ export function Sidebar() {
                 >
                   <BanknoteIcon className="w-5 h-5" />
                   <span className="ml-3">Pagamentos</span>
+                </a>
+              </Link>
+            </li>
+            <li>
+              <Link href="/clients">
+                <a 
+                  className={cn(
+                    "flex items-center px-4 py-3 rounded transition duration-200",
+                    isActive("/clients") 
+                      ? "bg-primary bg-opacity-20 text-primary" 
+                      : "text-foreground hover:bg-accent"
+                  )}
+                >
+                  <Users className="w-5 h-5" />
+                  <span className="ml-3">Clientes</span>
                 </a>
               </Link>
             </li>
