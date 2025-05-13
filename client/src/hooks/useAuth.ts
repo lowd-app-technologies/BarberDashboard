@@ -1,17 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
-import { 
-  User, 
-  GoogleAuthProvider, 
-  signInWithEmailAndPassword, 
-  signInWithPopup, 
-  createUserWithEmailAndPassword, 
-  updateProfile, 
-  signOut, 
-  onAuthStateChanged 
-} from 'firebase/auth';
+import type { User } from 'firebase/auth';
 
 // Define user role types
 type UserRole = 'admin' | 'barber' | 'client';
@@ -41,27 +31,20 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        // Convert Firebase User to ExtendedUser
-        const extendedUser = currentUser as ExtendedUser;
-        
-        // Get custom claims (like role) if they exist
-        currentUser.getIdTokenResult().then((idTokenResult) => {
-          if (idTokenResult.claims.role) {
-            extendedUser.role = idTokenResult.claims.role as UserRole;
-          }
-          setUser(extendedUser);
-          setLoading(false);
-        });
-      } else {
-        setUser(null);
-        setLoading(false);
+    // Verificamos se há um usuário salvo no sessionStorage
+    const savedUser = sessionStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        // Restauramos o usuário da sessão
+        setUser(parsedUser as ExtendedUser);
+      } catch (error) {
+        console.error("Erro ao restaurar usuário da sessão:", error);
+        sessionStorage.removeItem('currentUser');
       }
-    });
-
-    return () => unsubscribe();
+    }
+    
+    setLoading(false);
   }, []);
 
   // Login with email and password
@@ -99,6 +82,9 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       
       // Atualizar o estado do usuário
       setUser(extendedUser);
+      
+      // Salvar na sessão
+      sessionStorage.setItem('currentUser', JSON.stringify(extendedUser));
       
       toast({
         title: "Login bem-sucedido",
@@ -160,6 +146,9 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       
       // Atualizar o estado do usuário
       setUser(extendedUser);
+      
+      // Salvar na sessão
+      sessionStorage.setItem('currentUser', JSON.stringify(extendedUser));
       
       toast({
         title: "Login bem-sucedido",
