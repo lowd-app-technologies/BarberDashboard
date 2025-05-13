@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useLocation } from "wouter";
+import { Layout } from "@/components/layout/Layout";
 
 interface ClientProfile {
   id: number;
@@ -235,15 +236,16 @@ export default function Clients() {
   }, [clientsError, toast]);
   
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Client Management</h1>
-          <p className="text-muted-foreground">Manage your clients and their preferences</p>
-        </div>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add New Client
+    <Layout>
+      <div className="container mx-auto py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Client Management</h1>
+            <p className="text-muted-foreground">Manage your clients and their preferences</p>
+          </div>
+          <Button onClick={() => setShowAddClientDialog(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add New Client
         </Button>
       </div>
       
