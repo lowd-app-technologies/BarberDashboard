@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertServiceSchema } from "@shared/schema";
@@ -55,7 +55,7 @@ export function ServiceForm({ serviceId, onSuccess, onCancel }: ServiceFormProps
   });
   
   // Load service data if editing an existing service
-  useState(() => {
+  useEffect(() => {
     const loadService = async () => {
       if (serviceId) {
         setIsLoading(true);
@@ -83,7 +83,7 @@ export function ServiceForm({ serviceId, onSuccess, onCancel }: ServiceFormProps
     };
     
     loadService();
-  }, [serviceId]);
+  }, [serviceId, form, toast]);
   
   // Form submission handler
   const onSubmit = async (data: ServiceFormValues) => {

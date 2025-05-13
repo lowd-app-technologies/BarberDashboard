@@ -31,6 +31,11 @@ export function Sidebar() {
   };
 
   const isActive = (path: string) => {
+    // Para a rota raiz do dashboard, apenas correspondência exata
+    if (path === "/admin" || path === "/barber") {
+      return location === path;
+    }
+    // Para outras rotas, verificar se começa com o path
     return location === path || location.startsWith(`${path}/`);
   };
 
