@@ -148,15 +148,13 @@ export default function Login() {
         <CardFooter className="flex flex-col gap-4">
           <div className="text-center text-sm text-muted-foreground">
             Não tem uma conta?{" "}
-            <Link href="/register">
-              <a className="text-primary hover:underline">Cadastre-se</a>
+            <Link href="/register" className="text-primary hover:underline">
+              Cadastre-se
             </Link>
           </div>
           <div className="text-center text-sm text-muted-foreground">
-            <Link href="/booking">
-              <a className="text-primary hover:underline">
-                Ir para a página de agendamento
-              </a>
+            <Link href="/booking" className="text-primary hover:underline">
+              Ir para a página de agendamento
             </Link>
           </div>
         </CardFooter>

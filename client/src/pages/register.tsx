@@ -222,15 +222,13 @@ export default function Register() {
         <CardFooter className="flex flex-col gap-4">
           <div className="text-center text-sm text-muted-foreground">
             Já tem uma conta?{" "}
-            <Link href="/login">
-              <a className="text-primary hover:underline">Faça login</a>
+            <Link href="/login" className="text-primary hover:underline">
+              Faça login
             </Link>
           </div>
           <div className="text-center text-sm text-muted-foreground">
-            <Link href="/booking">
-              <a className="text-primary hover:underline">
-                Ir para a página de agendamento
-              </a>
+            <Link href="/booking" className="text-primary hover:underline">
+              Ir para a página de agendamento
             </Link>
           </div>
         </CardFooter>
