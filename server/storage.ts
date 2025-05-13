@@ -84,6 +84,7 @@ export interface IStorage {
   getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]>;
   getAllCompletedServices(): Promise<CompletedService[]>;
   createCompletedService(service: InsertCompletedService): Promise<CompletedService>;
+  updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined>;
   deleteCompletedService(id: number): Promise<void>;
 
   // Action Log methods
@@ -606,6 +607,15 @@ export class MemStorage implements IStorage {
     };
     this.completedServicesData.set(id, service);
     return service;
+  }
+  
+  async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> {
+    const service = this.completedServicesData.get(id);
+    if (!service) return undefined;
+    
+    const updatedService = { ...service, ...data };
+    this.completedServicesData.set(id, updatedService);
+    return updatedService;
   }
   
   async deleteCompletedService(id: number): Promise<void> {
