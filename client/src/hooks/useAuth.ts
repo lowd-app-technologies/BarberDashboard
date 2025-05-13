@@ -1,21 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from 'firebase/auth';
+import { auth, googleProvider, User, UserRole } from '@/lib/firebase';
 
-// Define user role types
-type UserRole = 'admin' | 'barber' | 'client';
-
-// Extended user information including role
-type ExtendedUser = User & {
-  role?: UserRole;
-  username?: string;
-  fullName?: string;
-};
-
-// Enhanced auth context type with Google auth
+// Auth context type with our required functions
 type AuthContextType = {
-  user: ExtendedUser | null;
+  user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -23,68 +13,23 @@ type AuthContextType = {
   logout: () => Promise<void>;
 };
 
-// Create the actual Auth Provider with full implementation
+// Create the Auth Provider implementation
 export const AuthProvider = (props: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<ExtendedUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(auth.currentUser);
+  const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Verificamos se há um usuário salvo no sessionStorage
-    const savedUser = sessionStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        // Restauramos o usuário da sessão
-        setUser(parsedUser as ExtendedUser);
-      } catch (error) {
-        console.error("Erro ao restaurar usuário da sessão:", error);
-        sessionStorage.removeItem('currentUser');
-      }
-    }
-    
-    setLoading(false);
-  }, []);
 
   // Login with email and password
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
       
-      // Chamar a nossa API em vez do Firebase
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Use our custom auth wrapper
+      const { user } = await auth.signInWithEmailAndPassword(email, password);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Falha na autenticação");
-      }
-      
-      const data = await response.json();
-      
-      // Criar um objeto de usuário semelhante ao Firebase User
-      const extendedUser: ExtendedUser = {
-        ...data.user,
-        uid: data.user.id.toString(),
-        email: data.user.email,
-        displayName: data.user.fullName,
-        getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
-        role: data.user.role,
-        username: data.user.username,
-        fullName: data.user.fullName,
-      } as unknown as ExtendedUser;
-      
-      // Atualizar o estado do usuário
-      setUser(extendedUser);
-      
-      // Salvar na sessão
-      sessionStorage.setItem('currentUser', JSON.stringify(extendedUser));
+      // Update user state
+      setUser(user);
       
       toast({
         title: "Login bem-sucedido",
@@ -108,47 +53,11 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       
-      // Simulando um login com Google
-      // Em um ambiente real, usaríamos o Firebase para obter os dados do Google
-      const mockGoogleData = {
-        email: "teste@gmail.com",
-        name: "Usuário de Teste",
-        provider: "google"
-      };
+      // Use our custom auth wrapper with Google provider
+      const { user } = await auth.signInWithPopup(googleProvider);
       
-      // Chamar nossa API de login social
-      const response = await fetch('/api/auth/social-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockGoogleData),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Falha no login social");
-      }
-      
-      const data = await response.json();
-      
-      // Criar um objeto de usuário semelhante ao Firebase User
-      const extendedUser: ExtendedUser = {
-        ...data.user,
-        uid: data.user.id.toString(),
-        email: data.user.email,
-        displayName: data.user.fullName,
-        getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
-        role: data.user.role,
-        username: data.user.username,
-        fullName: data.user.fullName,
-      } as unknown as ExtendedUser;
-      
-      // Atualizar o estado do usuário
-      setUser(extendedUser);
-      
-      // Salvar na sessão
-      sessionStorage.setItem('currentUser', JSON.stringify(extendedUser));
+      // Update user state
+      setUser(user);
       
       toast({
         title: "Login bem-sucedido",
@@ -172,45 +81,11 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       
-      // Registrar usuário através da nossa API
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          username,
-          fullName,
-          role
-        }),
-      });
+      // Use our custom auth wrapper for registration
+      const { user } = await auth.register(email, password, username, fullName, role);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Falha no registro");
-      }
-      
-      const data = await response.json();
-      
-      // Criar um objeto de usuário semelhante ao Firebase User
-      const extendedUser: ExtendedUser = {
-        ...data.user,
-        uid: data.user.id.toString(),
-        email: data.user.email,
-        displayName: data.user.fullName,
-        getIdTokenResult: async () => ({ claims: { role: data.user.role } }),
-        role: data.user.role,
-        username: data.user.username,
-        fullName: data.user.fullName,
-      } as unknown as ExtendedUser;
-      
-      // Atualizar o estado do usuário
-      setUser(extendedUser);
-      
-      // Salvar na sessão
-      sessionStorage.setItem('currentUser', JSON.stringify(extendedUser));
+      // Update user state
+      setUser(user);
       
       toast({
         title: "Registro bem-sucedido",
@@ -232,18 +107,13 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   // Logout function
   const logout = async () => {
     try {
-      // Chamar a API de logout
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
+      // Use our custom auth wrapper for logout
+      await auth.signOut();
       
-      // Limpar os dados da sessão
-      sessionStorage.removeItem('currentUser');
-      
-      // Limpar o estado do usuário
+      // Update user state
       setUser(null);
       
-      // Redirecionar para a página de login
+      // Redirect to login page
       setLocation('/login');
       
       toast({
@@ -277,7 +147,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
   );
 };
 
-// Create context with the extended type
+// Create context with the type
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: false,
