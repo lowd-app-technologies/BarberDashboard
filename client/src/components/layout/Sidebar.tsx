@@ -10,7 +10,8 @@ import {
   LogOut,
   DollarSign,
   UserPlus,
-  ClipboardCheck
+  ClipboardCheck,
+  Package
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,12 @@ export function Sidebar() {
         title: "Serviços",
         icon: <Scissors className="h-5 w-5" />,
         path: "/admin/services",
+        show: user?.role === "admin"
+      },
+      {
+        title: "Produtos",
+        icon: <Package className="h-5 w-5" />,
+        path: "/admin/products",
         show: user?.role === "admin"
       },
       {
@@ -105,6 +112,12 @@ export function Sidebar() {
         show: user?.role === "barber"
       },
       {
+        title: "Venda de Produtos",
+        icon: <Package className="h-5 w-5" />,
+        path: "/barber/products",
+        show: user?.role === "barber"
+      },
+      {
         title: "Clientes",
         icon: <Users className="h-5 w-5" />,
         path: "/barber/clients",
@@ -118,7 +131,7 @@ export function Sidebar() {
       },
       {
         title: "Relatórios",
-        icon: <FileText className="h-5 w-5" />,
+        icon: <BarChart4 className="h-5 w-5" />,
         path: "/barber/reports",
         show: user?.role === "barber"
       }

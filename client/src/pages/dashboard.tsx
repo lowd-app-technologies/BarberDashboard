@@ -180,18 +180,22 @@ export default function Dashboard() {
         </div>
 
         {/* Top Performing Barbers & Services */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          {/* Top Barbers */}
-          <TopBarbers 
-            barbers={barbers || []}
-            title="Top Barbeiros"
-          />
+        <div className={user?.role === 'barber' ? '' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6'}>
+          {/* Top Barbers - Visible only for admins */}
+          {user?.role !== 'barber' && (
+            <TopBarbers 
+              barbers={barbers || []}
+              title="Top Barbeiros"
+            />
+          )}
 
           {/* Popular Services */}
-          <PopularServices 
-            services={services || []}
-            title="Serviços Populares"
-          />
+          <div className={user?.role === 'barber' ? 'mt-6' : ''}>
+            <PopularServices 
+              services={services || []}
+              title="Serviços Populares"
+            />
+          </div>
         </div>
       </main>
       
