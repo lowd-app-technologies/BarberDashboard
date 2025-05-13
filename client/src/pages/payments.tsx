@@ -75,7 +75,9 @@ export default function Payments() {
   // Validar um serviço
   const validateServiceMutation = useMutation({
     mutationFn: async (serviceId: number) => {
-      return await apiRequest("PATCH", `/api/completed-services/${serviceId}/validate`, {});
+      return await apiRequest("PATCH", `/api/completed-services/${serviceId}/validate`, {
+        validatedByAdmin: true
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/completed-services'] });

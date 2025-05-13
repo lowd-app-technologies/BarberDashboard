@@ -621,7 +621,10 @@ export class MemStorage implements IStorage {
       ...serviceData, 
       id, 
       createdAt,
-      date: new Date(serviceData.date)
+      date: new Date(serviceData.date),
+      validatedByAdmin: serviceData.validatedByAdmin || false,
+      clientId: serviceData.clientId || null,
+      appointmentId: serviceData.appointmentId || null
     };
     this.completedServicesData.set(id, service);
     return service;

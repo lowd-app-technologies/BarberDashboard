@@ -158,6 +158,45 @@ async function setupTestData() {
       serviceId: service3.id,
       percentage: "70.00"
     });
+
+    // Criar alguns serviços concluídos de exemplo
+    const date = new Date();
+    
+    // Serviço completado 1 - Não validado
+    await storage.createCompletedService({
+      barberId: barber.id,
+      serviceId: service1.id,
+      clientId: client.id,
+      clientName: client.fullName,
+      price: service1.price,
+      date: new Date(date.setDate(date.getDate() - 5)),
+      appointmentId: null,
+      validatedByAdmin: false
+    });
+    
+    // Serviço completado 2 - Não validado
+    await storage.createCompletedService({
+      barberId: barber.id,
+      serviceId: service2.id,
+      clientId: client.id,
+      clientName: client.fullName,
+      price: service2.price,
+      date: new Date(date.setDate(date.getDate() - 2)),
+      appointmentId: null,
+      validatedByAdmin: false
+    });
+    
+    // Serviço completado 3 - Já validado
+    await storage.createCompletedService({
+      barberId: barber.id,
+      serviceId: service3.id,
+      clientId: client.id,
+      clientName: client.fullName,
+      price: service3.price,
+      date: new Date(date.setDate(date.getDate() - 10)),
+      appointmentId: null,
+      validatedByAdmin: true
+    });
     
     log("Dados de teste criados com sucesso!");
   } catch (error) {
