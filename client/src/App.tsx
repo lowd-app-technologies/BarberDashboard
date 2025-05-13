@@ -25,6 +25,8 @@ import Register from "@/pages/register";
 // Booking App Pages (Cliente)
 import BookingApp from "@/booking/pages";
 import ThankYouPage from "@/booking/pages/thank-you";
+import ClientLogin from "@/booking/pages/login";
+import ClientRegister from "@/booking/pages/register";
 
 // Other Pages
 import NotFound from "@/pages/not-found";
@@ -96,6 +98,17 @@ function Router() {
         <Route path="/barbers" component={Barbers} />
         <Route path="/clients" component={Clients} />
         <Route path="/payments" component={Payments} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Cliente auth routes
+  if (location === "/booking/login" || location === "/booking/register") {
+    return (
+      <Switch>
+        <Route path="/booking/login" component={ClientLogin} />
+        <Route path="/booking/register" component={ClientRegister} />
         <Route component={NotFound} />
       </Switch>
     );

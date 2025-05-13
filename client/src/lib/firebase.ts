@@ -49,9 +49,12 @@ class CustomAuth {
   }
   
   // Sign in with email and password
-  async signInWithEmailAndPassword(email: string, password: string): Promise<{ user: User }> {
+  async signInWithEmailAndPassword(email: string, password: string, isClientArea: boolean = false): Promise<{ user: User }> {
     try {
-      const response = await fetch('/api/auth/login', {
+      // Determine which endpoint to use based on the area (client or admin/barber)
+      const endpoint = isClientArea ? '/api/auth/client/login' : '/api/auth/login';
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,6 +83,13 @@ class CustomAuth {
       // Update current user
       this.currentUser = user;
       
+      // Validate the user role if they're logging into a specific area
+      if (isClientArea && user.role !== 'client') {
+        throw new Error("Esta área é exclusiva para clientes. Por favor, utilize a área administrativa para acessar sua conta.");
+      } else if (!isClientArea && user.role === 'client') {
+        throw new Error("Esta área é exclusiva para administradores e barbeiros. Por favor, utilize a área de clientes para acessar sua conta.");
+      }
+      
       return { user };
     } catch (error: any) {
       console.error("Login error:", error);
@@ -88,7 +98,7 @@ class CustomAuth {
   }
   
   // Sign in with popup for Google authentication
-  async signInWithPopup(provider: any): Promise<{ user: User }> {
+  async signInWithPopup(provider: any, isClientArea: boolean = false): Promise<{ user: User }> {
     try {
       // For now we're just using mock data for Google sign-in
       // In a real implementation, we would use the actual Google auth flow
@@ -98,7 +108,10 @@ class CustomAuth {
         provider: "google"
       };
       
-      const response = await fetch('/api/auth/social-login', {
+      // Determine which endpoint to use based on the area (client or admin/barber)
+      const endpoint = isClientArea ? '/api/auth/client/social-login' : '/api/auth/social-login';
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,6 +140,13 @@ class CustomAuth {
       // Update current user
       this.currentUser = user;
       
+      // Validate the user role if they're logging into a specific area
+      if (isClientArea && user.role !== 'client') {
+        throw new Error("Esta área é exclusiva para clientes. Por favor, utilize a área administrativa para acessar sua conta.");
+      } else if (!isClientArea && user.role === 'client') {
+        throw new Error("Esta área é exclusiva para administradores e barbeiros. Por favor, utilize a área de clientes para acessar sua conta.");
+      }
+      
       return { user };
     } catch (error: any) {
       console.error("Google login error:", error);
@@ -140,9 +160,12 @@ class CustomAuth {
   }
   
   // Register new user with all required fields
-  async register(email: string, password: string, username: string, fullName: string, role: string): Promise<{ user: User }> {
+  async register(email: string, password: string, username: string, fullName: string, role: string, isClientArea: boolean = false): Promise<{ user: User }> {
     try {
-      const response = await fetch('/api/auth/register', {
+      // Determine which endpoint to use based on the area (client or admin/barber)
+      const endpoint = isClientArea ? '/api/auth/client/register' : '/api/auth/register';
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +175,8 @@ class CustomAuth {
           password,
           username,
           fullName,
-          role
+          role,
+          phone: '' // Add phone field for client registration
         }),
       });
       
@@ -176,6 +200,13 @@ class CustomAuth {
       
       // Update current user
       this.currentUser = user;
+      
+      // Validate the user role if they're registering in a specific area
+      if (isClientArea && user.role !== 'client') {
+        throw new Error("Esta área é exclusiva para clientes. Por favor, utilize a área administrativa para acessar sua conta.");
+      } else if (!isClientArea && user.role === 'client') {
+        throw new Error("Esta área é exclusiva para administradores e barbeiros. Por favor, utilize a área de clientes para acessar sua conta.");
+      }
       
       return { user };
     } catch (error: any) {
