@@ -78,6 +78,34 @@ export interface IStorage {
 
   // Action Log methods
   createActionLog(log: InsertActionLog): Promise<ActionLog>;
+  
+  // Client Profile methods
+  getClientProfile(userId: number): Promise<ClientProfile | undefined>;
+  createClientProfile(profile: InsertClientProfile): Promise<ClientProfile>;
+  updateClientProfile(userId: number, profile: Partial<InsertClientProfile>): Promise<ClientProfile | undefined>;
+  
+  // Client Preferences methods
+  getClientPreferences(clientId: number): Promise<ClientPreference | undefined>;
+  createClientPreferences(preferences: InsertClientPreference): Promise<ClientPreference>;
+  updateClientPreferences(clientId: number, preferences: Partial<InsertClientPreference>): Promise<ClientPreference | undefined>;
+  
+  // Client Notes methods
+  getClientNotes(clientId: number): Promise<ClientNote[]>;
+  getClientNotesByBarber(clientId: number, barberId: number): Promise<ClientNote[]>;
+  createClientNote(note: InsertClientNote): Promise<ClientNote>;
+  deleteClientNote(id: number): Promise<void>;
+  
+  // Client Favorite Services methods
+  getClientFavoriteServices(clientId: number): Promise<(ClientFavoriteService & { service: Service })[]>;
+  addClientFavoriteService(favorite: InsertClientFavoriteService): Promise<ClientFavoriteService>;
+  removeClientFavoriteService(id: number): Promise<void>;
+  
+  // Client Management methods
+  getClientWithProfile(userId: number): Promise<ClientWithProfile | undefined>;
+  getClientWithPreferences(userId: number): Promise<ClientWithPreferences | undefined>;
+  getClientWithDetails(userId: number): Promise<ClientWithDetails | undefined>;
+  getAllClientsWithProfiles(): Promise<ClientWithProfile[]>;
+  getRecentClients(limit?: number): Promise<ClientWithProfile[]>;
 }
 
 // Memory Storage for Development/Testing
