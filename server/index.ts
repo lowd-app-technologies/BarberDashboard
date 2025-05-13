@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -36,8 +37,112 @@ app.use((req, res, next) => {
   next();
 });
 
+// Função para inicializar dados de teste
+async function setupTestData() {
+  try {
+    // Verificar se já existem usuários
+    const existingUsers = await storage.getAllUsers();
+    if (existingUsers.length > 0) {
+      log("Dados de teste já existem. Pulando inicialização.");
+      return;
+    }
+
+    log("Inicializando dados de teste...");
+    
+    // Criar usuário admin
+    const admin = await storage.createUser({
+      username: "admin",
+      email: "admin@barberpro.com",
+      password: "senha123",
+      fullName: "Administrador",
+      role: "admin",
+      phone: "+351123456789"
+    });
+    
+    // Criar usuário cliente
+    const client = await storage.createUser({
+      username: "cliente",
+      email: "cliente@exemplo.com",
+      password: "senha123",
+      fullName: "Cliente Teste",
+      role: "client",
+      phone: "+351987654321"
+    });
+    
+    // Criar usuário barbeiro
+    const barberUser = await storage.createUser({
+      username: "barbeiro",
+      email: "barbeiro@barberpro.com",
+      password: "senha123",
+      fullName: "João Silva",
+      role: "barber",
+      phone: "+351456789123"
+    });
+    
+    // Criar registro de barbeiro
+    const barber = await storage.createBarber({
+      userId: barberUser.id,
+      nif: "123456789",
+      iban: "PT50000201231234567890154",
+      paymentPeriod: "monthly",
+      active: true
+    });
+    
+    // Criar serviços
+    const service1 = await storage.createService({
+      name: "Corte de Cabelo",
+      description: "Corte masculino básico",
+      price: "15.00",
+      duration: 30,
+      active: true
+    });
+    
+    const service2 = await storage.createService({
+      name: "Barba",
+      description: "Aparo e modelagem de barba",
+      price: "10.00",
+      duration: 20,
+      active: true
+    });
+    
+    const service3 = await storage.createService({
+      name: "Corte e Barba",
+      description: "Corte masculino completo com barba",
+      price: "22.00",
+      duration: 45,
+      active: true
+    });
+    
+    // Registrar comissões
+    await storage.createCommission({
+      barberId: barber.id,
+      serviceId: service1.id,
+      percentage: "70.00"
+    });
+    
+    await storage.createCommission({
+      barberId: barber.id,
+      serviceId: service2.id,
+      percentage: "70.00"
+    });
+    
+    await storage.createCommission({
+      barberId: barber.id,
+      serviceId: service3.id,
+      percentage: "70.00"
+    });
+    
+    log("Dados de teste criados com sucesso!");
+  } catch (error) {
+    console.error("Erro ao criar dados de teste:", error);
+  }
+}
+
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Setup test data before server starts
+  await setupTestData();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
