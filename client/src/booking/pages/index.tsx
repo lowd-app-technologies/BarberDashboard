@@ -158,10 +158,50 @@ export default function Booking() {
   };
   
   // Lidar com a confirmação do agendamento
-  const handleBookingConfirmation = () => {
-    // Aqui faríamos o POST para a API para salvar o agendamento
-    // Por enquanto, apenas vamos redirecionar para a página de agradecimento
-    navigate("/thank-you");
+  const handleBookingConfirmation = async () => {
+    if (!user) {
+      alert("Por favor, faça login para continuar");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const selectedBarber = barbers.find(b => b.id.toString() === barber);
+      const appointmentDate = new Date(date!);
+      const [hours, minutes] = time.split(':').map(Number);
+      appointmentDate.setHours(hours, minutes);
+
+      // Preparar os dados para enviar à API
+      const appointmentData = {
+        clientId: user.id,
+        barberId: parseInt(barber),
+        serviceId: parseInt(service),
+        date: appointmentDate.toISOString(),
+        status: "pending",
+        notes: `Agendamento feito pelo cliente: ${selectedService?.name} com ${selectedBarber?.name}`
+      };
+
+      // Enviar para a API
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData),
+      });
+
+      if (response.ok) {
+        // Redirecionamos para a página de agradecimento
+        navigate("/thank-you");
+      } else {
+        // Tratamento de erro
+        const errorData = await response.json();
+        alert(`Erro ao criar agendamento: ${errorData.message || 'Ocorreu um erro desconhecido'}`);
+      }
+    } catch (error) {
+      console.error("Erro ao criar agendamento:", error);
+      alert("Ocorreu um erro ao criar o agendamento. Por favor, tente novamente.");
+    }
   };
   
   // Verificar se pode avançar para o próximo passo
