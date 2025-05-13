@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Base colors */
+  --background: 0 0% 7%;
+  --foreground: 0 0% 95%;
+  
+  /* Component colors */
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 60%;
+  
+  --popover: 0 0% 12%;
+  --popover-foreground: 0 0% 95%;
+  
+  --card: 0 0% 12%;
+  --card-foreground: 0 0% 95%;
+  
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  
+  /* Brand colors */
+  --primary: 46 74% 52%; /* Gold */
+  --primary-foreground: 0 0% 7%;
+  
+  --secondary: 353 56% 30%; /* Wine */
+  --secondary-foreground: 0 0% 98%;
+  
+  --accent: 0 0% 20%;
+  --accent-foreground: 0 0% 98%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  
+  /* Status colors */
+  --success: 122 39% 34%;
+  --warning: 36 100% 50%;
+  --error: 0 68% 42%;
+  
+  /* Chart colors */
+  --chart-1: 46 74% 52%;
+  --chart-2: 353 56% 30%;
+  --chart-3: 36 100% 50%;
+  --chart-4: 122 39% 34%;
+  --chart-5: 0 84% 60%;
+  
+  /* Sidebar specific colors */
+  --sidebar-background: 0 0% 12%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 46 74% 52%;
+  --sidebar-primary-foreground: 0 0% 7%;
+  --sidebar-accent: 0 0% 20%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 0 0% 20%;
+  --sidebar-ring: 0 0% 20%;
+  
+  --ring: 46 74% 52%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Base colors */
+  --background: 0 0% 7%;
+  --foreground: 0 0% 95%;
+  
+  /* Component colors */
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 60%;
+  
+  --popover: 0 0% 12%;
+  --popover-foreground: 0 0% 95%;
+  
+  --card: 0 0% 12%;
+  --card-foreground: 0 0% 95%;
+  
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  
+  /* Brand colors */
+  --primary: 46 74% 52%; /* Gold */
+  --primary-foreground: 0 0% 7%;
+  
+  --secondary: 353 56% 30%; /* Wine */
+  --secondary-foreground: 0 0% 98%;
+  
+  --accent: 0 0% 20%;
+  --accent-foreground: 0 0% 98%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  
+  /* Status colors */
+  --success: 122 39% 34%;
+  --warning: 36 100% 50%;
+  --error: 0 68% 42%;
+  
+  /* Chart colors */
+  --chart-1: 46 74% 52%;
+  --chart-2: 353 56% 30%;
+  --chart-3: 36 100% 50%;
+  --chart-4: 122 39% 34%;
+  --chart-5: 0 84% 60%;
+  
+  /* Sidebar specific colors */
+  --sidebar-background: 0 0% 12%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 46 74% 52%;
+  --sidebar-primary-foreground: 0 0% 7%;
+  --sidebar-accent: 0 0% 20%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 0 0% 20%;
+  --sidebar-ring: 0 0% 20%;
+  
+  --ring: 46 74% 52%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+  }
+  
+  .subheading {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+  }
+}
+
+/* Custom classes */
+.barber-pro-text-gold {
+  @apply text-primary;
+}
+
+.barber-pro-bg-gold {
+  @apply bg-primary;
+}
+
+.barber-pro-text-wine {
+  @apply text-secondary;
+}
+
+.barber-pro-bg-wine {
+  @apply bg-secondary;
+}
+
+.barber-pro-bg-dark {
+  @apply bg-background;
+}
+
+.barber-pro-bg-graphite {
+  @apply bg-card;
+}
+
+.barber-pro-border-dark {
+  @apply border-border;
+}
+
+.barber-pro-success {
+  @apply text-[hsl(var(--success))];
+}
+
+.barber-pro-warning {
+  @apply text-[hsl(var(--warning))];
+}
+
+.barber-pro-error {
+  @apply text-[hsl(var(--error))];
+}

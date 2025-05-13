@@ -1,0 +1,557 @@
+import { 
+  users, barbers, services, commissions, appointments, payments, completedServices, actionLogs,
+  type User, type InsertUser,
+  type Barber, type InsertBarber,
+  type Service, type InsertService,
+  type Commission, type InsertCommission,
+  type Appointment, type InsertAppointment,
+  type Payment, type InsertPayment,
+  type CompletedService, type InsertCompletedService,
+  type ActionLog, type InsertActionLog,
+  type BarberWithUser,
+  type AppointmentWithDetails,
+  type PaymentWithBarber
+} from "@shared/schema";
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
+import postgres from 'postgres';
+
+// Basic Storage Interface
+export interface IStorage {
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<void>;
+
+  // Barber methods
+  getBarber(id: number): Promise<BarberWithUser | undefined>;
+  getAllBarbers(): Promise<BarberWithUser[]>;
+  getActiveBarbers(): Promise<BarberWithUser[]>;
+  getTopBarbers(): Promise<BarberWithUser[]>;
+  createBarber(barber: InsertBarber): Promise<Barber>;
+  updateBarber(id: number, barber: Partial<InsertBarber>): Promise<Barber | undefined>;
+  deleteBarber(id: number): Promise<void>;
+
+  // Service methods
+  getService(id: number): Promise<Service | undefined>;
+  getAllServices(): Promise<Service[]>;
+  getActiveServices(): Promise<Service[]>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: number, service: Partial<InsertService>): Promise<Service | undefined>;
+  deleteService(id: number): Promise<void>;
+
+  // Commission methods
+  getCommission(id: number): Promise<Commission | undefined>;
+  getCommissionByBarberAndService(barberId: number, serviceId: number): Promise<Commission | undefined>;
+  getAllCommissions(): Promise<Commission[]>;
+  createCommission(commission: InsertCommission): Promise<Commission>;
+  updateCommission(id: number, commission: Partial<InsertCommission>): Promise<Commission | undefined>;
+  deleteCommission(id: number): Promise<void>;
+
+  // Appointment methods
+  getAppointment(id: number): Promise<AppointmentWithDetails | undefined>;
+  getAllAppointments(): Promise<AppointmentWithDetails[]>;
+  getUpcomingAppointments(): Promise<AppointmentWithDetails[]>;
+  getAvailableTimeSlots(barberId: number, date: Date): Promise<string[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  deleteAppointment(id: number): Promise<void>;
+
+  // Payment methods
+  getPayment(id: number): Promise<PaymentWithBarber | undefined>;
+  getPaymentsByBarber(barberId: number): Promise<PaymentWithBarber[]>;
+  getAllPayments(): Promise<PaymentWithBarber[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
+  deletePayment(id: number): Promise<void>;
+
+  // Completed Service methods
+  getCompletedService(id: number): Promise<CompletedService | undefined>;
+  getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]>;
+  getAllCompletedServices(): Promise<CompletedService[]>;
+  createCompletedService(service: InsertCompletedService): Promise<CompletedService>;
+  deleteCompletedService(id: number): Promise<void>;
+
+  // Action Log methods
+  createActionLog(log: InsertActionLog): Promise<ActionLog>;
+}
+
+// Memory Storage for Development/Testing
+export class MemStorage implements IStorage {
+  private usersData: Map<number, User>;
+  private barbersData: Map<number, Barber>;
+  private servicesData: Map<number, Service>;
+  private commissionsData: Map<number, Commission>;
+  private appointmentsData: Map<number, Appointment>;
+  private paymentsData: Map<number, Payment>;
+  private completedServicesData: Map<number, CompletedService>;
+  private actionLogsData: Map<number, ActionLog>;
+  
+  private userIdCounter: number;
+  private barberIdCounter: number;
+  private serviceIdCounter: number;
+  private commissionIdCounter: number;
+  private appointmentIdCounter: number;
+  private paymentIdCounter: number;
+  private completedServiceIdCounter: number;
+  private actionLogIdCounter: number;
+
+  constructor() {
+    this.usersData = new Map();
+    this.barbersData = new Map();
+    this.servicesData = new Map();
+    this.commissionsData = new Map();
+    this.appointmentsData = new Map();
+    this.paymentsData = new Map();
+    this.completedServicesData = new Map();
+    this.actionLogsData = new Map();
+    
+    this.userIdCounter = 1;
+    this.barberIdCounter = 1;
+    this.serviceIdCounter = 1;
+    this.commissionIdCounter = 1;
+    this.appointmentIdCounter = 1;
+    this.paymentIdCounter = 1;
+    this.completedServiceIdCounter = 1;
+    this.actionLogIdCounter = 1;
+  }
+
+  /* User Methods */
+  async getUser(id: number): Promise<User | undefined> {
+    return this.usersData.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.usersData.values()).find(
+      (user) => user.username === username,
+    );
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.usersData.values()).find(
+      (user) => user.email === email,
+    );
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.usersData.values());
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const createdAt = new Date();
+    const user: User = { ...insertUser, id, createdAt };
+    this.usersData.set(id, user);
+    return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const user = this.usersData.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userData };
+    this.usersData.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    this.usersData.delete(id);
+  }
+
+  /* Barber Methods */
+  async getBarber(id: number): Promise<BarberWithUser | undefined> {
+    const barber = this.barbersData.get(id);
+    if (!barber) return undefined;
+    
+    const user = await this.getUser(barber.userId);
+    if (!user) return undefined;
+    
+    return { ...barber, user };
+  }
+  
+  async getAllBarbers(): Promise<BarberWithUser[]> {
+    const barbers = Array.from(this.barbersData.values());
+    const result: BarberWithUser[] = [];
+    
+    for (const barber of barbers) {
+      const user = await this.getUser(barber.userId);
+      if (user) {
+        result.push({ ...barber, user });
+      }
+    }
+    
+    return result;
+  }
+  
+  async getActiveBarbers(): Promise<BarberWithUser[]> {
+    const barbers = Array.from(this.barbersData.values()).filter(b => b.active);
+    const result: BarberWithUser[] = [];
+    
+    for (const barber of barbers) {
+      const user = await this.getUser(barber.userId);
+      if (user) {
+        result.push({ ...barber, user });
+      }
+    }
+    
+    return result;
+  }
+  
+  async getTopBarbers(): Promise<BarberWithUser[]> {
+    // In memory implementation, just return all barbers
+    return this.getAllBarbers();
+  }
+  
+  async createBarber(barberData: InsertBarber): Promise<Barber> {
+    const id = this.barberIdCounter++;
+    const createdAt = new Date();
+    const barber: Barber = { ...barberData, id, createdAt };
+    this.barbersData.set(id, barber);
+    return barber;
+  }
+  
+  async updateBarber(id: number, barberData: Partial<InsertBarber>): Promise<Barber | undefined> {
+    const barber = this.barbersData.get(id);
+    if (!barber) return undefined;
+    
+    const updatedBarber = { ...barber, ...barberData };
+    this.barbersData.set(id, updatedBarber);
+    return updatedBarber;
+  }
+  
+  async deleteBarber(id: number): Promise<void> {
+    this.barbersData.delete(id);
+  }
+
+  /* Service Methods */
+  async getService(id: number): Promise<Service | undefined> {
+    return this.servicesData.get(id);
+  }
+  
+  async getAllServices(): Promise<Service[]> {
+    return Array.from(this.servicesData.values());
+  }
+  
+  async getActiveServices(): Promise<Service[]> {
+    return Array.from(this.servicesData.values()).filter(s => s.active);
+  }
+  
+  async createService(serviceData: InsertService): Promise<Service> {
+    const id = this.serviceIdCounter++;
+    const createdAt = new Date();
+    const service: Service = { ...serviceData, id, createdAt };
+    this.servicesData.set(id, service);
+    return service;
+  }
+  
+  async updateService(id: number, serviceData: Partial<InsertService>): Promise<Service | undefined> {
+    const service = this.servicesData.get(id);
+    if (!service) return undefined;
+    
+    const updatedService = { ...service, ...serviceData };
+    this.servicesData.set(id, updatedService);
+    return updatedService;
+  }
+  
+  async deleteService(id: number): Promise<void> {
+    this.servicesData.delete(id);
+  }
+
+  /* Commission Methods */
+  async getCommission(id: number): Promise<Commission | undefined> {
+    return this.commissionsData.get(id);
+  }
+  
+  async getCommissionByBarberAndService(barberId: number, serviceId: number): Promise<Commission | undefined> {
+    return Array.from(this.commissionsData.values()).find(
+      c => c.barberId === barberId && c.serviceId === serviceId
+    );
+  }
+  
+  async getAllCommissions(): Promise<Commission[]> {
+    return Array.from(this.commissionsData.values());
+  }
+  
+  async createCommission(commissionData: InsertCommission): Promise<Commission> {
+    const id = this.commissionIdCounter++;
+    const createdAt = new Date();
+    const commission: Commission = { ...commissionData, id, createdAt };
+    this.commissionsData.set(id, commission);
+    return commission;
+  }
+  
+  async updateCommission(id: number, commissionData: Partial<InsertCommission>): Promise<Commission | undefined> {
+    const commission = this.commissionsData.get(id);
+    if (!commission) return undefined;
+    
+    const updatedCommission = { ...commission, ...commissionData };
+    this.commissionsData.set(id, updatedCommission);
+    return updatedCommission;
+  }
+  
+  async deleteCommission(id: number): Promise<void> {
+    this.commissionsData.delete(id);
+  }
+
+  /* Appointment Methods */
+  async getAppointment(id: number): Promise<AppointmentWithDetails | undefined> {
+    const appointment = this.appointmentsData.get(id);
+    if (!appointment) return undefined;
+    
+    const client = await this.getUser(appointment.clientId);
+    if (!client) return undefined;
+    
+    const barber = await this.getBarber(appointment.barberId);
+    if (!barber) return undefined;
+    
+    const service = await this.getService(appointment.serviceId);
+    if (!service) return undefined;
+    
+    return {
+      ...appointment,
+      client,
+      barber,
+      service
+    };
+  }
+  
+  async getAllAppointments(): Promise<AppointmentWithDetails[]> {
+    const appointments = Array.from(this.appointmentsData.values());
+    const result: AppointmentWithDetails[] = [];
+    
+    for (const appointment of appointments) {
+      const client = await this.getUser(appointment.clientId);
+      const barber = await this.getBarber(appointment.barberId);
+      const service = await this.getService(appointment.serviceId);
+      
+      if (client && barber && service) {
+        result.push({
+          ...appointment,
+          client,
+          barber,
+          service
+        });
+      }
+    }
+    
+    return result;
+  }
+  
+  async getUpcomingAppointments(): Promise<AppointmentWithDetails[]> {
+    const now = new Date();
+    const appointments = Array.from(this.appointmentsData.values())
+      .filter(a => a.date > now && a.status !== 'canceled');
+    
+    const result: AppointmentWithDetails[] = [];
+    
+    for (const appointment of appointments) {
+      const client = await this.getUser(appointment.clientId);
+      const barber = await this.getBarber(appointment.barberId);
+      const service = await this.getService(appointment.serviceId);
+      
+      if (client && barber && service) {
+        result.push({
+          ...appointment,
+          client,
+          barber,
+          service
+        });
+      }
+    }
+    
+    return result;
+  }
+  
+  async getAvailableTimeSlots(barberId: number, date: Date): Promise<string[]> {
+    // Generate time slots from 9 AM to 6 PM
+    const allSlots = Array.from({ length: 18 }, (_, i) => {
+      const hour = Math.floor(i / 2) + 9;
+      const minute = (i % 2) * 30;
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    });
+    
+    // Get appointments for this barber on this date
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const appointments = Array.from(this.appointmentsData.values())
+      .filter(a => 
+        a.barberId === barberId &&
+        a.date >= startOfDay &&
+        a.date <= endOfDay &&
+        a.status !== 'canceled'
+      );
+    
+    // Mark booked slots
+    const bookedSlots = new Set(appointments.map(a => {
+      const appointmentDate = new Date(a.date);
+      const hour = appointmentDate.getHours().toString().padStart(2, '0');
+      const minute = appointmentDate.getMinutes().toString().padStart(2, '0');
+      return `${hour}:${minute}`;
+    }));
+    
+    // Return available slots
+    return allSlots.filter(slot => !bookedSlots.has(slot));
+  }
+  
+  async createAppointment(appointmentData: InsertAppointment): Promise<Appointment> {
+    const id = this.appointmentIdCounter++;
+    const createdAt = new Date();
+    const appointment: Appointment = { 
+      ...appointmentData, 
+      id, 
+      createdAt,
+      date: new Date(appointmentData.date)
+    };
+    this.appointmentsData.set(id, appointment);
+    return appointment;
+  }
+  
+  async updateAppointment(id: number, appointmentData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
+    const appointment = this.appointmentsData.get(id);
+    if (!appointment) return undefined;
+    
+    const updatedAppointment = { 
+      ...appointment, 
+      ...appointmentData,
+      date: appointmentData.date ? new Date(appointmentData.date) : appointment.date
+    };
+    this.appointmentsData.set(id, updatedAppointment);
+    return updatedAppointment;
+  }
+  
+  async deleteAppointment(id: number): Promise<void> {
+    this.appointmentsData.delete(id);
+  }
+
+  /* Payment Methods */
+  async getPayment(id: number): Promise<PaymentWithBarber | undefined> {
+    const payment = this.paymentsData.get(id);
+    if (!payment) return undefined;
+    
+    const barber = await this.getBarber(payment.barberId);
+    if (!barber) return undefined;
+    
+    return { ...payment, barber };
+  }
+  
+  async getPaymentsByBarber(barberId: number): Promise<PaymentWithBarber[]> {
+    const payments = Array.from(this.paymentsData.values())
+      .filter(p => p.barberId === barberId);
+    
+    const barber = await this.getBarber(barberId);
+    if (!barber) return [];
+    
+    return payments.map(payment => ({ ...payment, barber }));
+  }
+  
+  async getAllPayments(): Promise<PaymentWithBarber[]> {
+    const payments = Array.from(this.paymentsData.values());
+    const result: PaymentWithBarber[] = [];
+    
+    for (const payment of payments) {
+      const barber = await this.getBarber(payment.barberId);
+      if (barber) {
+        result.push({ ...payment, barber });
+      }
+    }
+    
+    return result;
+  }
+  
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const id = this.paymentIdCounter++;
+    const createdAt = new Date();
+    const payment: Payment = { 
+      ...paymentData, 
+      id, 
+      createdAt,
+      periodStart: new Date(paymentData.periodStart),
+      periodEnd: new Date(paymentData.periodEnd),
+      paymentDate: paymentData.paymentDate ? new Date(paymentData.paymentDate) : null
+    };
+    this.paymentsData.set(id, payment);
+    return payment;
+  }
+  
+  async updatePayment(id: number, paymentData: Partial<InsertPayment>): Promise<Payment | undefined> {
+    const payment = this.paymentsData.get(id);
+    if (!payment) return undefined;
+    
+    const updatedPayment = { 
+      ...payment, 
+      ...paymentData,
+      periodStart: paymentData.periodStart ? new Date(paymentData.periodStart) : payment.periodStart,
+      periodEnd: paymentData.periodEnd ? new Date(paymentData.periodEnd) : payment.periodEnd,
+      paymentDate: paymentData.paymentDate ? new Date(paymentData.paymentDate) : payment.paymentDate
+    };
+    this.paymentsData.set(id, updatedPayment);
+    return updatedPayment;
+  }
+  
+  async deletePayment(id: number): Promise<void> {
+    this.paymentsData.delete(id);
+  }
+
+  /* Completed Service Methods */
+  async getCompletedService(id: number): Promise<CompletedService | undefined> {
+    return this.completedServicesData.get(id);
+  }
+  
+  async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> {
+    return Array.from(this.completedServicesData.values())
+      .filter(cs => cs.barberId === barberId);
+  }
+  
+  async getAllCompletedServices(): Promise<CompletedService[]> {
+    return Array.from(this.completedServicesData.values());
+  }
+  
+  async createCompletedService(serviceData: InsertCompletedService): Promise<CompletedService> {
+    const id = this.completedServiceIdCounter++;
+    const createdAt = new Date();
+    const service: CompletedService = { 
+      ...serviceData, 
+      id, 
+      createdAt,
+      date: new Date(serviceData.date)
+    };
+    this.completedServicesData.set(id, service);
+    return service;
+  }
+  
+  async deleteCompletedService(id: number): Promise<void> {
+    this.completedServicesData.delete(id);
+  }
+
+  /* Action Log Methods */
+  async createActionLog(logData: InsertActionLog): Promise<ActionLog> {
+    const id = this.actionLogIdCounter++;
+    const createdAt = new Date();
+    const log: ActionLog = { ...logData, id, createdAt };
+    this.actionLogsData.set(id, log);
+    return log;
+  }
+}
+
+// Set up Supabase PostgreSQL connection if URL is available
+let db;
+if (process.env.DATABASE_URL) {
+  console.log('Using PostgreSQL with Drizzle ORM');
+  const connectionString = process.env.DATABASE_URL;
+  const client = postgres(connectionString);
+  db = drizzle(client);
+}
+
+// Export the appropriate storage implementation
+export const storage = process.env.DATABASE_URL ? 
+  // Implement PostgreSQL version when ready
+  new MemStorage() : 
+  new MemStorage();
