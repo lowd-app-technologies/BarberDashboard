@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create the invite
       const invite = await storage.createBarberInvite({
-        token,
+        token: inviteToken,
         barberId,
         createdById: user.id,
         expiresAt
@@ -88,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Return token and not the whole invite for security
       res.status(201).json({ 
-        token,
+        token: inviteToken,
         expiresAt: invite.expiresAt 
       });
     } catch (error: any) {
@@ -100,12 +100,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { token: inviteToken } = req.query;
       
-      if (!token || typeof token !== 'string') {
+      if (!inviteToken || typeof inviteToken !== 'string') {
         return res.status(400).json({ message: "Invalid token" });
       }
       
       // Get the invite
-      const invite = await storage.getBarberInviteByToken(token);
+      const invite = await storage.getBarberInviteByToken(inviteToken);
       
       if (!invite) {
         return res.status(404).json({ message: "Invite not found" });
@@ -135,14 +135,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/invites/use", async (req, res) => {
     try {
-      const { token, username, email, password, fullName } = req.body;
+      const { token: inviteToken, username, email, password, fullName } = req.body;
       
-      if (!token || !username || !email || !password || !fullName) {
+      if (!inviteToken || !username || !email || !password || !fullName) {
         return res.status(400).json({ message: "Missing required fields" });
       }
       
       // Get the invite
-      const invite = await storage.getBarberInviteByToken(token);
+      const invite = await storage.getBarberInviteByToken(inviteToken);
       
       if (!invite) {
         return res.status(404).json({ message: "Invite not found" });
