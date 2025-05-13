@@ -200,7 +200,7 @@ export default function ProductSales() {
       setIsAddDialogOpen(false);
       form.reset({
         productId: 0,
-        barberId: isBarber && barber ? barber.id : 0,
+        barberId: isBarber && barber?.id ? barber.id : 0,
         clientName: '',
         clientId: null,
         date: new Date().toISOString().substring(0, 10),
