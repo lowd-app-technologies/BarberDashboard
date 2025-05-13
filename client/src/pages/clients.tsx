@@ -176,6 +176,7 @@ export default function Clients() {
   const [, navigate] = useLocation();
   const [selectedClient, setSelectedClient] = useState<number | null>(null);
   const [showClientDetailsDialog, setShowClientDetailsDialog] = useState(false);
+  const [showAddClientDialog, setShowAddClientDialog] = useState(false);
   
   // Fetch clients
   const { 
@@ -766,5 +767,6 @@ export default function Clients() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }
