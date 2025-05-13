@@ -547,6 +547,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // Rotas para serviços concluídos
+  app.get("/api/completed-services", async (req, res) => {
+    try {
+      const completedServices = await storage.getAllCompletedServices();
+      res.json(completedServices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get("/api/completed-services/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de serviço inválido" });
+      }
+      
+      const service = await storage.getCompletedService(id);
+      if (!service) {
+        return res.status(404).json({ message: "Serviço não encontrado" });
+      }
+      
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post("/api/completed-services", async (req, res) => {
+    try {
+      const serviceData = req.body;
+      const completedService = await storage.createCompletedService({
+        ...serviceData,
+        validatedByAdmin: false
+      });
+      res.status(201).json(completedService);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.patch("/api/completed-services/:id/validate", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de serviço inválido" });
+      }
+      
+      const service = await storage.getCompletedService(id);
+      if (!service) {
+        return res.status(404).json({ message: "Serviço não encontrado" });
+      }
+      
+      // Atualizar o serviço como validado
+      const updatedService = await storage.updateCompletedService(id, {
+        validatedByAdmin: true
+      });
+      
+      res.json(updatedService);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.delete("/api/completed-services/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de serviço inválido" });
+      }
+      
+      await storage.deleteCompletedService(id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   // Rotas de agendamentos
   app.get("/api/appointments", async (req, res) => {

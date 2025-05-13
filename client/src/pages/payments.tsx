@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { MobileNavigation } from "@/components/layout/MobileNavigation";
+import { Layout } from "@/components/layout/Layout";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { 
@@ -13,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { 
   AlertDialog,
@@ -42,610 +41,422 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
+import { 
+  Scissors, 
   Calendar, 
-  Plus, 
-  CheckCircle, 
-  FileText, 
-  DownloadIcon,
-  Calendar as CalendarIcon,
-  UserRound,
+  CheckCircle,
   DollarSign,
-  CalendarRange,
-  FilterIcon
+  UserRound,
+  ArrowUpCircle,
+  XCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-// Form schema for creating/editing payments
-const paymentFormSchema = z.object({
-  barberId: z.string({
-    required_error: "Selecione um barbeiro",
-  }),
-  amount: z.string().refine(
-    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-    { message: "O valor deve ser um número positivo" }
-  ),
-  periodStart: z.date({
-    required_error: "Selecione a data de início do período",
-  }),
-  periodEnd: z.date({
-    required_error: "Selecione a data de fim do período",
-  }),
-  notes: z.string().optional(),
-});
-
-type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
 export default function Payments() {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [barberFilter, setBarberFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
-  
+  const [activeTab, setActiveTab] = useState("pending");
   const { toast } = useToast();
   
-  // Fetch payments
-  const { data: payments, isLoading: isLoadingPayments } = useQuery({
-    queryKey: ['/api/payments'],
+  // Buscar todos os serviços concluídos
+  const { data: completedServices = [], isLoading } = useQuery({
+    queryKey: ['/api/completed-services'],
   });
   
-  // Fetch barbers for dropdown
-  const { data: barbers } = useQuery({
+  // Buscar todos os barbeiros
+  const { data: barbers = [] } = useQuery({
     queryKey: ['/api/barbers'],
   });
   
-  // Mark payment as paid mutation
-  const markAsPaidMutation = useMutation({
-    mutationFn: async (paymentId: number) => {
-      await apiRequest("PATCH", `/api/payments/${paymentId}/pay`, {});
+  // Validar um serviço
+  const validateServiceMutation = useMutation({
+    mutationFn: async (serviceId: number) => {
+      return await apiRequest("PATCH", `/api/completed-services/${serviceId}/validate`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-services'] });
       toast({
-        title: "Pagamento realizado",
-        description: "O pagamento foi marcado como pago com sucesso."
+        title: "Serviço validado",
+        description: "O serviço foi validado com sucesso."
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao atualizar pagamento",
-        description: error.message || "Ocorreu um erro ao atualizar o pagamento. Tente novamente.",
+        title: "Erro ao validar serviço",
+        description: error.message || "Ocorreu um erro ao validar o serviço.",
         variant: "destructive"
       });
     }
   });
   
-  // Create payment mutation
-  const createPaymentMutation = useMutation({
-    mutationFn: async (data: any) => {
-      await apiRequest("POST", "/api/payments", data);
+  // Marcar um pagamento como pago (para futuras implementações)
+  const markPaymentAsPaidMutation = useMutation({
+    mutationFn: async (barberId: number) => {
+      return await apiRequest("POST", `/api/payments`, {
+        barberId,
+        amount: getTotalAmountForBarber(barberId),
+        periodStart: new Date(new Date().setDate(1)), // Primeiro dia do mês atual
+        periodEnd: new Date(), // Data atual
+        status: "paid"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-      setIsAddDialogOpen(false);
       toast({
-        title: "Pagamento criado",
-        description: "O pagamento foi criado com sucesso."
+        title: "Pagamento registrado",
+        description: "O pagamento foi registrado com sucesso."
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao criar pagamento",
-        description: error.message || "Ocorreu um erro ao criar o pagamento. Tente novamente.",
+        title: "Erro ao registrar pagamento",
+        description: error.message || "Ocorreu um erro ao registrar o pagamento.",
         variant: "destructive"
       });
     }
   });
   
-  // Filter payments
-  const filteredPayments = payments 
-    ? payments.filter((payment: any) => {
-        // Status filter
-        const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-        
-        // Barber filter
-        const matchesBarber = barberFilter === "all" || 
-          payment.barber.id.toString() === barberFilter;
-        
-        // Date filter (checks if the payment period overlaps with the selected date)
-        const matchesDate = !dateFilter || 
-          (new Date(payment.periodStart) <= dateFilter && 
-           new Date(payment.periodEnd) >= dateFilter);
-        
-        return matchesStatus && matchesBarber && matchesDate;
-      })
-    : [];
-  
-  // Mark payment as paid
-  const handleMarkAsPaid = (paymentId: number) => {
-    markAsPaidMutation.mutate(paymentId);
-  };
-  
-  // Clear all filters
-  const clearFilters = () => {
-    setStatusFilter("all");
-    setBarberFilter("all");
-    setDateFilter(undefined);
-  };
-  
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-[hsl(var(--success))]">Pago</Badge>;
-      default:
-        return <Badge variant="outline" className="border-[hsl(var(--warning))] text-[hsl(var(--warning))]">Pendente</Badge>;
+  // Rejeitar um serviço
+  const rejectServiceMutation = useMutation({
+    mutationFn: async (serviceId: number) => {
+      return await apiRequest("DELETE", `/api/completed-services/${serviceId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-services'] });
+      toast({
+        title: "Serviço rejeitado",
+        description: "O serviço foi rejeitado e removido do sistema."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao rejeitar serviço",
+        description: error.message || "Ocorreu um erro ao rejeitar o serviço.",
+        variant: "destructive"
+      });
     }
+  });
+  
+  // Validar o serviço
+  const handleValidateService = (serviceId: number) => {
+    validateServiceMutation.mutate(serviceId);
   };
   
-  // PaymentForm component
-  function PaymentForm({ onCancel }: { onCancel: () => void }) {
-    const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-    const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  // Rejeitar o serviço
+  const handleRejectService = (serviceId: number) => {
+    rejectServiceMutation.mutate(serviceId);
+  };
+  
+  // Registrar pagamento para um barbeiro
+  const handlePayBarber = (barberId: number) => {
+    markPaymentAsPaidMutation.mutate(barberId);
+  };
+  
+  // Filtrar serviços por status
+  const pendingServices = completedServices.filter((service: any) => !service.validatedByAdmin);
+  const validatedServices = completedServices.filter((service: any) => service.validatedByAdmin);
+  
+  // Agrupar serviços validados por barbeiro
+  const getServicesGroupedByBarber = () => {
+    const groupedServices: Record<number, any[]> = {};
     
-    const form = useForm<PaymentFormValues>({
-      resolver: zodResolver(paymentFormSchema),
-      defaultValues: {
-        barberId: "",
-        amount: "",
-        notes: "",
-      },
+    validatedServices.forEach((service: any) => {
+      const barberId = service.barberId;
+      if (!groupedServices[barberId]) {
+        groupedServices[barberId] = [];
+      }
+      groupedServices[barberId].push(service);
     });
     
-    const onSubmit = (data: PaymentFormValues) => {
-      createPaymentMutation.mutate({
-        barberId: parseInt(data.barberId),
-        amount: parseFloat(data.amount),
-        periodStart: data.periodStart,
-        periodEnd: data.periodEnd,
-        notes: data.notes,
-        status: "pending"
-      });
-    };
-    
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="barberId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Barbeiro</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um barbeiro" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {barbers && barbers.map((barber: any) => (
-                      <SelectItem 
-                        key={barber.id} 
-                        value={barber.id.toString()}
-                      >
-                        {barber.user.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor (€)</FormLabel>
-                <FormControl>
-                  <Input placeholder="1000.00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="periodStart"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data de Início</FormLabel>
-                  <DatePicker 
-                    date={field.value} 
-                    setDate={(date) => {
-                      setStartDate(date);
-                      field.onChange(date);
-                    }} 
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="periodEnd"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data de Fim</FormLabel>
-                  <DatePicker 
-                    date={field.value} 
-                    setDate={(date) => {
-                      setEndDate(date);
-                      field.onChange(date);
-                    }}
-                    disabled={!startDate}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Observações</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Adicione quaisquer observações relevantes" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-              disabled={createPaymentMutation.isPending}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              type="submit"
-              disabled={createPaymentMutation.isPending}
-            >
-              {createPaymentMutation.isPending ? "Criando..." : "Criar Pagamento"}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    );
-  }
-
+    return groupedServices;
+  };
+  
+  // Calcular valor total para um barbeiro
+  const getTotalAmountForBarber = (barberId: number) => {
+    const services = validatedServices.filter((service: any) => service.barberId === barberId);
+    return services.reduce((sum: number, service: any) => sum + parseFloat(service.price), 0);
+  };
+  
+  // Calcular comissão para um barbeiro (50% como exemplo)
+  const getCommissionForBarber = (barberId: number) => {
+    return getTotalAmountForBarber(barberId) * 0.5;
+  };
+  
+  // Obter informações de um barbeiro pelo ID
+  const getBarberInfo = (barberId: number) => {
+    return barbers.find((barber: any) => barber.id === barberId);
+  };
+  
+  // Serviços agrupados por barbeiro
+  const servicesGroupedByBarber = getServicesGroupedByBarber();
+  
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <Sidebar />
-      
-      {/* Mobile Header */}
-      <header className="bg-card p-4 flex justify-between items-center md:hidden">
-        <h1 className="text-primary text-xl font-bold">BarberPro</h1>
-        <button className="text-foreground">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="10" r="3" />
-            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-          </svg>
-        </button>
-      </header>
-
-      {/* Main Content */}
-      <main className="md:ml-64 p-4 md:p-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold mb-4 md:mb-0">Pagamentos</h1>
-          <div className="flex flex-col md:flex-row w-full md:w-auto space-y-2 md:space-y-0 md:space-x-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="md:ml-auto flex">
-                  <FilterIcon className="mr-2 h-4 w-4" />
-                  Filtros
-                  {(statusFilter !== "all" || dateFilter || barberFilter !== "all") && (
-                    <Badge className="ml-2 bg-primary">!</Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Filtrar Pagamentos</h4>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Status</label>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="paid">Pago</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Barbeiro</label>
-                    <Select
-                      value={barberFilter}
-                      onValueChange={setBarberFilter}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o barbeiro" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {barbers && barbers.map((barber: any) => (
-                          <SelectItem 
-                            key={barber.id} 
-                            value={barber.id.toString()}
-                          >
-                            {barber.user.fullName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Data no Período</label>
-                    <DatePicker 
-                      date={dateFilter} 
-                      setDate={setDateFilter} 
-                      className="w-full" 
-                    />
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={clearFilters} 
-                    className="w-full"
-                  >
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary text-primary-foreground">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Pagamento
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>Adicionar Novo Pagamento</DialogTitle>
-                  <DialogDescription>
-                    Crie um novo registro de pagamento para um barbeiro.
-                  </DialogDescription>
-                </DialogHeader>
-                <PaymentForm onCancel={() => setIsAddDialogOpen(false)} />
-              </DialogContent>
-            </Dialog>
+    <Layout>
+      <div className="container mx-auto py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Pagamentos e Validações</h1>
+            <p className="text-muted-foreground">Gerencie pagamentos e valide serviços prestados</p>
           </div>
         </div>
 
-        <Tabs defaultValue="pending">
+        <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="pending">Pendentes</TabsTrigger>
-            <TabsTrigger value="paid">Pagos</TabsTrigger>
-            <TabsTrigger value="all">Todos</TabsTrigger>
+            <TabsTrigger value="pending">
+              Validar Serviços
+              {pendingServices.length > 0 && (
+                <Badge className="ml-2 bg-primary">{pendingServices.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="payments">Pagamentos</TabsTrigger>
           </TabsList>
-          
+
+          {/* Tab de Validação de Serviços */}
           <TabsContent value="pending">
-            <PaymentList 
-              payments={filteredPayments.filter((p: any) => p.status === 'pending')}
-              isLoading={isLoadingPayments}
-              onMarkAsPaid={handleMarkAsPaid}
-              emptyMessage="Não há pagamentos pendentes."
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>Serviços Pendentes de Validação</CardTitle>
+                <CardDescription>
+                  Valide os serviços prestados pelos barbeiros antes de processar o pagamento
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="py-8 text-center text-muted-foreground">Carregando serviços...</div>
+                ) : pendingServices.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <CheckCircle className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+                    <h3 className="mt-4 text-lg font-semibold">Não há serviços pendentes</h3>
+                    <p className="text-muted-foreground">
+                      Todos os serviços registrados já foram validados
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Barbeiro</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Serviço</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingServices.map((service: any) => (
+                        <TableRow key={service.id}>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Avatar className="h-8 w-8 mr-2">
+                                <AvatarImage src="" />
+                                <AvatarFallback>{service.barber.user.fullName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>{service.barber.user.fullName}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(service.date)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{service.service.name}</div>
+                            {service.notes && (
+                              <div className="text-xs text-muted-foreground">{service.notes}</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {service.client.fullName}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(service.price)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-[hsl(var(--success))]"
+                                onClick={() => handleValidateService(service.id)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <span className="sr-only">Validar</span>
+                              </Button>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                    <span className="sr-only">Rejeitar</span>
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Rejeitar Serviço</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja rejeitar este serviço? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRejectService(service.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Rejeitar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
-          
-          <TabsContent value="paid">
-            <PaymentList 
-              payments={filteredPayments.filter((p: any) => p.status === 'paid')}
-              isLoading={isLoadingPayments}
-              onMarkAsPaid={handleMarkAsPaid}
-              emptyMessage="Não há pagamentos concluídos."
-            />
-          </TabsContent>
-          
-          <TabsContent value="all">
-            <PaymentList 
-              payments={filteredPayments}
-              isLoading={isLoadingPayments}
-              onMarkAsPaid={handleMarkAsPaid}
-              emptyMessage="Não há pagamentos registrados."
-            />
+
+          {/* Tab de Pagamentos */}
+          <TabsContent value="payments">
+            <div className="grid grid-cols-1 gap-4">
+              {Object.keys(servicesGroupedByBarber).length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <DollarSign className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+                    <h3 className="mt-4 text-lg font-semibold">Não há pagamentos pendentes</h3>
+                    <p className="text-muted-foreground">
+                      Todos os serviços validados já foram pagos ou não existem serviços validados
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                Object.keys(servicesGroupedByBarber).map((barberIdStr) => {
+                  const barberId = parseInt(barberIdStr);
+                  const barber = getBarberInfo(barberId);
+                  const services = servicesGroupedByBarber[barberId];
+                  const totalAmount = getTotalAmountForBarber(barberId);
+                  const commissionAmount = getCommissionForBarber(barberId);
+                  
+                  return (
+                    <Card key={barberId} className="overflow-hidden">
+                      <CardHeader className="bg-muted/20">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <Avatar className="h-10 w-10 mr-3">
+                              <AvatarImage src="" />
+                              <AvatarFallback>{barber?.user.fullName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <CardTitle>{barber?.user.fullName}</CardTitle>
+                              <CardDescription>
+                                {services.length} serviços realizados
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-primary">
+                              {formatCurrency(commissionAmount)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              a pagar (50% de {formatCurrency(totalAmount)})
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Data</TableHead>
+                              <TableHead>Serviço</TableHead>
+                              <TableHead>Cliente</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead className="text-right">Comissão (50%)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {services.map((service: any) => (
+                              <TableRow key={service.id}>
+                                <TableCell>{formatDate(service.date)}</TableCell>
+                                <TableCell>
+                                  <div className="font-medium">{service.service.name}</div>
+                                </TableCell>
+                                <TableCell>{service.client.fullName}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(service.price)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(parseFloat(service.price) * 0.5)}</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted/30">
+                              <TableCell colSpan={3} className="font-medium">Total</TableCell>
+                              <TableCell className="text-right font-bold">{formatCurrency(totalAmount)}</TableCell>
+                              <TableCell className="text-right font-bold text-primary">{formatCurrency(commissionAmount)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                      <div className="p-4 bg-card border-t flex justify-end">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button>
+                              <DollarSign className="mr-2 h-4 w-4" />
+                              Registrar Pagamento
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Confirmar Pagamento</DialogTitle>
+                              <DialogDescription>
+                                Você está prestes a registrar um pagamento de {formatCurrency(commissionAmount)} para {barber?.user.fullName}.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-4">
+                              <div className="bg-muted p-4 rounded-md">
+                                <div className="flex justify-between mb-2">
+                                  <div className="text-muted-foreground">Barbeiro:</div>
+                                  <div className="font-medium">{barber?.user.fullName}</div>
+                                </div>
+                                <div className="flex justify-between mb-2">
+                                  <div className="text-muted-foreground">Valor total:</div>
+                                  <div className="font-medium">{formatCurrency(totalAmount)}</div>
+                                </div>
+                                <div className="flex justify-between mb-2">
+                                  <div className="text-muted-foreground">Comissão (50%):</div>
+                                  <div className="font-medium text-primary">{formatCurrency(commissionAmount)}</div>
+                                </div>
+                                <div className="flex justify-between">
+                                  <div className="text-muted-foreground">Serviços:</div>
+                                  <div className="font-medium">{services.length}</div>
+                                </div>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Este pagamento será registrado no sistema e os serviços marcados como pagos.
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => {}}>Cancelar</Button>
+                              <Button onClick={() => handlePayBarber(barberId)}>Confirmar Pagamento</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           </TabsContent>
         </Tabs>
-      </main>
-      
-      <MobileNavigation />
-    </div>
-  );
-}
-
-// PaymentList component
-interface PaymentListProps {
-  payments: any[];
-  isLoading: boolean;
-  onMarkAsPaid: (paymentId: number) => void;
-  emptyMessage?: string;
-}
-
-function PaymentList({ 
-  payments, 
-  isLoading, 
-  onMarkAsPaid,
-  emptyMessage = "Não há pagamentos."
-}: PaymentListProps) {
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-[hsl(var(--success))]">Pago</Badge>;
-      default:
-        return <Badge variant="outline" className="border-[hsl(var(--warning))] text-[hsl(var(--warning))]">Pendente</Badge>;
-    }
-  };
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Lista de Pagamentos</CardTitle>
-        <CardDescription>
-          Gerencie os pagamentos aos barbeiros.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">Carregando pagamentos...</div>
-        ) : payments.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            {emptyMessage}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Barbeiro</TableHead>
-                <TableHead>Período</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data de Pagamento</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((payment: any) => (
-                <TableRow key={payment.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-muted-foreground bg-opacity-20 text-foreground">
-                          {payment.barber.user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="font-medium">{payment.barber.user.fullName}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <CalendarRange className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-sm">{formatDate(payment.periodStart)}</div>
-                        <div className="text-sm text-muted-foreground">até {formatDate(payment.periodEnd)}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <span className="font-medium">{formatCurrency(payment.amount)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(payment.status)}
-                  </TableCell>
-                  <TableCell>
-                    {payment.paymentDate ? formatDate(payment.paymentDate) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {payment.status === 'pending' ? (
-                      <div className="flex justify-end space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onMarkAsPaid(payment.id)}
-                          className="text-[hsl(var(--success))] hover:text-[hsl(var(--success))] hover:bg-[hsl(var(--success))/10]"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="sr-only">Marcar como Pago</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-primary"
-                        >
-                          <FileText className="h-4 w-4" />
-                          <span className="sr-only">Detalhes</span>
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary hover:text-primary"
-                      >
-                        <DownloadIcon className="h-4 w-4" />
-                        <span className="sr-only">Exportar</span>
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </Layout>
   );
 }
