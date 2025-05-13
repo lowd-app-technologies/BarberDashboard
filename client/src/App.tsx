@@ -62,6 +62,38 @@ function Router() {
       </Switch>
     );
   }
+  
+  // Barber routes
+  if (role === 'barber') {
+    return (
+      <Switch>
+        <Route path="/barber" component={Dashboard} />
+        <Route path="/barber/appointments" component={Appointments} />
+        <Route path="/barber/clients" component={Clients} />
+        <Route path="/barber/payments" component={Payments} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Direct access routes - without role prefix (for backward compatibility)
+  if (location === "/appointments" || 
+      location === "/services" || 
+      location === "/barbers" || 
+      location === "/clients" || 
+      location === "/payments") {
+    return (
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/appointments" component={Appointments} />
+        <Route path="/services" component={Services} />
+        <Route path="/barbers" component={Barbers} />
+        <Route path="/clients" component={Clients} />
+        <Route path="/payments" component={Payments} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
 
   // Public routes - available to all users, including unauthenticated ones
   if (location === "/" || location === "/booking" || location === "/thank-you") {
