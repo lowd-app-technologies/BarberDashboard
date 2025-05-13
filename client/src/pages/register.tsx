@@ -60,12 +60,14 @@ export default function Register() {
     setIsLoading(true);
     
     try {
+      // Indicamos que estamos na área administrativa (isClientArea = false)
       await register(
         data.email, 
         data.password, 
         data.username, 
         data.fullName, 
-        data.role
+        data.role,
+        false
       );
     } catch (error) {
       // Error handling is done in the auth hook
@@ -77,7 +79,8 @@ export default function Register() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      await loginWithGoogle();
+      // Indicamos que estamos na área administrativa (isClientArea = false)
+      await loginWithGoogle(false);
     } catch (error) {
       // Error handling is done in the auth hook
       setIsGoogleLoading(false);

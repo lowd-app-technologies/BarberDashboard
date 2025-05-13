@@ -50,7 +50,8 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await login(data.email, data.password);
+      // Indicamos que estamos na área administrativa (isClientArea = false)
+      await login(data.email, data.password, false);
     } catch (error) {
       // Error handling is done in the auth hook
     } finally {
@@ -61,7 +62,8 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      await loginWithGoogle();
+      // Indicamos que estamos na área administrativa (isClientArea = false)
+      await loginWithGoogle(false);
     } catch (error) {
       // Error handling is done in the auth hook
       setIsGoogleLoading(false);
