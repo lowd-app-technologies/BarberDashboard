@@ -43,20 +43,18 @@ export default function BarberRegister() {
   const [token, setToken] = useState<string>("");
   const [inviteError, setInviteError] = useState<string>("");
   
-  // Extract token and ID from URL
+  // Extract token from URL (nova implementação sem o ID)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tokenParam = params.get("token");
-    const idParam = params.get("id");
     
-    if (!tokenParam || !idParam) {
+    if (!tokenParam) {
       setInviteStatus("invalid");
       setInviteError("Link de convite inválido. Verifique se você está usando o link correto.");
       return;
     }
     
     setToken(tokenParam);
-    setBarberId(idParam);
     
     // Validate the token
     validateToken(tokenParam);
@@ -69,6 +67,15 @@ export default function BarberRegister() {
       
       if (data.valid) {
         setInviteStatus("valid");
+        // Atualizar o barberId com o valor recebido do servidor
+        if (data.barberId) {
+          setBarberId(data.barberId);
+        }
+        
+        // Pré-preencher o campo de email se estiver disponível
+        if (data.email) {
+          form.setValue("email", data.email);
+        }
       } else {
         setInviteStatus("invalid");
         setInviteError(data.message || "O link de convite é inválido.");

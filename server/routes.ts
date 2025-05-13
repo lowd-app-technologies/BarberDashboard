@@ -636,10 +636,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem gerar convites.' });
       }
       
-      const { barberId } = req.body;
-      if (!barberId) {
-        return res.status(400).json({ message: 'ID do barbeiro é obrigatório' });
+      const { email, name } = req.body;
+      if (!email || !name) {
+        return res.status(400).json({ message: 'Email e nome do barbeiro são obrigatórios' });
       }
+      
+      // Verificar se o email já está em uso
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'Este email já está registrado no sistema' });
+      }
+      
+      // Criar um ID único baseado no email e timestamp
+      const barberId = `${email.split('@')[0]}-${Date.now()}`;
       
       // Gerar token
       const token = generateToken();
@@ -656,8 +665,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt
       });
       
-      // Retornar token
-      return res.status(200).json({ token });
+      // Em uma implementação real, aqui enviaríamos um email para o barbeiro
+      // com o link de convite usando um serviço de email como SendGrid ou Nodemailer
+      
+      // Registrar no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: "create",
+        entity: "barber_invite",
+        entityId: invite.id,
+        details: `Convite enviado para ${name} (${email})`
+      });
+      
+      // Retornar token e ID do barbeiro
+      return res.status(200).json({ token, barberId });
       
     } catch (error: any) {
       console.error('Erro ao gerar convite:', error);
@@ -691,11 +712,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Este convite expirou' });
       }
       
-      // Retornar informações do convite (sem o token por segurança)
+      // Tentar extrair o email do barberId (está no formato email-timestamp)
+      let email = null;
+      if (invite.barberId) {
+        const parts = invite.barberId.split('-');
+        if (parts.length > 1) {
+          // Tentar reconstruir o email se foi criado com o formato padrão (usuario-timestamp)
+          const emailUser = parts[0];
+          // Como não guardamos o domínio do email, não podemos reconstruir o email completo
+          // email = `${emailUser}@example.com`; // Isso seria apenas uma estimativa
+        }
+      }
+      
+      // Retornar informações do convite (sem o token completo por segurança)
       return res.status(200).json({
         barberId: invite.barberId,
         valid: true,
-        expiresAt: invite.expiresAt
+        expiresAt: invite.expiresAt,
+        email: email // Inclui o email se estiver disponível
       });
       
     } catch (error: any) {
