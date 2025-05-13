@@ -704,6 +704,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rotas para serviços completados (atendimentos realizados)
+  app.get('/api/completed-services', async (req: Request, res: Response) => {
+    try {
+      // Aqui você pode implementar filtros com base nos parâmetros de consulta
+      // Por exemplo: período, barbeiro específico, etc.
+      const completedServices = await storage.getAllCompletedServices();
+      res.json(completedServices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get('/api/completed-services/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de serviço inválido" });
+      }
+      
+      const service = await storage.getCompletedService(id);
+      if (!service) {
+        return res.status(404).json({ message: "Serviço completado não encontrado" });
+      }
+      
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.post('/api/completed-services', async (req: Request, res: Response) => {
+    try {
+      const { barberId, serviceId, clientName, price, date, appointmentId, notes } = req.body;
+      
+      // Validar dados
+      if (!barberId || !serviceId || !clientName || price === undefined || !date) {
+        return res.status(400).json({ message: "Dados incompletos para o registro do serviço" });
+      }
+      
+      // Verificar se o barbeiro existe
+      const barber = await storage.getBarber(barberId);
+      if (!barber) {
+        return res.status(404).json({ message: "Barbeiro não encontrado" });
+      }
+      
+      // Verificar se o serviço existe
+      const service = await storage.getService(serviceId);
+      if (!service) {
+        return res.status(404).json({ message: "Serviço não encontrado" });
+      }
+      
+      // Criar o registro do serviço completado
+      const completedService = await storage.createCompletedService({
+        barberId,
+        serviceId,
+        clientName,
+        price,
+        date: new Date(date),
+        appointmentId: appointmentId || undefined,
+        // Outros campos conforme necessário
+      });
+      
+      // Atualizar dados do cliente se fornecido um ID de cliente
+      if (req.body.clientId) {
+        // Aqui poderia atualizar last_visit do cliente, por exemplo
+        // Ou adicionar o serviço aos favoritos do cliente
+      }
+      
+      // Se baseado em um agendamento, atualizar o status do agendamento
+      if (appointmentId) {
+        await storage.updateAppointmentStatus(appointmentId, "completed");
+      }
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId || barberId, // Use o ID de sessão se disponível
+        action: "create",
+        entity: "completed_service",
+        entityId: completedService.id,
+        details: `Serviço ${service.name} registrado para o cliente ${clientName}`
+      });
+      
+      res.status(201).json(completedService);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // Rota para usar um convite e criar um barbeiro
   app.post('/api/invites/use', async (req: Request, res: Response) => {
     try {

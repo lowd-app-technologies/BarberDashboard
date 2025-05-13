@@ -17,6 +17,7 @@ import Clients from "@/pages/clients";
 // Barber Pages
 import InviteBarber from "@/pages/barber/invite";
 import BarberRegister from "@/pages/barber/register";
+import ServiceRecords from "@/pages/barber/service-records";
 
 // Auth Pages
 import Login from "@/pages/login";
@@ -80,6 +81,7 @@ function Router() {
         <Route path="/barber/appointments" component={Appointments} />
         <Route path="/barber/clients" component={Clients} />
         <Route path="/barber/payments" component={Payments} />
+        <Route path="/barber/service-records" component={ServiceRecords} />
         <Route component={NotFound} />
       </Switch>
     );
