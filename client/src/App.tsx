@@ -19,6 +19,7 @@ import Register from "@/pages/register";
 
 // Booking App Pages (Cliente)
 import BookingApp from "@/booking/pages";
+import ThankYouPage from "@/booking/pages/thank-you";
 
 // Other Pages
 import NotFound from "@/pages/not-found";
@@ -61,11 +62,12 @@ function Router() {
   }
 
   // Public routes - available to all users, including unauthenticated ones
-  if (location === "/" || location === "/booking") {
+  if (location === "/" || location === "/booking" || location === "/thank-you") {
     return (
       <Switch>
         <Route path="/" component={BookingApp} />
         <Route path="/booking" component={BookingApp} />
+        <Route path="/thank-you" component={ThankYouPage} />
         <Route component={NotFound} />
       </Switch>
     );

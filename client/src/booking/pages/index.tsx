@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
@@ -17,10 +17,28 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Scissors, Calendar as CalendarIcon, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Scissors, 
+  Calendar as CalendarIcon, 
+  Clock, 
+  User, 
+  ChevronDown,
+  LogOut,
+  Settings,
+  CalendarDays
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import "../styles/booking.css";
+import { useAuth } from "@/hooks/useAuth";
 
 // Serviços da Vossa Barbearia
 const services = [
@@ -121,6 +139,9 @@ export default function Booking() {
   const [service, setService] = useState<string>("");
   const [time, setTime] = useState<string>("");
   const [step, setStep] = useState(1);
+  const [isBooked, setIsBooked] = useState(false);
+  const [, navigate] = useLocation();
+  const { user, logout } = useAuth();
   const timeSlots = generateTimeSlots();
   
   // Obter o serviço selecionado
@@ -136,6 +157,13 @@ export default function Booking() {
     if (step > 1) setStep(step - 1);
   };
   
+  // Lidar com a confirmação do agendamento
+  const handleBookingConfirmation = () => {
+    // Aqui faríamos o POST para a API para salvar o agendamento
+    // Por enquanto, apenas vamos redirecionar para a página de agradecimento
+    navigate("/thank-you");
+  };
+  
   // Verificar se pode avançar para o próximo passo
   const canProceed = () => {
     switch(step) {
@@ -144,6 +172,12 @@ export default function Booking() {
       case 3: return !!date && !!time;
       default: return true;
     }
+  };
+  
+  // Processar logout
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
   };
 
   return (
@@ -158,11 +192,42 @@ export default function Booking() {
               </div>
               <h1 className="text-2xl font-bold">Vossa Barbearia</h1>
             </div>
-            <Link href="/login">
-              <Button variant="outline">
-                Login / Registro
-              </Button>
-            </Link>
+            
+            {/* Login/Registro ou Menu de usuário dependendo do estado de autenticação */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{user.displayName || "Minha Conta"}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex items-center gap-2" onClick={() => navigate("/appointments")}>
+                    <CalendarDays className="h-4 w-4" />
+                    Meus Agendamentos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-center gap-2" onClick={() => navigate("/profile")}>
+                    <Settings className="h-4 w-4" />
+                    Perfil
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex items-center gap-2 text-destructive" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/login">
+                <Button variant="outline">
+                  Login / Registro
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -366,7 +431,7 @@ export default function Booking() {
                     Próximo
                   </Button>
                 ) : (
-                  <Button onClick={() => alert("Agendamento confirmado!")}>
+                  <Button onClick={handleBookingConfirmation}>
                     Confirmar Agendamento
                   </Button>
                 )}
