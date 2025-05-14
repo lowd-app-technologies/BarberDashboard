@@ -100,14 +100,21 @@ export default function Products() {
   // Query para buscar produtos
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['/api/products'],
-    queryFn: () => apiRequest<Product[]>('GET', '/api/products'),
-    select: (data) => data.sort((a, b) => a.name.localeCompare(b.name)),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/products');
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
   });
 
   // Query para buscar barbeiros (apenas admin)
   const { data: barbers, isLoading: isLoadingBarbers } = useQuery({
     queryKey: ['/api/barbers'],
-    queryFn: () => apiRequest<BarberWithUser[]>('GET', '/api/barbers'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/barbers');
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: isAdmin,
   });
 

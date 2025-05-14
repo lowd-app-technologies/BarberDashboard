@@ -133,7 +133,17 @@ export default function ProductSales() {
   // Query para buscar vendas
   const { data: sales, isLoading: isLoadingSales } = useQuery({
     queryKey: [isAdmin ? '/api/product-sales' : `/api/product-sales/barber/${barber?.id}`],
-    queryFn: () => apiRequest<ProductSale[]>('GET', isAdmin ? '/api/product-sales' : `/api/product-sales/barber/${barber?.id}`),
+    queryFn: async () => {
+      const endpoint = isAdmin ? '/api/product-sales' : `/api/product-sales/barber/${barber?.id}`;
+      try {
+        const response = await apiRequest('GET', endpoint);
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Erro ao buscar vendas:', error);
+        return [];
+      }
+    },
     enabled: isAdmin || (isBarber && !!barber?.id),
   });
 
