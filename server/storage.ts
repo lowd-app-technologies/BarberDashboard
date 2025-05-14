@@ -1263,6 +1263,207 @@ export class MemStorage implements IStorage {
       };
     });
   }
+
+  // Método para buscar serviços completados por um barbeiro em um intervalo de datas
+  async getCompletedServicesForDateRange(barberId: number, startDate: Date, endDate: Date): Promise<any[]> {
+    const services = [];
+    
+    for (const service of Array.from(this.completedServices.values())) {
+      if (
+        service.barberId === barberId &&
+        service.date >= startDate &&
+        service.date <= endDate
+      ) {
+        services.push(service);
+      }
+    }
+    
+    return services;
+  }
+  
+  // Método para buscar clientes para um barbeiro específico
+  async getClientsForBarber(barberId: number): Promise<any[]> {
+    // Buscar todos os serviços do barbeiro
+    const services = Array.from(this.completedServices.values())
+      .filter(service => service.barberId === barberId);
+    
+    // Extrair todos os IDs de clientes únicos
+    const clientIds = new Set<number>();
+    const clientNames = new Map<string, any>();
+    
+    for (const service of services) {
+      if (service.clientId) {
+        clientIds.add(service.clientId);
+      } else if (service.clientName) {
+        // Para clientes sem ID, usar o nome como chave
+        if (!clientNames.has(service.clientName)) {
+          clientNames.set(service.clientName, {
+            fullName: service.clientName,
+            lastVisit: service.date
+          });
+        } else {
+          // Atualizar a data da última visita se for mais recente
+          const client = clientNames.get(service.clientName);
+          if (service.date > client.lastVisit) {
+            client.lastVisit = service.date;
+            clientNames.set(service.clientName, client);
+          }
+        }
+      }
+    }
+    
+    // Buscar informações completas de cada cliente com ID
+    const clientsWithIds = [];
+    for (const clientId of clientIds) {
+      const user = await this.getUserById(clientId);
+      if (user) {
+        // Buscar o cliente para obter detalhes como lastVisit, etc.
+        const client = await this.getClientByUserId(clientId);
+        
+        // Determinar a última visita deste cliente com este barbeiro
+        const lastVisit = this.getLastVisitDate(clientId, barberId);
+        
+        clientsWithIds.push({
+          id: clientId,
+          fullName: user.fullName,
+          phone: user.phone,
+          email: user.email,
+          lastVisit: lastVisit || (client ? client.lastVisit : null),
+          isFavorite: await this.isClientFavorite(clientId, barberId)
+        });
+      }
+    }
+    
+    // Adicionar clientes sem ID (apenas com nome)
+    const clientsWithoutIds = Array.from(clientNames.values()).map((client, index) => ({
+      id: -1 * (index + 1), // IDs negativos para diferenciar
+      fullName: client.fullName,
+      phone: null,
+      email: null,
+      lastVisit: client.lastVisit,
+      isFavorite: false
+    }));
+    
+    // Combinar e ordenar por data da última visita (mais recentes primeiro)
+    return [...clientsWithIds, ...clientsWithoutIds]
+      .sort((a, b) => {
+        // Null check
+        if (!a.lastVisit && !b.lastVisit) return 0;
+        if (!a.lastVisit) return 1;
+        if (!b.lastVisit) return -1;
+        // Ordenar por data descendente
+        return new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime();
+      });
+  }
+  
+  // Método para verificar se um cliente é favorito de um barbeiro
+  async isClientFavorite(clientId: number, barberId: number): Promise<boolean> {
+    // Buscar nas relações cliente-barbeiro
+    const relation = Array.from(this.clientBarberNotes.values())
+      .find(note => note.clientId === clientId && note.barberId === barberId);
+    
+    return !!relation; // Se existe relação, é favorito
+  }
+  
+  // Método para obter a data da última visita de um cliente com um barbeiro específico
+  getLastVisitDate(clientId: number, barberId: number): Date | null {
+    const services = Array.from(this.completedServices.values())
+      .filter(service => 
+        service.clientId === clientId && 
+        service.barberId === barberId
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return services.length > 0 ? services[0].date : null;
+  }
+  
+  // Método para buscar clientes favoritos de um barbeiro
+  async getFavoriteClientsForBarber(barberId: number): Promise<any[]> {
+    // Buscar todas as relações deste barbeiro
+    const relations = Array.from(this.clientBarberNotes.values())
+      .filter(note => note.barberId === barberId);
+    
+    // Buscar informações completas de cada cliente
+    const favoriteClients = [];
+    for (const relation of relations) {
+      const user = await this.getUserById(relation.clientId);
+      if (user) {
+        // Determinar a última visita
+        const lastVisit = this.getLastVisitDate(relation.clientId, barberId);
+        
+        favoriteClients.push({
+          id: relation.clientId,
+          fullName: user.fullName,
+          phone: user.phone,
+          email: user.email,
+          lastVisit,
+          note: relation.note
+        });
+      }
+    }
+    
+    // Ordenar por data da última visita (mais recentes primeiro)
+    return favoriteClients.sort((a, b) => {
+      if (!a.lastVisit && !b.lastVisit) return 0;
+      if (!a.lastVisit) return 1;
+      if (!b.lastVisit) return -1;
+      return new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime();
+    });
+  }
+  
+  // Método para buscar pagamentos de um barbeiro
+  async getPaymentsForBarber(barberId: number): Promise<any[]> {
+    return Array.from(this.payments.values())
+      .filter(payment => payment.barberId === barberId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  
+  // Método para buscar serviços validados de um barbeiro que ainda não foram pagos
+  async getValidatedServicesForBarber(barberId: number): Promise<any[]> {
+    // Buscar todos os pagamentos deste barbeiro
+    const payments = await this.getPaymentsForBarber(barberId);
+    
+    // Determinar a data do último pagamento
+    let lastPaymentDate = new Date(0); // 1970-01-01
+    if (payments.length > 0) {
+      lastPaymentDate = payments[0].periodEnd;
+    }
+    
+    // Buscar todos os serviços validados após a data do último pagamento
+    return Array.from(this.completedServices.values())
+      .filter(service => 
+        service.barberId === barberId && 
+        service.validatedByAdmin === true &&
+        new Date(service.date) > lastPaymentDate
+      )
+      .map(service => {
+        // Buscar nome do serviço
+        const serviceDetails = this.services.get(service.serviceId);
+        return {
+          ...service,
+          service: serviceDetails || { name: "Serviço Desconhecido" }
+        };
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+  
+  // Método para buscar serviços pendentes de validação de um barbeiro
+  async getPendingServicesForBarber(barberId: number): Promise<any[]> {
+    return Array.from(this.completedServices.values())
+      .filter(service => 
+        service.barberId === barberId && 
+        (service.validatedByAdmin === false || service.validatedByAdmin === null)
+      )
+      .map(service => {
+        // Buscar nome do serviço
+        const serviceDetails = this.services.get(service.serviceId);
+        return {
+          ...service,
+          service: serviceDetails || { name: "Serviço Desconhecido" }
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
 }
 
 // Set up Supabase PostgreSQL connection if URL is available

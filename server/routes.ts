@@ -1452,6 +1452,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clientes para barbeiros
+  app.get('/api/barber/clients', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+
+      // Buscar todos os clientes atendidos pelo barbeiro
+      const clients = await storage.getClientsForBarber(barber.id);
+      res.json(clients);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Clientes favoritos para barbeiros
+  app.get('/api/barber/clients/favorites', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+
+      // Buscar clientes favoritos do barbeiro
+      const favorites = await storage.getFavoriteClientsForBarber(barber.id);
+      res.json(favorites);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pagamentos para barbeiros
+  app.get('/api/barber/payments', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+
+      // Buscar todos os pagamentos do barbeiro
+      const payments = await storage.getPaymentsForBarber(barber.id);
+      res.json(payments);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Serviços validados para barbeiro (para cálculo de pagamento)
+  app.get('/api/barber/services/validated', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+
+      // Buscar todos os serviços validados do barbeiro
+      const services = await storage.getValidatedServicesForBarber(barber.id);
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Serviços pendentes para barbeiro
+  app.get('/api/barber/services/pending', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+
+      // Buscar todos os serviços pendentes do barbeiro
+      const services = await storage.getPendingServicesForBarber(barber.id);
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Relatórios para barbeiros
   app.get('/api/barber/reports/services', async (req: Request, res: Response) => {
     try {
