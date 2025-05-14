@@ -62,6 +62,7 @@ class CustomAuth {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include' // Garante que os cookies de sessão sejam enviados
       });
       
       if (!response.ok) {
@@ -139,6 +140,7 @@ class CustomAuth {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(googleUserData),
+        credentials: 'include' // Garante que os cookies de sessão sejam enviados
       });
       
       if (!response.ok) {
@@ -221,6 +223,7 @@ class CustomAuth {
           role,
           phone: '' // Add phone field for client registration
         }),
+        credentials: 'include' // Garante que os cookies de sessão sejam enviados
       });
       
       if (!response.ok) {
@@ -277,6 +280,7 @@ class CustomAuth {
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
+        credentials: 'include' // Garante que os cookies de sessão sejam enviados
       });
       
       // Mesmo que o logout falhe no servidor, limparemos o usuário local

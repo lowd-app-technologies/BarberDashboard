@@ -35,20 +35,33 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data && data.user) {
               // Atualizar o usuário com os dados mais recentes do servidor
-              auth.currentUser = {
+              const updatedUser = {
                 ...auth.currentUser,
                 ...data.user,
                 uid: data.user.id.toString()
               };
-              setUser(auth.currentUser);
+              
+              // Atualizar o usuário no auth object
+              auth.currentUser = updatedUser;
+              
+              // Atualizar também no sessionStorage para manter consistência
+              sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+              sessionStorage.setItem('auth', 'true');
+              
+              // Atualizar o estado do componente
+              setUser(updatedUser);
             } else {
               // Se o servidor não reconhece o usuário, limpar o estado local
               auth.currentUser = null;
+              sessionStorage.removeItem('currentUser');
+              sessionStorage.removeItem('auth');
               setUser(null);
             }
           } else if (response.status === 401) {
             // Sessão expirada ou inválida
             auth.currentUser = null;
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('auth');
             setUser(null);
           }
         }
