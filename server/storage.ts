@@ -284,6 +284,25 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
   
+  async updateUserPreferences(userId: number, preferences: UserPreferences): Promise<void> {
+    const user = this.usersData.get(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+    
+    // Em uma implementação real com banco de dados, teríamos uma tabela específica para preferências
+    // Por simplicidade, armazenamos as preferências como metadados no objeto do usuário
+    const metadata = user.metadata ? JSON.parse(user.metadata) : {};
+    const updatedMetadata = {
+      ...metadata,
+      preferences
+    };
+    
+    await this.updateUser(userId, {
+      metadata: JSON.stringify(updatedMetadata)
+    });
+  }
+  
   async deleteUser(id: number): Promise<void> {
     this.usersData.delete(id);
   }
@@ -330,6 +349,13 @@ export class MemStorage implements IStorage {
   async getTopBarbers(): Promise<BarberWithUser[]> {
     // In memory implementation, just return all barbers
     return this.getAllBarbers();
+  }
+  
+  async getBarberByUserId(userId: number): Promise<Barber | undefined> {
+    // Encontrar um barbeiro pelo ID do usuário associado
+    return Array.from(this.barbersData.values()).find(
+      (barber) => barber.userId === userId
+    );
   }
   
   async createBarber(barberData: InsertBarber): Promise<Barber> {
@@ -651,6 +677,13 @@ export class MemStorage implements IStorage {
   async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> {
     return Array.from(this.completedServicesData.values())
       .filter(cs => cs.barberId === barberId);
+  }
+  
+  async getCompletedServicesForDateRange(barberId: number, startDate: Date, endDate: Date): Promise<CompletedService[]> {
+    return Array.from(this.completedServicesData.values())
+      .filter(cs => cs.barberId === barberId &&
+                    cs.date >= startDate &&
+                    cs.date <= endDate);
   }
   
   async getAllCompletedServices(): Promise<any[]> {
@@ -1138,6 +1171,14 @@ export class MemStorage implements IStorage {
     
     // Sort by date, most recent first
     return sales.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+  
+  async getProductSalesForBarberInDateRange(barberId: number, startDate: Date, endDate: Date): Promise<ProductSale[]> {
+    // Filtrar vendas pelo intervalo de data
+    return Array.from(this.productSalesData.values())
+      .filter(sale => sale.barberId === barberId &&
+                     sale.date >= startDate &&
+                     sale.date <= endDate);
   }
 
   async getAllProductSales(): Promise<ProductSaleWithDetails[]> {
