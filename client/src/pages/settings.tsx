@@ -60,13 +60,13 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+      <div className="container mx-auto p-6 md:p-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold">Configurações</h1>
             <p className="text-muted-foreground">Gerencie suas preferências e configurações da conta</p>
           </div>
-          <Button onClick={saveSettings} disabled={updateProfileMutation.isPending}>
+          <Button onClick={saveSettings} disabled={updateProfileMutation.isPending} className="mt-4 md:mt-0">
             {updateProfileMutation.isPending ? "Salvando..." : "Salvar Alterações"}
           </Button>
         </div>
@@ -80,12 +80,12 @@ export default function Settings() {
           </TabsList>
 
           <TabsContent value="appearance">
-            <Card>
-              <CardHeader>
+            <Card className="mb-8">
+              <CardHeader className="px-6 py-5">
                 <CardTitle>Aparência</CardTitle>
                 <CardDescription>Personalize a aparência e o idioma do aplicativo</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="px-6 py-4 space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col space-y-1">
@@ -129,12 +129,12 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
+            <Card className="mb-8">
+              <CardHeader className="px-6 py-5">
                 <CardTitle>Notificações</CardTitle>
                 <CardDescription>Configure como deseja receber as notificações</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="px-6 py-4 space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -203,12 +203,12 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="profile">
-            <Card>
-              <CardHeader>
+            <Card className="mb-8">
+              <CardHeader className="px-6 py-5">
                 <CardTitle>Perfil</CardTitle>
                 <CardDescription>Gerencie suas informações pessoais</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="px-6 py-4 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="full-name">Nome Completo</Label>
@@ -247,12 +247,12 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="security">
-            <Card>
-              <CardHeader>
+            <Card className="mb-8">
+              <CardHeader className="px-6 py-5">
                 <CardTitle>Segurança</CardTitle>
                 <CardDescription>Gerencie suas configurações de segurança</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="px-6 py-4 space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="current-password">Senha Atual</Label>
