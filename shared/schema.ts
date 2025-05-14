@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").notNull().default('client'),
   fullName: text("full_name").notNull(),
   phone: text("phone"),
+  metadata: text("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -347,3 +348,16 @@ export type ProductSaleWithDetails = ProductSale & {
   product: Product;
   barber: BarberWithUser;
 };
+
+// Tipo para as preferências do usuário
+export interface UserPreferences {
+  theme?: string;
+  language?: string;
+  notifications?: {
+    email?: boolean;
+    push?: boolean;
+    sms?: boolean;
+    appointmentReminders?: boolean;
+    marketing?: boolean;
+  };
+}

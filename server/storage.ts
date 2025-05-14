@@ -291,16 +291,37 @@ export class MemStorage implements IStorage {
     }
     
     // Em uma implementação real com banco de dados, teríamos uma tabela específica para preferências
-    // Por simplicidade, armazenamos as preferências como metadados no objeto do usuário
-    const metadata = user.metadata ? JSON.parse(user.metadata) : {};
+    // Por simplicidade, utilizamos um campo metadata para armazenar as preferências
+    
+    // Se o usuário não tiver campo metadata, inicializamos um objeto vazio
+    let metadata = {};
+    
+    // Se o usuário já tiver metadata, tentamos fazer o parse
+    if (user.metadata) {
+      try {
+        metadata = JSON.parse(user.metadata);
+      } catch (error) {
+        console.error('Erro ao fazer parse do metadata do usuário:', error);
+        metadata = {};
+      }
+    }
+    
+    // Atualizamos ou adicionamos as preferências
     const updatedMetadata = {
       ...metadata,
-      preferences
+      preferences: {
+        ...(metadata.preferences || {}),
+        ...preferences
+      }
     };
     
-    await this.updateUser(userId, {
+    // Atualizamos o usuário com o novo metadata
+    const updatedUser = { 
+      ...user,
       metadata: JSON.stringify(updatedMetadata)
-    });
+    };
+    
+    this.usersData.set(userId, updatedUser);
   }
   
   async deleteUser(id: number): Promise<void> {
