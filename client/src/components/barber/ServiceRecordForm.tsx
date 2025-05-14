@@ -73,8 +73,8 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
   const form = useForm<ServiceRecordFormValues>({
     resolver: zodResolver(serviceRecordSchema),
     defaultValues: {
-      serviceId: "",
-      clientId: "",
+      serviceId: "0", // Valor padrão não vazio
+      clientId: "0", // Valor padrão não vazio
       price: "",
       notes: "",
       date: new Date(),
@@ -145,6 +145,7 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="0">Selecione um serviço</SelectItem>
                     {Array.isArray(services) && services.map((service: any) => (
                       <SelectItem key={service.id} value={service.id.toString()}>
                         {service.name}
@@ -170,6 +171,7 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="0">Selecione um cliente</SelectItem>
                     {Array.isArray(clients) && clients.map((client: any) => (
                       <SelectItem key={client.id} value={client.id.toString()}>
                         {client.fullName}

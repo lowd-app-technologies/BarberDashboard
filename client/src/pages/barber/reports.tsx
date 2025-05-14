@@ -42,16 +42,19 @@ export default function BarberReports() {
   
   const { data: servicesData, isLoading } = useQuery({
     queryKey: ['/api/barber/reports/services', timeRange, year, month],
+    queryFn: () => fetch(`/api/barber/reports/services?timeRange=${timeRange}&year=${year}&month=${month}`).then(res => res.json()),
     enabled: true,
   });
 
   const { data: earningsData, isLoading: isEarningsLoading } = useQuery({
     queryKey: ['/api/barber/reports/earnings', timeRange, year, month],
+    queryFn: () => fetch(`/api/barber/reports/earnings?timeRange=${timeRange}&year=${year}&month=${month}`).then(res => res.json()),
     enabled: true,
   });
 
   const { data: productsData, isLoading: isProductsLoading } = useQuery({
     queryKey: ['/api/barber/reports/products', timeRange, year, month],
+    queryFn: () => fetch(`/api/barber/reports/products?timeRange=${timeRange}&year=${year}&month=${month}`).then(res => res.json()),
     enabled: true,
   });
 
