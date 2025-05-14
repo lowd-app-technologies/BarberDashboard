@@ -1798,6 +1798,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+  
+  // Rota para obter informações do barbeiro atual 
+  app.get('/api/user/barber', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Usuário não autenticado' });
+      }
+      
+      // Verificar se o usuário é um barbeiro
+      const user = await storage.getUserById(req.session.userId);
+      if (!user || user.role !== 'barber') {
+        return res.status(403).json({ message: 'Usuário não é um barbeiro' });
+      }
+      
+      // Obter registro de barbeiro
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Registro de barbeiro não encontrado' });
+      }
+      
+      return res.json(barber);
+    } catch (error: any) {
+      console.error('Erro ao obter informações do barbeiro:', error);
+      return res.status(500).json({ message: `Erro ao obter informações do barbeiro: ${error.message}` });
+    }
+  });
+  
+  // Rota para obter clientes 
+  app.get('/api/clients', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Usuário não autenticado' });
+      }
+      
+      // Buscar todos os clientes
+      const clients = await storage.getAllClients();
+      
+      return res.json(clients);
+    } catch (error: any) {
+      console.error('Erro ao obter clientes:', error);
+      return res.status(500).json({ message: `Erro ao obter clientes: ${error.message}` });
+    }
+  });
 
   const httpServer = createServer(app);
 
