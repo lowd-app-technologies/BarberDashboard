@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from "../hooks/use-theme";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -238,7 +238,7 @@ export default function Settings() {
                     <Label htmlFor="phone">Telefone</Label>
                     <div className="flex items-center space-x-2">
                       <Bell className="h-4 w-4 text-muted-foreground" />
-                      <Input id="phone" defaultValue={user?.phone || ""} />
+                      <Input id="phone" placeholder="(00) 00000-0000" />
                     </div>
                   </div>
                 </div>
