@@ -1520,8 +1520,191 @@ if (process.env.DATABASE_URL) {
   db = drizzle(client);
 }
 
+// DrizzleStorage implementation for PostgreSQL
+export class DrizzleStorage implements IStorage {
+  private db: ReturnType<typeof drizzle>;
+  
+  constructor(db: ReturnType<typeof drizzle>) {
+    this.db = db;
+  }
+  
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.email, email));
+    return result[0];
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await this.db.select().from(users);
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(user).returning();
+    return result[0];
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await this.db.update(users).set(userData).where(eq(users.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await this.db.delete(users).where(eq(users.id, id));
+  }
+
+  async updateUserPreferences(userId: number, preferences: UserPreferences): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+    
+    // Parse existing metadata or create new object
+    let metadata = {};
+    if (user.metadata) {
+      try {
+        metadata = JSON.parse(user.metadata);
+      } catch (error) {
+        console.error('Erro ao fazer parse do metadata do usuário:', error);
+        metadata = {};
+      }
+    }
+    
+    // Update or add preferences
+    const updatedMetadata = {
+      ...metadata,
+      preferences: {
+        ...(metadata.preferences || {}),
+        ...preferences
+      }
+    };
+    
+    // Update the user with the new metadata
+    await this.db.update(users)
+      .set({ metadata: JSON.stringify(updatedMetadata) })
+      .where(eq(users.id, userId));
+  }
+  
+  // Product methods
+  async getProduct(id: number): Promise<Product | undefined> {
+    const result = await this.db.select().from(products).where(eq(products.id, id));
+    return result[0];
+  }
+
+  async getAllProducts(): Promise<Product[]> {
+    return await this.db.select().from(products);
+  }
+
+  async getActiveProducts(): Promise<Product[]> {
+    return await this.db.select().from(products).where(eq(products.active, true));
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const result = await this.db.insert(products).values(product).returning();
+    return result[0];
+  }
+
+  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+    const result = await this.db.update(products).set(product).where(eq(products.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await this.db.delete(products).where(eq(products.id, id));
+  }
+  
+  // Implement remaining methods as needed...
+  
+  /* As seguintes implementações são necessárias para a interface, mas serão implementadas conforme necessário */
+  async getBarber(id: number): Promise<BarberWithUser | undefined> { throw new Error("Not implemented"); }
+  async getAllBarbers(): Promise<BarberWithUser[]> { throw new Error("Not implemented"); }
+  async getActiveBarbers(): Promise<BarberWithUser[]> { throw new Error("Not implemented"); }
+  async getTopBarbers(): Promise<BarberWithUser[]> { throw new Error("Not implemented"); }
+  async getBarberByUserId(userId: number): Promise<Barber | undefined> { throw new Error("Not implemented"); }
+  async createBarber(barber: InsertBarber): Promise<Barber> { throw new Error("Not implemented"); }
+  async updateBarber(id: number, barber: Partial<InsertBarber>): Promise<Barber | undefined> { throw new Error("Not implemented"); }
+  async deleteBarber(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getService(id: number): Promise<Service | undefined> { throw new Error("Not implemented"); }
+  async getAllServices(): Promise<Service[]> { throw new Error("Not implemented"); }
+  async getActiveServices(): Promise<Service[]> { throw new Error("Not implemented"); }
+  async createService(service: InsertService): Promise<Service> { throw new Error("Not implemented"); }
+  async updateService(id: number, service: Partial<InsertService>): Promise<Service | undefined> { throw new Error("Not implemented"); }
+  async deleteService(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getCommission(id: number): Promise<Commission | undefined> { throw new Error("Not implemented"); }
+  async getCommissionByBarberAndService(barberId: number, serviceId: number): Promise<Commission | undefined> { throw new Error("Not implemented"); }
+  async getAllCommissions(): Promise<Commission[]> { throw new Error("Not implemented"); }
+  async createCommission(commission: InsertCommission): Promise<Commission> { throw new Error("Not implemented"); }
+  async updateCommission(id: number, commission: Partial<InsertCommission>): Promise<Commission | undefined> { throw new Error("Not implemented"); }
+  async deleteCommission(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getAppointment(id: number): Promise<AppointmentWithDetails | undefined> { throw new Error("Not implemented"); }
+  async getAllAppointments(): Promise<AppointmentWithDetails[]> { throw new Error("Not implemented"); }
+  async getUpcomingAppointments(): Promise<AppointmentWithDetails[]> { throw new Error("Not implemented"); }
+  async getAvailableTimeSlots(barberId: number, date: Date): Promise<string[]> { throw new Error("Not implemented"); }
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> { throw new Error("Not implemented"); }
+  async updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
+  async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
+  async deleteAppointment(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getPayment(id: number): Promise<PaymentWithBarber | undefined> { throw new Error("Not implemented"); }
+  async getPaymentsByBarber(barberId: number): Promise<PaymentWithBarber[]> { throw new Error("Not implemented"); }
+  async getAllPayments(): Promise<PaymentWithBarber[]> { throw new Error("Not implemented"); }
+  async createPayment(payment: InsertPayment): Promise<Payment> { throw new Error("Not implemented"); }
+  async updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined> { throw new Error("Not implemented"); }
+  async deletePayment(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getCompletedService(id: number): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
+  async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { throw new Error("Not implemented"); }
+  async getAllCompletedServices(): Promise<CompletedService[]> { throw new Error("Not implemented"); }
+  async createCompletedService(service: InsertCompletedService): Promise<CompletedService> { throw new Error("Not implemented"); }
+  async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
+  async deleteCompletedService(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async createActionLog(log: InsertActionLog): Promise<ActionLog> { throw new Error("Not implemented"); }
+  async getClientProfile(userId: number): Promise<ClientProfile | undefined> { throw new Error("Not implemented"); }
+  async createClientProfile(profile: InsertClientProfile): Promise<ClientProfile> { throw new Error("Not implemented"); }
+  async updateClientProfile(userId: number, profile: Partial<InsertClientProfile>): Promise<ClientProfile | undefined> { throw new Error("Not implemented"); }
+  async getClientPreferences(clientId: number): Promise<ClientPreference | undefined> { throw new Error("Not implemented"); }
+  async createClientPreferences(preferences: InsertClientPreference): Promise<ClientPreference> { throw new Error("Not implemented"); }
+  async updateClientPreferences(clientId: number, preferences: Partial<InsertClientPreference>): Promise<ClientPreference | undefined> { throw new Error("Not implemented"); }
+  async getClientNotes(clientId: number): Promise<ClientNote[]> { throw new Error("Not implemented"); }
+  async getClientNotesByBarber(clientId: number, barberId: number): Promise<ClientNote[]> { throw new Error("Not implemented"); }
+  async createClientNote(note: InsertClientNote): Promise<ClientNote> { throw new Error("Not implemented"); }
+  async deleteClientNote(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getClientFavoriteServices(clientId: number): Promise<(ClientFavoriteService & { service: Service })[]> { throw new Error("Not implemented"); }
+  async addClientFavoriteService(favorite: InsertClientFavoriteService): Promise<ClientFavoriteService> { throw new Error("Not implemented"); }
+  async removeClientFavoriteService(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getClientWithProfile(userId: number): Promise<ClientWithProfile | undefined> { throw new Error("Not implemented"); }
+  async getClientWithPreferences(userId: number): Promise<ClientWithPreferences | undefined> { throw new Error("Not implemented"); }
+  async getClientWithDetails(userId: number): Promise<ClientWithDetails | undefined> { throw new Error("Not implemented"); }
+  async getAllClientsWithProfiles(): Promise<ClientWithProfile[]> { throw new Error("Not implemented"); }
+  async getRecentClients(limit?: number): Promise<ClientWithProfile[]> { throw new Error("Not implemented"); }
+  async createBarberInvite(invite: InsertBarberInvite): Promise<BarberInvite> { throw new Error("Not implemented"); }
+  async getBarberInviteByToken(token: string): Promise<BarberInvite | undefined> { throw new Error("Not implemented"); }
+  async markBarberInviteAsUsed(id: number): Promise<BarberInvite | undefined> { throw new Error("Not implemented"); }
+  async getBarberInvitesByCreator(createdById: number): Promise<BarberInvite[]> { throw new Error("Not implemented"); }
+  async getProductCommission(id: number): Promise<ProductCommission | undefined> { throw new Error("Not implemented"); }
+  async getProductCommissionByBarberAndProduct(barberId: number, productId: number): Promise<ProductCommission | undefined> { throw new Error("Not implemented"); }
+  async getProductCommissionsByBarber(barberId: number): Promise<ProductCommission[]> { throw new Error("Not implemented"); }
+  async createProductCommission(commission: InsertProductCommission): Promise<ProductCommission> { throw new Error("Not implemented"); }
+  async updateProductCommission(id: number, commission: Partial<InsertProductCommission>): Promise<ProductCommission | undefined> { throw new Error("Not implemented"); }
+  async deleteProductCommission(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getProductSale(id: number): Promise<ProductSaleWithDetails | undefined> { throw new Error("Not implemented"); }
+  async getProductSalesByBarber(barberId: number): Promise<ProductSaleWithDetails[]> { throw new Error("Not implemented"); }
+  async getAllProductSales(): Promise<ProductSaleWithDetails[]> { throw new Error("Not implemented"); }
+  async createProductSale(sale: InsertProductSale): Promise<ProductSale> { throw new Error("Not implemented"); }
+  async updateProductSale(id: number, sale: Partial<InsertProductSale>): Promise<ProductSale | undefined> { throw new Error("Not implemented"); }
+  async validateProductSale(id: number): Promise<ProductSale | undefined> { throw new Error("Not implemented"); }
+  async deleteProductSale(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async getProductsWithCommissionsForBarber(barberId: number): Promise<ProductWithCommission[]> { throw new Error("Not implemented"); }
+}
+
 // Export the appropriate storage implementation
-export const storage = process.env.DATABASE_URL ? 
-  // Implement PostgreSQL version when ready
-  new MemStorage() : 
-  new MemStorage();
+export const storage = process.env.DATABASE_URL 
+  ? new DrizzleStorage(db!) 
+  : new MemStorage();
