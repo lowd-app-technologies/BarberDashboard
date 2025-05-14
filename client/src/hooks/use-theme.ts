@@ -34,8 +34,22 @@ export function useTheme() {
   const saveThemeToServer = async (newTheme: Theme) => {
     try {
       setIsSaving(true);
-      await apiRequest('PUT', '/api/user/preferences', {
-        theme: newTheme,
+      
+      // Verificar se temos um usuário no sessionStorage antes de tentar salvar no servidor
+      const currentUser = sessionStorage.getItem('auth');
+      
+      if (!currentUser) {
+        return; // Se não há usuário logado, não tentamos salvar no servidor
+      }
+      
+      // Fazer a requisição com credentials para garantir que o cookie de sessão seja enviado
+      await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ theme: newTheme }),
+        credentials: 'include' // Importante para enviar cookies de sessão
       });
     } catch (error) {
       console.error('Erro ao salvar tema no servidor:', error);
