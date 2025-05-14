@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,11 +60,13 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
   // Buscar serviços
   const { data: services, isLoading: isLoadingServices } = useQuery({
     queryKey: ['/api/services'],
+    queryFn: () => apiRequest('GET', '/api/services'),
   });
 
   // Buscar clientes
   const { data: clients, isLoading: isLoadingClients } = useQuery({
     queryKey: ['/api/clients'],
+    queryFn: () => apiRequest('GET', '/api/clients'),
   });
 
   // Formulário
@@ -82,14 +84,15 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
   // Atualizar o preço quando o serviço mudar
   const watchedServiceId = form.watch("serviceId");
   
-  useState(() => {
-    if (watchedServiceId && services) {
+  // Efeito para atualizar o preço quando o serviço mudar
+  useEffect(() => {
+    if (watchedServiceId && Array.isArray(services)) {
       const selectedService = services.find((s: any) => s.id.toString() === watchedServiceId);
       if (selectedService) {
         form.setValue("price", selectedService.price.toString());
       }
     }
-  });
+  }, [watchedServiceId, services, form]);
 
   // Criar registro de serviço
   const createServiceRecordMutation = useMutation({
@@ -142,7 +145,7 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {services && services.map((service: any) => (
+                    {Array.isArray(services) && services.map((service: any) => (
                       <SelectItem key={service.id} value={service.id.toString()}>
                         {service.name}
                       </SelectItem>
@@ -167,7 +170,7 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {clients && clients.map((client: any) => (
+                    {Array.isArray(clients) && clients.map((client: any) => (
                       <SelectItem key={client.id} value={client.id.toString()}>
                         {client.fullName}
                       </SelectItem>
