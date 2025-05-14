@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
+import { Layout } from "@/components/layout/Layout";
 import { NotificationsPanel } from "@/components/barber/NotificationsPanel";
-import { MobileNavigation } from "@/components/layout/MobileNavigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -18,143 +16,188 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   Table, 
   TableBody, 
+  TableCaption, 
   TableCell, 
   TableHead, 
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
 import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
-  Search, 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  FilterIcon,
-  Scissors,
-  UserRound
-} from "lucide-react";
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DatePicker } from "@/components/ui/date-picker";
+import {
+  CalendarDays,
+  Clock,
+  UserRound,
+  Check,
+  X,
+  CalendarIcon,
+  CircleSlash,
+  Scissors,
+  AlertCircle,
+  Calendar,
+  Plus,
+  Search
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Appointments() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
-  const [barberFilter, setBarberFilter] = useState("all");
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   
-  // Fetch appointments
-  const { data: appointments, isLoading: isLoadingAppointments } = useQuery({
-    queryKey: ['/api/appointments'],
+  // Buscar todos os agendamentos para admin, apenas os do barbeiro para função barber
+  const endpoint = user?.role === "barber" ? "/api/barber/appointments" : "/api/appointments";
+  
+  const { data: appointments = [], isLoading } = useQuery({
+    queryKey: [endpoint],
+    queryFn: async () => {
+      const response = await apiRequest("GET", endpoint);
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
   });
   
-  // Fetch barbers for filter
-  const { data: barbers } = useQuery({
-    queryKey: ['/api/barbers'],
-  });
-  
-  // Update appointment status mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ appointmentId, status }: { appointmentId: number, status: string }) => {
-      await apiRequest("PATCH", `/api/appointments/${appointmentId}/status`, { status });
+  // Confirmar agendamento
+  const confirmAppointmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("PATCH", `/api/appointments/${id}/confirm`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      queryClient.invalidateQueries({ queryKey: [endpoint] });
       toast({
-        title: "Status atualizado",
-        description: "O status do agendamento foi atualizado com sucesso."
+        title: "Agendamento confirmado",
+        description: "O agendamento foi confirmado com sucesso."
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao atualizar status",
-        description: error.message || "Ocorreu um erro ao atualizar o status. Tente novamente.",
+        title: "Erro ao confirmar agendamento",
+        description: error.message || "Ocorreu um erro ao confirmar o agendamento.",
         variant: "destructive"
       });
     }
   });
   
-  // Filter appointments
-  const filteredAppointments = appointments 
-    ? appointments.filter((appointment: any) => {
-        // Text search filter
-        const matchesSearch = 
-          appointment.client.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          appointment.barber.user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        // Status filter
-        const matchesStatus = statusFilter === "all" || appointment.status === statusFilter;
-        
-        // Date filter
-        const matchesDate = !dateFilter || 
-          new Date(appointment.date).toDateString() === dateFilter.toDateString();
-        
-        // Barber filter
-        const matchesBarber = barberFilter === "all" || 
-          appointment.barber.id.toString() === barberFilter;
-        
-        return matchesSearch && matchesStatus && matchesDate && matchesBarber;
-      })
-    : [];
-  
-  // Handle status change
-  const handleStatusChange = (appointmentId: number, status: string) => {
-    updateStatusMutation.mutate({ appointmentId, status });
-  };
-  
-  // Clear all filters
-  const clearFilters = () => {
-    setStatusFilter("all");
-    setDateFilter(undefined);
-    setBarberFilter("all");
-  };
-  
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge className="bg-[hsl(var(--success))]">Confirmado</Badge>;
-      case 'completed':
-        return <Badge className="bg-primary">Concluído</Badge>;
-      case 'canceled':
-        return <Badge variant="destructive">Cancelado</Badge>;
-      default:
-        return <Badge variant="outline" className="border-[hsl(var(--warning))] text-[hsl(var(--warning))]">Pendente</Badge>;
+  // Completar agendamento
+  const completeAppointmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("PATCH", `/api/appointments/${id}/complete`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [endpoint] });
+      toast({
+        title: "Serviço concluído",
+        description: "O serviço foi marcado como concluído."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao concluir serviço",
+        description: error.message || "Ocorreu um erro ao concluir o serviço.",
+        variant: "destructive"
+      });
     }
+  });
+  
+  // Cancelar agendamento
+  const cancelAppointmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("PATCH", `/api/appointments/${id}/cancel`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [endpoint] });
+      toast({
+        title: "Agendamento cancelado",
+        description: "O agendamento foi cancelado com sucesso."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao cancelar agendamento",
+        description: error.message || "Ocorreu um erro ao cancelar o agendamento.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Ações para agendamentos
+  const handleConfirmAppointment = (id: number) => {
+    confirmAppointmentMutation.mutate(id);
   };
   
-  // Get localized appointment status name
-  const getStatusName = (status: string) => {
+  const handleCompleteAppointment = (id: number) => {
+    completeAppointmentMutation.mutate(id);
+  };
+  
+  const handleCancelAppointment = (id: number) => {
+    cancelAppointmentMutation.mutate(id);
+  };
+  
+  // Filtrar agendamentos por status e data
+  const filterAppointments = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Filtragem inicial por período (tab)
+    let filtered = [...appointments];
+    if (activeTab === "upcoming") {
+      filtered = filtered.filter((appointment: any) => {
+        const appointmentDate = new Date(appointment.date);
+        return appointmentDate >= today;
+      });
+    } else if (activeTab === "past") {
+      filtered = filtered.filter((appointment: any) => {
+        const appointmentDate = new Date(appointment.date);
+        return appointmentDate < today;
+      });
+    }
+    
+    // Adicionar filtro por status se não for "all"
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((appointment: any) => appointment.status === filterStatus);
+    }
+    
+    // Adicionar filtro por termo de busca
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((appointment: any) => {
+        return (
+          appointment.client?.fullName?.toLowerCase().includes(term) ||
+          appointment.barber?.user?.fullName?.toLowerCase().includes(term) ||
+          appointment.service?.name?.toLowerCase().includes(term)
+        );
+      });
+    }
+    
+    return filtered;
+  };
+  
+  const filteredAppointments = filterAppointments();
+  
+  // Traduzir status
+  const translateStatus = (status: string) => {
     const statusMap: Record<string, string> = {
       pending: "Pendente",
       confirmed: "Confirmado",
@@ -166,334 +209,370 @@ export default function Appointments() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <Sidebar />
-      
-      {/* Header with Notifications */}
-      <div className="hidden md:block">
-        <Header />
-      </div>
-      
-      {/* Mobile Header */}
-      <header className="bg-card p-4 flex justify-between items-center md:hidden">
-        <h1 className="text-primary text-xl font-bold">BarberPro</h1>
-        <div className="flex items-center gap-2">
-          {user?.role === "barber" && <NotificationsPanel />}
-          <button className="text-foreground">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="12" cy="10" r="3" />
-              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="md:ml-64 p-4 md:p-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold mb-4 md:mb-0">Agendamentos</h1>
-          <div className="flex flex-col md:flex-row w-full md:w-auto space-y-2 md:space-y-0 md:space-x-2">
+    <Layout>
+      <div className="p-6">
+        {/* Mobile Notifications for barbers */}
+        {user?.role === "barber" && (
+          <div className="md:hidden mb-4">
+            <NotificationsPanel />
+          </div>
+        )}
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Agendamentos</h1>
+            <p className="text-muted-foreground">Gerencie todos os agendamentos</p>
+          </div>
+          
+          <div className="w-full sm:w-auto space-y-3 sm:space-y-0 sm:flex sm:items-center sm:space-x-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar agendamentos..."
-                className="pl-8"
+                placeholder="Pesquisar agendamentos..."
+                className="pl-8 w-full sm:w-[200px]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="ml-auto flex">
-                  <FilterIcon className="mr-2 h-4 w-4" />
-                  Filtros
-                  {(statusFilter !== "all" || dateFilter || barberFilter !== "all") && (
-                    <Badge className="ml-2 bg-primary">!</Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Filtrar Agendamentos</h4>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Status</label>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="confirmed">Confirmado</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
-                        <SelectItem value="canceled">Cancelado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Data</label>
-                    <DatePicker 
-                      date={dateFilter} 
-                      setDate={setDateFilter} 
-                      className="w-full" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Barbeiro</label>
-                    <Select
-                      value={barberFilter}
-                      onValueChange={setBarberFilter}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o barbeiro" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {barbers && barbers.map((barber: any) => (
-                          <SelectItem 
-                            key={barber.id} 
-                            value={barber.id.toString()}
-                          >
-                            {barber.user.fullName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={clearFilters} 
-                    className="w-full"
-                  >
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {user?.role === "admin" && (
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Agendamento
+              </Button>
+            )}
           </div>
         </div>
-
-        <Tabs defaultValue="all">
-          <TabsList className="mb-4">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="today">Hoje</TabsTrigger>
-            <TabsTrigger value="upcoming">Próximos</TabsTrigger>
-            <TabsTrigger value="past">Passados</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all">
-            <AppointmentList 
-              appointments={filteredAppointments} 
-              isLoading={isLoadingAppointments}
-              onStatusChange={handleStatusChange}
-              searchTerm={searchTerm}
-            />
-          </TabsContent>
-          
-          <TabsContent value="today">
-            <AppointmentList 
-              appointments={filteredAppointments.filter((appointment: any) => {
-                const today = new Date();
-                const appointmentDate = new Date(appointment.date);
-                return appointmentDate.toDateString() === today.toDateString();
-              })} 
-              isLoading={isLoadingAppointments}
-              onStatusChange={handleStatusChange}
-              searchTerm={searchTerm}
-              emptyMessage="Não há agendamentos para hoje."
-            />
-          </TabsContent>
-          
-          <TabsContent value="upcoming">
-            <AppointmentList 
-              appointments={filteredAppointments.filter((appointment: any) => {
-                const now = new Date();
-                const appointmentDate = new Date(appointment.date);
-                return appointmentDate > now;
-              })} 
-              isLoading={isLoadingAppointments}
-              onStatusChange={handleStatusChange}
-              searchTerm={searchTerm}
-              emptyMessage="Não há agendamentos futuros."
-            />
-          </TabsContent>
-          
-          <TabsContent value="past">
-            <AppointmentList 
-              appointments={filteredAppointments.filter((appointment: any) => {
-                const now = new Date();
-                const appointmentDate = new Date(appointment.date);
-                return appointmentDate < now;
-              })} 
-              isLoading={isLoadingAppointments}
-              onStatusChange={handleStatusChange}
-              searchTerm={searchTerm}
-              emptyMessage="Não há agendamentos passados."
-            />
-          </TabsContent>
-        </Tabs>
-      </main>
-      
-      <MobileNavigation />
-    </div>
+        
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Lista de Agendamentos</CardTitle>
+                <CardDescription>
+                  Visualize e gerencie agendamentos futuros e passados
+                </CardDescription>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="bg-background border rounded-md px-2 py-1 text-sm"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="confirmed">Confirmados</option>
+                    <option value="completed">Concluídos</option>
+                    <option value="canceled">Cancelados</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="upcoming">Próximos</TabsTrigger>
+                <TabsTrigger value="past">Passados</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upcoming">
+                {isLoading ? (
+                  <div className="py-8 text-center text-muted-foreground">Carregando agendamentos...</div>
+                ) : filteredAppointments.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data e Hora</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Serviço</TableHead>
+                          <TableHead>Barbeiro</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAppointments.map((appointment: any) => (
+                          <TableRow key={appointment.id}>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <div className="flex items-center">
+                                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                  <span>{formatDate(appointment.date)}</span>
+                                </div>
+                                <div className="flex items-center text-muted-foreground text-sm">
+                                  <Clock className="mr-2 h-3 w-3" />
+                                  <span>{formatTime(appointment.date)}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Avatar className="h-8 w-8 mr-2">
+                                  <AvatarFallback>
+                                    {appointment.client?.fullName?.substring(0, 2).toUpperCase() || "CL"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-medium">{appointment.client?.fullName || "Cliente"}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {appointment.client?.phone || "Sem telefone"}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Scissors className="mr-2 h-4 w-4 text-muted-foreground" />
+                                <span>{appointment.service?.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Avatar className="h-8 w-8 mr-2">
+                                  <AvatarFallback>
+                                    {appointment.barber?.user?.fullName?.substring(0, 2).toUpperCase() || "BR"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{appointment.barber?.user?.fullName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={appointment.status} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-1">
+                                {appointment.status === "pending" && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-[hsl(var(--success))]"
+                                      onClick={() => handleConfirmAppointment(appointment.id)}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                      <span className="sr-only">Confirmar</span>
+                                    </Button>
+                                    
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-destructive"
+                                        >
+                                          <X className="h-4 w-4" />
+                                          <span className="sr-only">Cancelar</span>
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => handleCancelAppointment(appointment.id)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            Sim, cancelar
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </>
+                                )}
+                                
+                                {appointment.status === "confirmed" && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-[hsl(var(--success))]"
+                                      onClick={() => handleCompleteAppointment(appointment.id)}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                      <span className="sr-only">Concluir</span>
+                                    </Button>
+                                    
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-destructive"
+                                        >
+                                          <X className="h-4 w-4" />
+                                          <span className="sr-only">Cancelar</span>
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => handleCancelAppointment(appointment.id)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            Sim, cancelar
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+                    <h3 className="mt-4 text-lg font-semibold">Nenhum agendamento encontrado</h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm || filterStatus !== "all"
+                        ? "Nenhum agendamento corresponde aos filtros aplicados"
+                        : "Não há agendamentos futuros no sistema"}
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="past">
+                {isLoading ? (
+                  <div className="py-8 text-center text-muted-foreground">Carregando agendamentos...</div>
+                ) : filteredAppointments.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data e Hora</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Serviço</TableHead>
+                          <TableHead>Barbeiro</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAppointments.map((appointment: any) => (
+                          <TableRow key={appointment.id}>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <div className="flex items-center">
+                                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                  <span>{formatDate(appointment.date)}</span>
+                                </div>
+                                <div className="flex items-center text-muted-foreground text-sm">
+                                  <Clock className="mr-2 h-3 w-3" />
+                                  <span>{formatTime(appointment.date)}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Avatar className="h-8 w-8 mr-2">
+                                  <AvatarFallback>
+                                    {appointment.client?.fullName?.substring(0, 2).toUpperCase() || "CL"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-medium">{appointment.client?.fullName || "Cliente"}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {appointment.client?.phone || "Sem telefone"}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Scissors className="mr-2 h-4 w-4 text-muted-foreground" />
+                                <span>{appointment.service?.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Avatar className="h-8 w-8 mr-2">
+                                  <AvatarFallback>
+                                    {appointment.barber?.user?.fullName?.substring(0, 2).toUpperCase() || "BR"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{appointment.barber?.user?.fullName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={appointment.status} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+                    <h3 className="mt-4 text-lg font-semibold">Nenhum agendamento encontrado</h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm || filterStatus !== "all"
+                        ? "Nenhum agendamento corresponde aos filtros aplicados"
+                        : "Não há agendamentos passados no sistema"}
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          {filteredAppointments.length > 0 && (
+            <CardFooter className="flex justify-between">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {filteredAppointments.length} agendamentos
+              </div>
+            </CardFooter>
+          )}
+        </Card>
+      </div>
+    </Layout>
   );
 }
 
-// Appointment List component
-interface AppointmentListProps {
-  appointments: any[];
-  isLoading: boolean;
-  onStatusChange: (appointmentId: number, status: string) => void;
-  searchTerm: string;
-  emptyMessage?: string;
-}
-
-function AppointmentList({ 
-  appointments, 
-  isLoading, 
-  onStatusChange,
-  searchTerm,
-  emptyMessage = "Não há agendamentos."
-}: AppointmentListProps) {
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge className="bg-[hsl(var(--success))]">Confirmado</Badge>;
-      case 'completed':
-        return <Badge className="bg-primary">Concluído</Badge>;
-      case 'canceled':
-        return <Badge variant="destructive">Cancelado</Badge>;
-      default:
-        return <Badge variant="outline" className="border-[hsl(var(--warning))] text-[hsl(var(--warning))]">Pendente</Badge>;
+// Componente para o badge de status
+function StatusBadge({ status }: { status: string }) {
+  const statusConfig: Record<string, { label: string, variant: "default" | "outline" | "secondary" | "destructive" }> = {
+    pending: { 
+      label: "Pendente", 
+      variant: "outline" 
+    },
+    confirmed: { 
+      label: "Confirmado", 
+      variant: "default"
+    },
+    completed: { 
+      label: "Concluído", 
+      variant: "secondary"
+    },
+    canceled: { 
+      label: "Cancelado", 
+      variant: "destructive"
     }
   };
   
+  const config = statusConfig[status] || { label: status, variant: "outline" };
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Lista de Agendamentos</CardTitle>
-        <CardDescription>
-          Gerencie os agendamentos da barbearia.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">Carregando agendamentos...</div>
-        ) : appointments.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            {searchTerm ? "Nenhum agendamento encontrado com esse termo." : emptyMessage}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead>Barbeiro</TableHead>
-                <TableHead>Data e Hora</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments.map((appointment: any) => (
-                <TableRow key={appointment.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-muted-foreground bg-opacity-20 text-foreground">
-                          {appointment.client.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{appointment.client.fullName}</div>
-                        <div className="text-xs text-muted-foreground">{appointment.client.phone || "Sem telefone"}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Scissors className="h-4 w-4 text-muted-foreground" />
-                      <span>{appointment.service.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <UserRound className="h-4 w-4 text-muted-foreground" />
-                      <span>{appointment.barber.user.fullName}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{formatDate(appointment.date)}</span>
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{formatTime(appointment.date)}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(appointment.status)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {appointment.status === 'pending' || appointment.status === 'confirmed' ? (
-                      <div className="flex justify-end space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onStatusChange(appointment.id, 'completed')}
-                          className="text-[hsl(var(--success))] hover:text-[hsl(var(--success))] hover:bg-[hsl(var(--success))/10]"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="sr-only">Concluir</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onStatusChange(appointment.id, 'canceled')}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <XCircle className="h-4 w-4" />
-                          <span className="sr-only">Cancelar</span>
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">
-                        {appointment.status === 'completed' ? 'Concluído' : 'Cancelado'}
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+    <Badge variant={config.variant}>{config.label}</Badge>
   );
 }

@@ -17,8 +17,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
+import { Layout } from '@/components/layout/Layout';
 
 // Schema para formulário de produto
 const productSchema = z.object({
@@ -338,21 +337,17 @@ export default function Products() {
 
   if (isLoadingProducts) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Sidebar />
-        <Header />
-        <div className="flex-1 md:ml-64 p-4 flex items-center justify-center">
+      <Layout>
+        <div className="p-6 flex items-center justify-center h-full">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Sidebar />
-      <Header />
-      <main className="flex-1 md:ml-64 p-6">
+    <Layout>
+      <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Produtos</h1>
           {isAdmin && (
@@ -433,7 +428,7 @@ export default function Products() {
             </CardContent>
           </Card>
         )}
-      </main>
+      </div>
 
       {/* Diálogo para adicionar produto */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -454,7 +449,7 @@ export default function Products() {
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Nome do produto" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -468,7 +463,7 @@ export default function Products() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Textarea {...field} />
+                      <Textarea placeholder="Descrição do produto" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -483,7 +478,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>Preço (€)</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" step="0.01" min="0" />
+                        <Input placeholder="0.00" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -497,7 +492,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>Preço de Custo (€)</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" step="0.01" min="0" />
+                        <Input placeholder="0.00" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -512,10 +507,7 @@ export default function Products() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione uma categoria" />
@@ -543,7 +535,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>SKU</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input placeholder="SKU-001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -559,7 +551,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>Quantidade em Estoque</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" min="0" />
+                        <Input placeholder="0" type="number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -570,19 +562,14 @@ export default function Products() {
                   control={form.control}
                   name="active"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-md border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel>Ativo</FormLabel>
-                        <FormDescription>
-                          Produto disponível para venda
-                        </FormDescription>
-                      </div>
+                    <FormItem className="flex flex-row items-end justify-between space-y-0 p-2">
+                      <FormLabel>Produto Ativo</FormLabel>
                       <FormControl>
                         <input
                           type="checkbox"
                           checked={field.value}
                           onChange={field.onChange}
-                          className="accent-primary h-5 w-5"
+                          className="h-4 w-4"
                         />
                       </FormControl>
                     </FormItem>
@@ -590,39 +577,12 @@ export default function Products() {
                 />
               </div>
               
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL da Imagem</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      URL da imagem do produto (opcional)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createProductMutation.isPending}
-                >
+                <Button type="submit" disabled={createProductMutation.isPending}>
                   {createProductMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Salvar
+                  Adicionar Produto
                 </Button>
               </DialogFooter>
             </form>
@@ -649,7 +609,7 @@ export default function Products() {
                   <FormItem>
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Nome do produto" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -663,7 +623,7 @@ export default function Products() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Textarea {...field} />
+                      <Textarea placeholder="Descrição do produto" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -678,7 +638,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>Preço (€)</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" step="0.01" min="0" />
+                        <Input placeholder="0.00" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -692,7 +652,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>Preço de Custo (€)</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" step="0.01" min="0" />
+                        <Input placeholder="0.00" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -707,10 +667,7 @@ export default function Products() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione uma categoria" />
@@ -738,7 +695,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>SKU</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input placeholder="SKU-001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -754,7 +711,7 @@ export default function Products() {
                     <FormItem>
                       <FormLabel>Quantidade em Estoque</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" min="0" />
+                        <Input placeholder="0" type="number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -765,19 +722,14 @@ export default function Products() {
                   control={form.control}
                   name="active"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-md border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel>Ativo</FormLabel>
-                        <FormDescription>
-                          Produto disponível para venda
-                        </FormDescription>
-                      </div>
+                    <FormItem className="flex flex-row items-end justify-between space-y-0 p-2">
+                      <FormLabel>Produto Ativo</FormLabel>
                       <FormControl>
                         <input
                           type="checkbox"
                           checked={field.value}
                           onChange={field.onChange}
-                          className="accent-primary h-5 w-5"
+                          className="h-4 w-4"
                         />
                       </FormControl>
                     </FormItem>
@@ -785,39 +737,12 @@ export default function Products() {
                 />
               </div>
               
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL da Imagem</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      URL da imagem do produto (opcional)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={updateProductMutation.isPending}
-                >
+                <Button type="submit" disabled={updateProductMutation.isPending}>
                   {updateProductMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Atualizar
+                  Salvar Alterações
                 </Button>
               </DialogFooter>
             </form>
@@ -829,14 +754,21 @@ export default function Products() {
       <Dialog open={isCommissionDialogOpen} onOpenChange={setIsCommissionDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Comissão</DialogTitle>
+            <DialogTitle>Definir Comissão de Produto</DialogTitle>
             <DialogDescription>
-              Defina a comissão para o barbeiro vender este produto.
+              Configure a comissão para barbeiros na venda deste produto.
             </DialogDescription>
           </DialogHeader>
           
           <Form {...commissionForm}>
             <form onSubmit={commissionForm.handleSubmit(onSubmitAddCommission)} className="space-y-4">
+              {selectedProduct && (
+                <div className="bg-muted p-3 rounded-md mb-4">
+                  <h4 className="font-medium">{selectedProduct.name}</h4>
+                  <p className="text-sm text-muted-foreground">Preço: €{parseFloat(selectedProduct.price).toFixed(2)}</p>
+                </div>
+              )}
+              
               <FormField
                 control={commissionForm.control}
                 name="barberId"
@@ -844,7 +776,7 @@ export default function Products() {
                   <FormItem>
                     <FormLabel>Barbeiro</FormLabel>
                     <Select 
-                      onValueChange={(value) => field.onChange(parseInt(value))} 
+                      onValueChange={(value) => field.onChange(parseInt(value))}
                       defaultValue={field.value.toString()}
                     >
                       <FormControl>
@@ -853,17 +785,11 @@ export default function Products() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {isLoadingBarbers ? (
-                          <div className="flex items-center justify-center p-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
-                        ) : (
-                          barbers?.map((barber) => (
-                            <SelectItem key={barber.id} value={barber.id.toString()}>
-                              {barber.user.fullName}
-                            </SelectItem>
-                          ))
-                        )}
+                        {barbers && barbers.map((barber: BarberWithUser) => (
+                          <SelectItem key={barber.id} value={barber.id.toString()}>
+                            {barber.user.fullName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -878,10 +804,10 @@ export default function Products() {
                   <FormItem>
                     <FormLabel>Percentual de Comissão (%)</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" step="0.01" min="0" max="100" />
+                      <Input placeholder="10" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Informe o percentual que o barbeiro receberá por venda
+                      Percentual que o barbeiro receberá pela venda do produto.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -889,27 +815,17 @@ export default function Products() {
               />
               
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsCommissionDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createCommissionMutation.isPending}
-                >
+                <Button type="submit" disabled={createCommissionMutation.isPending}>
                   {createCommissionMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Adicionar
+                  Salvar Comissão
                 </Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+    </Layout>
   );
 }
