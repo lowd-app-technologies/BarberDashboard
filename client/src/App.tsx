@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 
 // Admin Pages
 import Dashboard from "@/pages/dashboard";
@@ -36,9 +37,18 @@ import Settings from "@/pages/settings";
 
 function Router() {
   const [location] = useLocation();
+  const [isBookingDomain, setIsBookingDomain] = useState(false);
   
-  // Determinar o papel com base no caminho atual
+  // Determinar o papel com base no caminho atual e no domínio
   let role = 'client';
+  
+  useEffect(() => {
+    // Verificar se estamos no subdomínio de booking ou no domínio principal
+    const hostname = window.location.hostname;
+    // Lógica simplificada para verificar se estamos no contexto de agendamento
+    const isBooking = hostname.includes('booking') || location.startsWith('/booking');
+    setIsBookingDomain(isBooking);
+  }, [location]);
   
   console.log("Current location:", location);
   
@@ -48,6 +58,9 @@ function Router() {
   } else if (location.startsWith("/barber")) {
     role = 'barber';
     console.log("Role set to barber based on path");
+  } else if (location.startsWith("/booking") || isBookingDomain) {
+    role = 'client';
+    console.log("Role set to client based on path or domain");
   } else {
     console.log("Default role: client");
   }
