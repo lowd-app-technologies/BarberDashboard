@@ -248,7 +248,14 @@ export class MemStorage implements IStorage {
 
   /* User Methods */
   async getUser(id: number): Promise<User | undefined> {
-    return this.usersData.get(id);
+    const user = this.usersData.get(id);
+    if (!user) return undefined;
+    
+    // Garantir que todos os usuários tenham o campo metadata
+    return {
+      ...user,
+      metadata: user.metadata || null
+    };
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
