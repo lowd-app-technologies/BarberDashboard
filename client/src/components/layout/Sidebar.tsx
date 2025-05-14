@@ -11,7 +11,8 @@ import {
   DollarSign,
   UserPlus,
   ClipboardCheck,
-  Package
+  Package,
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,12 @@ export function Sidebar() {
         icon: <UserPlus className="h-5 w-5" />,
         path: "/admin/invite-barber",
         show: user?.role === "admin"
+      },
+      {
+        title: "Configurações",
+        icon: <Settings className="h-5 w-5" />,
+        path: "/admin/settings",
+        show: user?.role === "admin"
       }
     ];
 
@@ -145,6 +152,12 @@ export function Sidebar() {
         title: "Relatórios",
         icon: <BarChart4 className="h-5 w-5" />,
         path: "/barber/reports",
+        show: user?.role === "barber"
+      },
+      {
+        title: "Configurações",
+        icon: <Settings className="h-5 w-5" />,
+        path: "/barber/settings",
         show: user?.role === "barber"
       }
     ];

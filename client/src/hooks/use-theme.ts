@@ -20,6 +20,11 @@ export function useTheme() {
     return 'dark';
   });
 
+  // Função para alterar o tema
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  };
+
   useEffect(() => {
     const root = window.document.documentElement;
     
@@ -33,5 +38,5 @@ export function useTheme() {
     localStorage.setItem('barbershop-theme', theme);
   }, [theme]);
 
-  return { theme, setTheme };
+  return { theme, setTheme, toggleTheme };
 }
