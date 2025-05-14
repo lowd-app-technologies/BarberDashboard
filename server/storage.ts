@@ -1778,15 +1778,104 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().getActiveServices();
     }
   }
-  async createService(service: InsertService): Promise<Service> { throw new Error("Not implemented"); }
-  async updateService(id: number, service: Partial<InsertService>): Promise<Service | undefined> { throw new Error("Not implemented"); }
-  async deleteService(id: number): Promise<void> { throw new Error("Not implemented"); }
-  async getCommission(id: number): Promise<Commission | undefined> { throw new Error("Not implemented"); }
-  async getCommissionByBarberAndService(barberId: number, serviceId: number): Promise<Commission | undefined> { throw new Error("Not implemented"); }
-  async getAllCommissions(): Promise<Commission[]> { throw new Error("Not implemented"); }
-  async createCommission(commission: InsertCommission): Promise<Commission> { throw new Error("Not implemented"); }
-  async updateCommission(id: number, commission: Partial<InsertCommission>): Promise<Commission | undefined> { throw new Error("Not implemented"); }
-  async deleteCommission(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async createService(service: InsertService): Promise<Service> {
+    try {
+      const result = await this.db.insert(services).values(service).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createService(service);
+    }
+  }
+  
+  async updateService(id: number, service: Partial<InsertService>): Promise<Service | undefined> {
+    try {
+      const result = await this.db.update(services).set(service).where(eq(services.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateService(id, service);
+    }
+  }
+  
+  async deleteService(id: number): Promise<void> {
+    try {
+      await this.db.delete(services).where(eq(services.id, id));
+    } catch (error) {
+      console.error("Error in deleteService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteService(id);
+    }
+  }
+  async getCommission(id: number): Promise<Commission | undefined> {
+    try {
+      const result = await this.db.select().from(commissions).where(eq(commissions.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getCommission(id);
+    }
+  }
+  
+  async getCommissionByBarberAndService(barberId: number, serviceId: number): Promise<Commission | undefined> {
+    try {
+      const result = await this.db.select().from(commissions)
+        .where(and(
+          eq(commissions.barberId, barberId),
+          eq(commissions.serviceId, serviceId)
+        ));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getCommissionByBarberAndService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getCommissionByBarberAndService(barberId, serviceId);
+    }
+  }
+  
+  async getAllCommissions(): Promise<Commission[]> {
+    try {
+      return await this.db.select().from(commissions);
+    } catch (error) {
+      console.error("Error in getAllCommissions:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getAllCommissions();
+    }
+  }
+  
+  async createCommission(commission: InsertCommission): Promise<Commission> {
+    try {
+      const result = await this.db.insert(commissions).values(commission).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createCommission(commission);
+    }
+  }
+  
+  async updateCommission(id: number, commission: Partial<InsertCommission>): Promise<Commission | undefined> {
+    try {
+      const result = await this.db.update(commissions).set(commission).where(eq(commissions.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateCommission(id, commission);
+    }
+  }
+  
+  async deleteCommission(id: number): Promise<void> {
+    try {
+      await this.db.delete(commissions).where(eq(commissions.id, id));
+    } catch (error) {
+      console.error("Error in deleteCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteCommission(id);
+    }
+  }
   async getAppointment(id: number): Promise<AppointmentWithDetails | undefined> { throw new Error("Not implemented"); }
   async getAllAppointments(): Promise<AppointmentWithDetails[]> { throw new Error("Not implemented"); }
   async getUpcomingAppointments(): Promise<AppointmentWithDetails[]> { throw new Error("Not implemented"); }
