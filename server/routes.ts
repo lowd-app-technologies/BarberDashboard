@@ -1452,6 +1452,223 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Relatórios para barbeiros
+  app.get('/api/barber/reports/services', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      const timeRange = req.query.timeRange as string || 'month';
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+
+      // Buscar todos os serviços completados pelo barbeiro no período
+      let startDate: Date;
+      let endDate: Date;
+
+      if (timeRange === 'year') {
+        startDate = new Date(year, 0, 1);
+        endDate = new Date(year, 11, 31, 23, 59, 59);
+      } else if (timeRange === 'month') {
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+      } else {
+        // Por padrão, considere o mês atual
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+      }
+
+      // Buscar dados reais do banco de dados
+      const completedServices = await storage.getCompletedServicesForDateRange(barber.id, startDate, endDate);
+      
+      // Agrupar por serviço e calcular métricas
+      const serviceMap = new Map<number, { name: string, count: number, revenue: number }>();
+      
+      completedServices.forEach(service => {
+        const serviceId = service.serviceId;
+        const serviceName = service.serviceName || 'Serviço Desconhecido';
+        const price = parseFloat(service.price.toString());
+        
+        if (serviceMap.has(serviceId)) {
+          const existing = serviceMap.get(serviceId)!;
+          existing.count += 1;
+          existing.revenue += price;
+        } else {
+          serviceMap.set(serviceId, {
+            name: serviceName,
+            count: 1,
+            revenue: price
+          });
+        }
+      });
+      
+      const serviceReports = Array.from(serviceMap.values());
+      res.json(serviceReports.length > 0 ? serviceReports : [
+        { name: 'Nenhum serviço registrado', count: 0, revenue: 0 }
+      ]);
+    } catch (error: any) {
+      console.error('Erro ao buscar relatório de serviços:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/barber/reports/earnings', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      const timeRange = req.query.timeRange as string || 'month';
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+      
+      // Definir intervalo de datas
+      let startDate: Date;
+      let endDate: Date;
+
+      if (timeRange === 'year') {
+        startDate = new Date(year, 0, 1);
+        endDate = new Date(year, 11, 31, 23, 59, 59);
+      } else if (timeRange === 'month') {
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+      } else {
+        // Por padrão, considere o mês atual
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+      }
+      
+      // Buscar dados de serviços
+      const completedServices = await storage.getCompletedServicesForDateRange(barber.id, startDate, endDate);
+      const servicesEarnings = completedServices.reduce((sum, service) => 
+        sum + parseFloat(service.price.toString()), 0);
+        
+      // Buscar dados de vendas de produtos
+      const productSales = await storage.getProductSalesForBarberInDateRange(barber.id, startDate, endDate);
+      const productsEarnings = productSales.reduce((sum, sale) => {
+        // Calcular o valor com base na comissão
+        const commission = sale.commissionPercentage || 0;
+        const price = parseFloat(sale.price.toString());
+        return sum + (price * commission / 100);
+      }, 0);
+      
+      const earningsReport = [
+        { name: 'Serviços', earnings: servicesEarnings || 0 },
+        { name: 'Produtos', earnings: productsEarnings || 0 },
+        { name: 'Total', earnings: (servicesEarnings + productsEarnings) || 0 }
+      ];
+
+      res.json(earningsReport);
+    } catch (error: any) {
+      console.error('Erro ao buscar relatório de ganhos:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/barber/reports/products', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+
+      const timeRange = req.query.timeRange as string || 'month';
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+
+      // Obter o barber ID do usuário atual
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      if (!barber) {
+        return res.status(404).json({ message: 'Barbeiro não encontrado' });
+      }
+      
+      // Definir intervalo de datas
+      let startDate: Date;
+      let endDate: Date;
+
+      if (timeRange === 'year') {
+        startDate = new Date(year, 0, 1);
+        endDate = new Date(year, 11, 31, 23, 59, 59);
+      } else if (timeRange === 'month') {
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+      } else {
+        // Por padrão, considere o mês atual
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0, 23, 59, 59);
+      }
+      
+      // Buscar vendas de produtos
+      const productSales = await storage.getProductSalesForBarberInDateRange(barber.id, startDate, endDate);
+      
+      // Agrupar por produto
+      const productMap = new Map<number, { name: string, count: number, revenue: number }>();
+      
+      productSales.forEach(sale => {
+        const productId = sale.productId;
+        const productName = sale.productName || 'Produto Desconhecido';
+        const price = parseFloat(sale.price.toString());
+        const commission = sale.commissionPercentage || 0;
+        const revenue = price * commission / 100;
+        
+        if (productMap.has(productId)) {
+          const existing = productMap.get(productId)!;
+          existing.count += sale.quantity || 1;
+          existing.revenue += revenue;
+        } else {
+          productMap.set(productId, {
+            name: productName,
+            count: sale.quantity || 1,
+            revenue: revenue
+          });
+        }
+      });
+      
+      const productsReport = Array.from(productMap.values());
+      res.json(productsReport.length > 0 ? productsReport : [
+        { name: 'Nenhum produto vendido', count: 0, revenue: 0 }
+      ]);
+    } catch (error: any) {
+      console.error('Erro ao buscar relatório de produtos:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // API para salvar preferências do usuário (incluindo tema)
+  app.put('/api/user/preferences', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+      
+      const { theme, language, notifications } = req.body;
+      
+      // Atualizar preferências do usuário
+      await storage.updateUserPreferences(req.session.userId, {
+        theme,
+        language,
+        notifications
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Erro ao salvar preferências:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

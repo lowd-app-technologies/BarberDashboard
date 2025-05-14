@@ -32,6 +32,19 @@ import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import postgres from 'postgres';
 
 // Basic Storage Interface
+// Interface para preferências do usuário
+interface UserPreferences {
+  theme?: 'light' | 'dark';
+  language?: string;
+  notifications?: {
+    email?: boolean;
+    push?: boolean;
+    sms?: boolean;
+    appointmentReminders?: boolean;
+    marketing?: boolean;
+  };
+}
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -41,12 +54,14 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<void>;
+  updateUserPreferences(userId: number, preferences: UserPreferences): Promise<void>;
 
   // Barber methods
   getBarber(id: number): Promise<BarberWithUser | undefined>;
   getAllBarbers(): Promise<BarberWithUser[]>;
   getActiveBarbers(): Promise<BarberWithUser[]>;
   getTopBarbers(): Promise<BarberWithUser[]>;
+  getBarberByUserId(userId: number): Promise<Barber | undefined>;
   createBarber(barber: InsertBarber): Promise<Barber>;
   updateBarber(id: number, barber: Partial<InsertBarber>): Promise<Barber | undefined>;
   deleteBarber(id: number): Promise<void>;
