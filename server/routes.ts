@@ -1807,7 +1807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar se o usuário é um barbeiro
-      const user = await storage.getUserById(req.session.userId);
+      const user = await storage.getUser(req.session.userId);
       if (!user || user.role !== 'barber') {
         return res.status(403).json({ message: 'Usuário não é um barbeiro' });
       }
@@ -1832,8 +1832,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Usuário não autenticado' });
       }
       
-      // Buscar todos os clientes
-      const clients = await storage.getAllClients();
+      // Buscar todos os usuários que são clientes
+      const allUsers = await storage.getAllUsers();
+      const clients = allUsers.filter(user => user.role === 'client').map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role
+      }));
       
       return res.json(clients);
     } catch (error: any) {

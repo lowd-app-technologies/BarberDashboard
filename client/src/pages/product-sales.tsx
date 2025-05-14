@@ -354,13 +354,13 @@ export default function ProductSales() {
         )}
       </div>
 
-            {sales && sales.length > 0 ? (
-              <div className="space-y-6">
-                {/* Resumo total (apenas para admin) */}
-                {isAdmin && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Resumo Geral</CardTitle>
+      {sales && sales.length > 0 ? (
+        <div className="space-y-6">
+          {/* Resumo total (apenas para admin) */}
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumo Geral</CardTitle>
                       <CardDescription>Resumo de todas as vendas de produtos</CardDescription>
                     </CardHeader>
                     <CardContent>
