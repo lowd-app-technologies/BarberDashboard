@@ -95,7 +95,7 @@ export default function BarberReports() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-6 md:p-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Relatórios e Análises</h1>
           
