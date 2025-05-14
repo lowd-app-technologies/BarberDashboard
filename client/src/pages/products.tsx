@@ -242,8 +242,19 @@ export default function Products() {
 
   // Mutação para criar comissão
   const createCommissionMutation = useMutation({
-    mutationFn: (data: ProductCommissionFormValues) => 
-      apiRequest('POST', '/api/product-commissions', data),
+    mutationFn: async (data: ProductCommissionFormValues) => {
+      try {
+        const response = await apiRequest('POST', '/api/product-commissions', data);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Falha ao adicionar comissão');
+        }
+        return response;
+      } catch (error: any) {
+        console.error('Erro ao criar comissão:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/product-commissions'] });
       setIsCommissionDialogOpen(false);
@@ -256,7 +267,7 @@ export default function Products() {
     onError: (error: any) => {
       toast({
         title: 'Erro',
-        description: `Erro ao adicionar comissão: ${error.message}`,
+        description: `Erro ao adicionar comissão: ${error.message || 'Erro desconhecido'}`,
         variant: 'destructive',
       });
     },
