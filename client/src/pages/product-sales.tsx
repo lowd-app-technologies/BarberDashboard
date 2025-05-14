@@ -18,8 +18,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Sidebar } from "@/components/layout/Sidebar";
-import { MobileNavigation } from "@/components/layout/MobileNavigation";
+import { Layout } from "@/components/layout/Layout";
 
 // Schema para formulário de venda de produto
 const productSaleSchema = z.object({
