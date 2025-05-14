@@ -312,6 +312,10 @@ export default function ProductSales() {
 
   // Handlers
   const onSubmitAddSale = (data: ProductSaleFormValues) => {
+    // Se clientId for "none", defina como null
+    if (data.clientId === "none") {
+      data.clientId = null;
+    }
     createSaleMutation.mutate(data);
   };
 
@@ -594,7 +598,7 @@ export default function ProductSales() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Sem cliente registrado</SelectItem>
+                              <SelectItem value="none">Sem cliente registrado</SelectItem>
                               {Array.isArray(clients) ? clients.map((client) => (
                                 <SelectItem key={client.id} value={client.id.toString()}>
                                   {client.fullName}
