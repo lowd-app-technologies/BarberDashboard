@@ -146,7 +146,19 @@ export default function Products() {
 
   // Mutação para criar produto
   const createProductMutation = useMutation({
-    mutationFn: (data: ProductFormValues) => apiRequest('POST', '/api/products', data),
+    mutationFn: async (data: ProductFormValues) => {
+      try {
+        const response = await apiRequest('POST', '/api/products', data);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Falha ao adicionar produto');
+        }
+        return response;
+      } catch (error: any) {
+        console.error('Erro ao criar produto:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       setIsAddDialogOpen(false);
@@ -159,7 +171,7 @@ export default function Products() {
     onError: (error: any) => {
       toast({
         title: 'Erro',
-        description: `Erro ao criar produto: ${error.message}`,
+        description: `Erro ao criar produto: ${error.message || 'Erro desconhecido'}`,
         variant: 'destructive',
       });
     },
@@ -167,8 +179,19 @@ export default function Products() {
 
   // Mutação para atualizar produto
   const updateProductMutation = useMutation({
-    mutationFn: (data: { id: number; product: ProductFormValues }) => 
-      apiRequest('PUT', `/api/products/${data.id}`, data.product),
+    mutationFn: async (data: { id: number; product: ProductFormValues }) => {
+      try {
+        const response = await apiRequest('PUT', `/api/products/${data.id}`, data.product);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Falha ao atualizar produto');
+        }
+        return response;
+      } catch (error: any) {
+        console.error('Erro ao atualizar produto:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       setIsEditDialogOpen(false);
@@ -180,7 +203,7 @@ export default function Products() {
     onError: (error: any) => {
       toast({
         title: 'Erro',
-        description: `Erro ao atualizar produto: ${error.message}`,
+        description: `Erro ao atualizar produto: ${error.message || 'Erro desconhecido'}`,
         variant: 'destructive',
       });
     },
@@ -188,7 +211,19 @@ export default function Products() {
 
   // Mutação para excluir produto
   const deleteProductMutation = useMutation({
-    mutationFn: (id: number) => apiRequest('DELETE', `/api/products/${id}`),
+    mutationFn: async (id: number) => {
+      try {
+        const response = await apiRequest('DELETE', `/api/products/${id}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Falha ao excluir produto');
+        }
+        return response;
+      } catch (error: any) {
+        console.error('Erro ao excluir produto:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({
@@ -199,7 +234,7 @@ export default function Products() {
     onError: (error: any) => {
       toast({
         title: 'Erro',
-        description: `Erro ao excluir produto: ${error.message}`,
+        description: `Erro ao excluir produto: ${error.message || 'Erro desconhecido'}`,
         variant: 'destructive',
       });
     },
