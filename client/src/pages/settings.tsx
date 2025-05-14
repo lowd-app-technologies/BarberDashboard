@@ -25,11 +25,41 @@ export default function Settings() {
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [language, setLanguage] = useState("pt");
 
-  // Carregar preferências do usuário (tema e idioma) se disponíveis
+  // Carregar preferências do usuário (tema e idioma) do servidor
   useEffect(() => {
-    // Em uma implementação futura, poderíamos carregar as preferências do servidor aqui
-    // Por enquanto, estamos apenas usando o localStorage para o tema
-  }, []);
+    // Quando existe um usuário logado, carregamos as preferências dele
+    if (user?.id) {
+      const loadUserPreferences = async () => {
+        try {
+          const response = await fetch('/api/user/preferences', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.preferences) {
+              // Se o usuário tem preferência de tema definida, aplicá-la
+              if (data.preferences.theme) {
+                setTheme(data.preferences.theme);
+              }
+              
+              // Aplicar idioma se disponível
+              if (data.preferences.language) {
+                setLanguage(data.preferences.language);
+              }
+              
+              // Podemos também carregar outras preferências no futuro
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao carregar preferências:", error);
+        }
+      };
+      
+      loadUserPreferences();
+    }
+  }, [user?.id, setTheme]);
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: any) => apiRequest("PUT", "/api/user/profile", data),
@@ -65,22 +95,37 @@ export default function Settings() {
     }
   });
 
-  const saveSettings = () => {
-    updateProfileMutation.mutate({
-      notifications: {
-        email: emailNotifications,
-        push: pushNotifications,
-        sms: smsNotifications,
-        appointmentReminders: appointmentReminders,
-        marketing: marketingEmails
-      }
-    });
-    
-    // Salvar preferências separadamente
-    updatePreferencesMutation.mutate({
-      language,
-      theme
-    });
+  const saveSettings = async () => {
+    try {
+      // Salvar perfil e notificações
+      await updateProfileMutation.mutateAsync({
+        notifications: {
+          email: emailNotifications,
+          push: pushNotifications,
+          sms: smsNotifications,
+          appointmentReminders: appointmentReminders,
+          marketing: marketingEmails
+        }
+      });
+      
+      // Salvar preferências separadamente
+      await updatePreferencesMutation.mutateAsync({
+        language,
+        theme
+      });
+      
+      // Salvamos corretamente, exibir feedback
+      toast({
+        title: "Configurações salvas",
+        description: "Todas as suas configurações foram aplicadas com sucesso.",
+        variant: "default"
+      });
+    } catch (error) {
+      // Se ocorrer erro em qualquer uma das operações, já será capturado aqui
+      console.error("Erro ao salvar configurações:", error);
+      
+      // O feedback de erro já é mostrado pelos próprios mutations nas funções onError
+    }
   };
 
   return (

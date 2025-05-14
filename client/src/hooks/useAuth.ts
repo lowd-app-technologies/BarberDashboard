@@ -15,7 +15,30 @@ type AuthContextType = {
 
 // Create the Auth Provider implementation
 export const AuthProvider = (props: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(auth.currentUser);
+  // Inicializar usuario do sessionStorage quando disponível
+  const initializeUserFromSession = (): User | null => {
+    // Verificar se temos um user no sessionStorage
+    const savedUser = sessionStorage.getItem('currentUser');
+    const isAuthenticated = sessionStorage.getItem('auth') === 'true';
+    
+    if (savedUser && isAuthenticated) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        // Também atualizar o auth.currentUser para manter consistência
+        auth.currentUser = parsedUser;
+        return parsedUser;
+      } catch (e) {
+        // Se houver erro no parsing, remover os dados inválidos
+        sessionStorage.removeItem('currentUser');
+        sessionStorage.removeItem('auth');
+        return null;
+      }
+    }
+    
+    return auth.currentUser;
+  };
+  
+  const [user, setUser] = useState<User | null>(initializeUserFromSession());
   const [loading, setLoading] = useState(true); // Iniciar como true para verificar a sessão
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -96,6 +119,10 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       // Use our custom auth wrapper
       const { user } = await auth.signInWithEmailAndPassword(email, password, isClientArea);
       
+      // Salvar dados no sessionStorage
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
+      sessionStorage.setItem('auth', 'true');
+      
       // Update user state
       setUser(user);
       
@@ -133,6 +160,10 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       
       // Use our custom auth wrapper with Google provider
       const { user } = await auth.signInWithPopup(googleProvider, isClientArea);
+      
+      // Salvar dados no sessionStorage
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
+      sessionStorage.setItem('auth', 'true');
       
       // Update user state
       setUser(user);
@@ -172,6 +203,10 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       // Use our custom auth wrapper for registration
       const { user } = await auth.register(email, password, username, fullName, role, isClientArea);
       
+      // Salvar dados no sessionStorage
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
+      sessionStorage.setItem('auth', 'true');
+      
       // Update user state
       setUser(user);
       
@@ -202,6 +237,10 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     try {
       // Use our custom auth wrapper for logout
       await auth.signOut();
+      
+      // Limpar dados de autenticação do sessionStorage
+      sessionStorage.removeItem('currentUser');
+      sessionStorage.removeItem('auth');
       
       // Update user state
       setUser(null);
