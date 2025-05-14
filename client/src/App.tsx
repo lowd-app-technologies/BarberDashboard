@@ -3,7 +3,6 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 
 // Admin Pages
@@ -33,6 +32,7 @@ import ClientRegister from "@/booking/pages/register";
 
 // Other Pages
 import NotFound from "@/pages/not-found";
+import Settings from "@/pages/settings";
 
 function Router() {
   const [location] = useLocation();
@@ -77,6 +77,7 @@ function Router() {
         <Route path="/admin/products" component={Products} />
         <Route path="/admin/product-sales" component={ProductSales} />
         <Route path="/admin/invite-barber" component={InviteBarber} />
+        <Route path="/admin/settings" component={Settings} />
         <Route path="/barber/invite" component={InviteBarber} />
         <Route component={NotFound} />
       </Switch>
@@ -93,6 +94,7 @@ function Router() {
         <Route path="/barber/payments" component={Payments} />
         <Route path="/barber/service-records" component={ServiceRecords} />
         <Route path="/barber/product-sales" component={ProductSales} />
+        <Route path="/barber/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -105,6 +107,7 @@ function Router() {
       location === "/clients" || 
       location === "/payments" ||
       location === "/products" ||
+      location === "/settings" ||
       location === "/product-sales") {
     return (
       <Switch>
@@ -116,6 +119,7 @@ function Router() {
         <Route path="/payments" component={Payments} />
         <Route path="/products" component={Products} />
         <Route path="/product-sales" component={ProductSales} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -155,16 +159,14 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </QueryClientProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 
