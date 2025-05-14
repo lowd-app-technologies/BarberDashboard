@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash, Edit, Check } from 'lucide-react';
+import { Loader2, PlusCircle, Trash, Edit, Check, PackageX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Header } from '@/components/layout/Header';
 
 // Schema para formulário de produto
 const productSchema = z.object({
@@ -336,77 +338,102 @@ export default function Products() {
 
   if (isLoadingProducts) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="flex flex-col min-h-screen">
+        <Sidebar />
+        <Header />
+        <div className="flex-1 md:ml-64 p-4 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Produtos</h1>
-        {isAdmin && (
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Produto
-          </Button>
-        )}
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <Sidebar />
+      <Header />
+      <main className="flex-1 md:ml-64 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Produtos</h1>
+          {isAdmin && (
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Produto
+            </Button>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products?.map((product) => (
-          <Card key={product.id} className={!product.active ? 'opacity-60' : ''}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle>{product.name}</CardTitle>
-                <Badge variant={product.active ? 'default' : 'secondary'}>
-                  {product.active ? 'Ativo' : 'Inativo'}
-                </Badge>
-              </div>
-              <CardDescription>{translateCategory(product.category)}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Descrição:</p>
-                <p>{product.description || 'Sem descrição'}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Preço:</p>
-                  <p className="font-medium">€{parseFloat(product.price).toFixed(2)}</p>
-                </div>
-                {isAdmin && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Custo:</p>
-                    <p className="font-medium">€{parseFloat(product.costPrice).toFixed(2)}</p>
+        {products && products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map((product) => (
+              <Card key={product.id} className={!product.active ? 'opacity-60' : ''}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <CardTitle>{product.name}</CardTitle>
+                    <Badge variant={product.active ? 'default' : 'secondary'}>
+                      {product.active ? 'Ativo' : 'Inativo'}
+                    </Badge>
                   </div>
+                  <CardDescription>{translateCategory(product.category)}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Descrição:</p>
+                    <p>{product.description || 'Sem descrição'}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Preço:</p>
+                      <p className="font-medium">€{parseFloat(product.price).toFixed(2)}</p>
+                    </div>
+                    {isAdmin && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Custo:</p>
+                        <p className="font-medium">€{parseFloat(product.costPrice).toFixed(2)}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-muted-foreground">SKU:</p>
+                      <p className="font-mono text-sm">{product.sku}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Estoque:</p>
+                      <p className="font-medium">{product.stockQuantity}</p>
+                    </div>
+                  </div>
+                </CardContent>
+                {isAdmin && (
+                  <CardFooter className="flex justify-between gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}>
+                      <Edit className="mr-2 h-4 w-4" /> Editar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleAddCommission(product)}>
+                      <Check className="mr-2 h-4 w-4" /> Comissão
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteProduct(product.id)}>
+                      <Trash className="mr-2 h-4 w-4" /> Excluir
+                    </Button>
+                  </CardFooter>
                 )}
-                <div>
-                  <p className="text-sm text-muted-foreground">SKU:</p>
-                  <p className="font-mono text-sm">{product.sku}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Estoque:</p>
-                  <p className="font-medium">{product.stockQuantity}</p>
-                </div>
-              </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="w-full py-12">
+            <CardContent className="flex flex-col items-center justify-center text-center">
+              <PackageX className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-2xl font-bold mb-2">Nenhum produto encontrado</h3>
+              <p className="text-muted-foreground mb-6">
+                Não há produtos cadastrados no sistema.
+              </p>
+              {isAdmin && (
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Adicionar seu primeiro produto
+                </Button>
+              )}
             </CardContent>
-            {isAdmin && (
-              <CardFooter className="flex justify-between gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}>
-                  <Edit className="mr-2 h-4 w-4" /> Editar
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleAddCommission(product)}>
-                  <Check className="mr-2 h-4 w-4" /> Comissão
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleDeleteProduct(product.id)}>
-                  <Trash className="mr-2 h-4 w-4" /> Excluir
-                </Button>
-              </CardFooter>
-            )}
           </Card>
-        ))}
-      </div>
+        )}
+      </main>
 
       {/* Diálogo para adicionar produto */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
