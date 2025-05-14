@@ -121,6 +121,7 @@ export default function ProductSales() {
   
   const isAdmin = user?.role === 'admin';
   const isBarber = user?.role === 'barber';
+  const pageTitle = "Vendas de Produtos";
 
   // Query para barbeiro atual (se for um barbeiro)
   const { data: barber } = useQuery({
@@ -343,20 +344,15 @@ export default function ProductSales() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1 md:ml-64">
-          <MobileNavigation />
-          <main className="container mx-auto p-4 md:p-6 lg:p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Vendas de Produtos</h1>
-              {(isAdmin || isBarber) && (
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Registrar Venda
-                </Button>
-              )}
-            </div>
+    <Layout pageTitle={pageTitle}>
+      <div className="flex justify-between items-center mb-6">
+        <div />
+        {(isAdmin || isBarber) && (
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Registrar Venda
+          </Button>
+        )}
+      </div>
 
             {sales && sales.length > 0 ? (
               <div className="space-y-6">
