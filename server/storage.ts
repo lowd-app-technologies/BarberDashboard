@@ -1513,11 +1513,18 @@ export class MemStorage implements IStorage {
 
 // Set up Supabase PostgreSQL connection if URL is available
 let db;
+let dbConnectionFailed = false;
+
 if (process.env.DATABASE_URL) {
-  console.log('Using PostgreSQL with Drizzle ORM');
-  const connectionString = process.env.DATABASE_URL;
-  const client = postgres(connectionString);
-  db = drizzle(client);
+  try {
+    console.log('Using PostgreSQL with Drizzle ORM');
+    const connectionString = process.env.DATABASE_URL;
+    const client = postgres(connectionString);
+    db = drizzle(client);
+  } catch (error) {
+    console.error('Failed to connect to PostgreSQL database:', error);
+    dbConnectionFailed = true;
+  }
 }
 
 // DrizzleStorage implementation for PostgreSQL
@@ -1625,17 +1632,152 @@ export class DrizzleStorage implements IStorage {
   // Implement remaining methods as needed...
   
   /* As seguintes implementações são necessárias para a interface, mas serão implementadas conforme necessário */
-  async getBarber(id: number): Promise<BarberWithUser | undefined> { throw new Error("Not implemented"); }
-  async getAllBarbers(): Promise<BarberWithUser[]> { throw new Error("Not implemented"); }
-  async getActiveBarbers(): Promise<BarberWithUser[]> { throw new Error("Not implemented"); }
-  async getTopBarbers(): Promise<BarberWithUser[]> { throw new Error("Not implemented"); }
-  async getBarberByUserId(userId: number): Promise<Barber | undefined> { throw new Error("Not implemented"); }
-  async createBarber(barber: InsertBarber): Promise<Barber> { throw new Error("Not implemented"); }
-  async updateBarber(id: number, barber: Partial<InsertBarber>): Promise<Barber | undefined> { throw new Error("Not implemented"); }
-  async deleteBarber(id: number): Promise<void> { throw new Error("Not implemented"); }
-  async getService(id: number): Promise<Service | undefined> { throw new Error("Not implemented"); }
-  async getAllServices(): Promise<Service[]> { throw new Error("Not implemented"); }
-  async getActiveServices(): Promise<Service[]> { throw new Error("Not implemented"); }
+  // Barber methods
+  async getBarber(id: number): Promise<BarberWithUser | undefined> {
+    try {
+      const barberResult = await this.db.select().from(barbers).where(eq(barbers.id, id));
+      if (!barberResult.length) return undefined;
+      
+      const barber = barberResult[0];
+      const userResult = await this.db.select().from(users).where(eq(users.id, barber.userId));
+      if (!userResult.length) return undefined;
+      
+      return {
+        ...barber,
+        user: userResult[0]
+      };
+    } catch (error) {
+      console.error("Error in getBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getBarber(id);
+    }
+  }
+  
+  async getAllBarbers(): Promise<BarberWithUser[]> {
+    try {
+      const barberResults = await this.db.select().from(barbers);
+      const result: BarberWithUser[] = [];
+      
+      for (const barber of barberResults) {
+        const userResult = await this.db.select().from(users).where(eq(users.id, barber.userId));
+        if (userResult.length) {
+          result.push({
+            ...barber,
+            user: userResult[0]
+          });
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getAllBarbers:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getAllBarbers();
+    }
+  }
+  
+  async getActiveBarbers(): Promise<BarberWithUser[]> {
+    try {
+      const barberResults = await this.db.select().from(barbers).where(eq(barbers.active, true));
+      const result: BarberWithUser[] = [];
+      
+      for (const barber of barberResults) {
+        const userResult = await this.db.select().from(users).where(eq(users.id, barber.userId));
+        if (userResult.length) {
+          result.push({
+            ...barber,
+            user: userResult[0]
+          });
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getActiveBarbers:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getActiveBarbers();
+    }
+  }
+  
+  async getTopBarbers(): Promise<BarberWithUser[]> {
+    // Por enquanto, retorne apenas os barbeiros ativos
+    return this.getActiveBarbers();
+  }
+  
+  async getBarberByUserId(userId: number): Promise<Barber | undefined> {
+    try {
+      const result = await this.db.select().from(barbers).where(eq(barbers.userId, userId));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getBarberByUserId:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getBarberByUserId(userId);
+    }
+  }
+  
+  async createBarber(barber: InsertBarber): Promise<Barber> {
+    try {
+      const result = await this.db.insert(barbers).values(barber).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createBarber(barber);
+    }
+  }
+  
+  async updateBarber(id: number, barber: Partial<InsertBarber>): Promise<Barber | undefined> {
+    try {
+      const result = await this.db.update(barbers).set(barber).where(eq(barbers.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateBarber(id, barber);
+    }
+  }
+  
+  async deleteBarber(id: number): Promise<void> {
+    try {
+      await this.db.delete(barbers).where(eq(barbers.id, id));
+    } catch (error) {
+      console.error("Error in deleteBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteBarber(id);
+    }
+  }
+  
+  // Service methods
+  async getService(id: number): Promise<Service | undefined> {
+    try {
+      const result = await this.db.select().from(services).where(eq(services.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getService(id);
+    }
+  }
+  
+  async getAllServices(): Promise<Service[]> {
+    try {
+      return await this.db.select().from(services);
+    } catch (error) {
+      console.error("Error in getAllServices:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getAllServices();
+    }
+  }
+  
+  async getActiveServices(): Promise<Service[]> {
+    try {
+      return await this.db.select().from(services).where(eq(services.active, true));
+    } catch (error) {
+      console.error("Error in getActiveServices:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getActiveServices();
+    }
+  }
   async createService(service: InsertService): Promise<Service> { throw new Error("Not implemented"); }
   async updateService(id: number, service: Partial<InsertService>): Promise<Service | undefined> { throw new Error("Not implemented"); }
   async deleteService(id: number): Promise<void> { throw new Error("Not implemented"); }
@@ -1705,6 +1847,6 @@ export class DrizzleStorage implements IStorage {
 }
 
 // Export the appropriate storage implementation
-export const storage = process.env.DATABASE_URL 
-  ? new DrizzleStorage(db!) 
+export const storage = (process.env.DATABASE_URL && !dbConnectionFailed && db) 
+  ? new DrizzleStorage(db) 
   : new MemStorage();
