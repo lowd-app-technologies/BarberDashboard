@@ -126,7 +126,16 @@ export default function ProductSales() {
   // Query para barbeiro atual (se for um barbeiro)
   const { data: barber } = useQuery({
     queryKey: ['/api/user/barber'],
-    queryFn: () => apiRequest<{ id: number }>('GET', '/api/user/barber'),
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/user/barber');
+        const data = await response.json();
+        return data && data.id ? { id: data.id } : null;
+      } catch (error) {
+        console.error('Erro ao buscar barbeiro:', error);
+        return null;
+      }
+    },
     enabled: isBarber,
   });
 
@@ -150,21 +159,52 @@ export default function ProductSales() {
   // Query para buscar produtos
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: [isBarber && barber?.id ? `/api/barber/${barber.id}/products-with-commissions` : '/api/products/active'],
-    queryFn: () => apiRequest<Product[]>('GET', isBarber && barber?.id ? `/api/barber/${barber.id}/products-with-commissions` : '/api/products/active'),
+    queryFn: async () => {
+      const endpoint = isBarber && barber?.id 
+        ? `/api/barber/${barber.id}/products-with-commissions` 
+        : '/api/products/active';
+      
+      try {
+        const response = await apiRequest('GET', endpoint);
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error(`Erro ao buscar produtos: ${error}`);
+        return [];
+      }
+    },
     enabled: !isBarber || (isBarber && !!barber?.id),
   });
 
   // Query para buscar barbeiros (admin apenas)
   const { data: barbers, isLoading: isLoadingBarbers } = useQuery({
     queryKey: ['/api/barbers'],
-    queryFn: () => apiRequest<BarberWithUser[]>('GET', '/api/barbers'),
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/barbers');
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error(`Erro ao buscar barbeiros: ${error}`);
+        return [];
+      }
+    },
     enabled: isAdmin,
   });
 
   // Query para buscar clientes
   const { data: clients } = useQuery({
     queryKey: ['/api/clients'],
-    queryFn: () => apiRequest<ClientWithProfile[]>('GET', '/api/clients'),
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/clients');
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error(`Erro ao buscar clientes: ${error}`);
+        return [];
+      }
+    },
   });
 
   // Formulário para adicionar venda
