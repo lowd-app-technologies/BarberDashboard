@@ -402,6 +402,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: 'Nenhuma sessão para encerrar' });
     }
   });
+  
+  // Rota para obter o usuário atual (verificar sessão)
+  app.get('/api/auth/current-user', async (req: Request, res: Response) => {
+    try {
+      // Verificar se há um usuário na sessão
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autenticado' });
+      }
+      
+      // Buscar dados do usuário
+      const user = await storage.getUser(req.session.userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Retornar dados do usuário (exceto a senha)
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error('Erro ao verificar usuário atual:', error);
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    }
+  });
 
   // Rotas de usuários
   app.get("/api/users", async (req, res) => {

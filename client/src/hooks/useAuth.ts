@@ -16,9 +16,51 @@ type AuthContextType = {
 // Create the Auth Provider implementation
 export const AuthProvider = (props: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Iniciar como true para verificar a sessão
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  // Verificar a sessão atual no servidor quando o componente for montado
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        // Se já temos um usuário no localStorage, verificamos se a sessão ainda é válida no servidor
+        if (auth.currentUser) {
+          const response = await fetch('/api/auth/current-user', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.user) {
+              // Atualizar o usuário com os dados mais recentes do servidor
+              auth.currentUser = {
+                ...auth.currentUser,
+                ...data.user,
+                uid: data.user.id.toString()
+              };
+              setUser(auth.currentUser);
+            } else {
+              // Se o servidor não reconhece o usuário, limpar o estado local
+              auth.currentUser = null;
+              setUser(null);
+            }
+          } else if (response.status === 401) {
+            // Sessão expirada ou inválida
+            auth.currentUser = null;
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    verifySession();
+  }, []);
 
   // Função para determinar o redirecionamento com base no papel do usuário (admin/barber)
   const redirectUserBasedOnRole = (user: User) => {
