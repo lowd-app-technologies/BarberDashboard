@@ -8,14 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { MoonIcon, SunIcon, Globe, Bell, Lock, User, Mail } from "lucide-react";
+import { MoonIcon, SunIcon, Globe, Bell, Lock, User, Mail, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
-  const { theme, setTheme, toggleTheme } = useTheme();
+  const { theme, setTheme, toggleTheme, isSaving: isSavingTheme } = useTheme();
   const { user } = useAuth();
   const { toast } = useToast();
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -24,6 +24,12 @@ export default function Settings() {
   const [appointmentReminders, setAppointmentReminders] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [language, setLanguage] = useState("pt");
+
+  // Carregar preferências do usuário (tema e idioma) se disponíveis
+  useEffect(() => {
+    // Em uma implementação futura, poderíamos carregar as preferências do servidor aqui
+    // Por enquanto, estamos apenas usando o localStorage para o tema
+  }, []);
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: any) => apiRequest("PUT", "/api/user/profile", data),
@@ -42,6 +48,23 @@ export default function Settings() {
     }
   });
 
+  const updatePreferencesMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("PUT", "/api/user/preferences", data),
+    onSuccess: () => {
+      toast({
+        title: "Preferências atualizadas",
+        description: "Suas preferências foram salvas com sucesso."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Ocorreu um erro ao salvar suas preferências.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const saveSettings = () => {
     updateProfileMutation.mutate({
       notifications: {
@@ -50,11 +73,13 @@ export default function Settings() {
         sms: smsNotifications,
         appointmentReminders: appointmentReminders,
         marketing: marketingEmails
-      },
-      preferences: {
-        language,
-        theme
       }
+    });
+    
+    // Salvar preferências separadamente
+    updatePreferencesMutation.mutate({
+      language,
+      theme
     });
   };
 
@@ -66,8 +91,17 @@ export default function Settings() {
             <h1 className="text-2xl font-bold">Configurações</h1>
             <p className="text-muted-foreground">Gerencie suas preferências e configurações da conta</p>
           </div>
-          <Button onClick={saveSettings} disabled={updateProfileMutation.isPending} className="mt-4 md:mt-0">
-            {updateProfileMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+          <Button 
+            onClick={saveSettings} 
+            disabled={updateProfileMutation.isPending || updatePreferencesMutation.isPending} 
+            className="mt-4 md:mt-0"
+          >
+            {updateProfileMutation.isPending || updatePreferencesMutation.isPending ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Salvando...
+              </span>
+            ) : "Salvar Alterações"}
           </Button>
         </div>
 
@@ -96,11 +130,18 @@ export default function Settings() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <SunIcon className={`h-4 w-4 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <Switch 
-                        id="theme-toggle"
-                        checked={theme === 'dark'}
-                        onCheckedChange={() => toggleTheme()}
-                      />
+                      <div className="relative">
+                        <Switch 
+                          id="theme-toggle"
+                          checked={theme === 'dark'}
+                          onCheckedChange={() => toggleTheme()}
+                        />
+                        {isSavingTheme && (
+                          <div className="absolute -right-6 top-1/2 -translate-y-1/2">
+                            <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          </div>
+                        )}
+                      </div>
                       <MoonIcon className={`h-4 w-4 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground'}`} />
                     </div>
                   </div>
