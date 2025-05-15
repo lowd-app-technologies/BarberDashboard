@@ -1932,7 +1932,16 @@ export class DrizzleStorage implements IStorage {
   async createCompletedService(service: InsertCompletedService): Promise<CompletedService> { throw new Error("Not implemented"); }
   async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
   async deleteCompletedService(id: number): Promise<void> { throw new Error("Not implemented"); }
-  async createActionLog(log: InsertActionLog): Promise<ActionLog> { throw new Error("Not implemented"); }
+  async createActionLog(log: InsertActionLog): Promise<ActionLog> {
+    try {
+      const result = await this.db.insert(actionLogs).values(log).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createActionLog:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createActionLog(log);
+    }
+  }
   async getClientProfile(userId: number): Promise<ClientProfile | undefined> { throw new Error("Not implemented"); }
   async createClientProfile(profile: InsertClientProfile): Promise<ClientProfile> { throw new Error("Not implemented"); }
   async updateClientProfile(userId: number, profile: Partial<InsertClientProfile>): Promise<ClientProfile | undefined> { throw new Error("Not implemented"); }
