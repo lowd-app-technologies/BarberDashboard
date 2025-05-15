@@ -59,6 +59,7 @@ export default function Services() {
   // Fetch services
   const { data: services, isLoading } = useQuery({
     queryKey: ['/api/services'],
+    select: (data) => Array.isArray(data) ? data : []
   });
   
   // Delete service mutation
