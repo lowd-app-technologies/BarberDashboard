@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
@@ -227,19 +227,24 @@ export default function ProductSales() {
     ? products.find(p => p.id === watchProductId)
     : null;
 
-  if (selectedProduct && !form.getValues('unitPrice')) {
-    form.setValue('unitPrice', selectedProduct.price);
-  }
-
   // Efeito para atualizar o nome do cliente quando um cliente for selecionado
   const watchClientId = form.watch('clientId');
   const selectedClient = Array.isArray(clients) 
     ? clients.find(c => c.id === watchClientId)
     : null;
-
-  if (selectedClient && !form.getValues('clientName')) {
-    form.setValue('clientName', selectedClient.fullName);
-  }
+    
+  // Usando useEffect para atualizar os valores do formulário
+  useEffect(() => {
+    if (selectedProduct && !form.getValues('unitPrice')) {
+      form.setValue('unitPrice', selectedProduct.price);
+    }
+  }, [selectedProduct, form]);
+  
+  useEffect(() => {
+    if (selectedClient && !form.getValues('clientName')) {
+      form.setValue('clientName', selectedClient.fullName);
+    }
+  }, [selectedClient, form]);
 
   // Mutação para criar venda
   const createSaleMutation = useMutation({
@@ -341,16 +346,17 @@ export default function ProductSales() {
 
   if (isLoadingSales || (isBarber && !barber)) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
+      <Layout pageTitle={pageTitle}>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
     );
   }
 
   return (
     <Layout pageTitle={pageTitle}>
       <div className="flex justify-between items-center mb-6">
-        <div />
         {(isAdmin || isBarber) && (
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" /> Registrar Venda
