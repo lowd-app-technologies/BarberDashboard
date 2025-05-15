@@ -98,7 +98,7 @@ export function ServiceForm({ serviceId, onSuccess, onCancel }: ServiceFormProps
       
       if (serviceId) {
         // Update existing service
-        await apiRequest("PATCH", `/api/services/${serviceId}`, formattedData);
+        await apiRequest("PUT", `/api/services/${serviceId}`, formattedData);
         toast({
           title: "Serviço atualizado",
           description: "O serviço foi atualizado com sucesso."
