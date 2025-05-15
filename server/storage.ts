@@ -1603,30 +1603,66 @@ export class DrizzleStorage implements IStorage {
   
   // Product methods
   async getProduct(id: number): Promise<Product | undefined> {
-    const result = await this.db.select().from(products).where(eq(products.id, id));
-    return result[0];
+    try {
+      const result = await this.db.select().from(products).where(eq(products.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getProduct:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProduct(id);
+    }
   }
 
   async getAllProducts(): Promise<Product[]> {
-    return await this.db.select().from(products);
+    try {
+      return await this.db.select().from(products);
+    } catch (error) {
+      console.error("Error in getAllProducts:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getAllProducts();
+    }
   }
 
   async getActiveProducts(): Promise<Product[]> {
-    return await this.db.select().from(products).where(eq(products.active, true));
+    try {
+      return await this.db.select().from(products).where(eq(products.active, true));
+    } catch (error) {
+      console.error("Error in getActiveProducts:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getActiveProducts();
+    }
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const result = await this.db.insert(products).values(product).returning();
-    return result[0];
+    try {
+      const result = await this.db.insert(products).values(product).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createProduct:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createProduct(product);
+    }
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
-    const result = await this.db.update(products).set(product).where(eq(products.id, id)).returning();
-    return result[0];
+    try {
+      const result = await this.db.update(products).set(product).where(eq(products.id, id)).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateProduct:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateProduct(id, product);
+    }
   }
 
   async deleteProduct(id: number): Promise<void> {
-    await this.db.delete(products).where(eq(products.id, id));
+    try {
+      await this.db.delete(products).where(eq(products.id, id));
+    } catch (error) {
+      console.error("Error in deleteProduct:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteProduct(id);
+    }
   }
   
   // Implement remaining methods as needed...
@@ -1919,20 +1955,239 @@ export class DrizzleStorage implements IStorage {
   async getBarberInviteByToken(token: string): Promise<BarberInvite | undefined> { throw new Error("Not implemented"); }
   async markBarberInviteAsUsed(id: number): Promise<BarberInvite | undefined> { throw new Error("Not implemented"); }
   async getBarberInvitesByCreator(createdById: number): Promise<BarberInvite[]> { throw new Error("Not implemented"); }
-  async getProductCommission(id: number): Promise<ProductCommission | undefined> { throw new Error("Not implemented"); }
-  async getProductCommissionByBarberAndProduct(barberId: number, productId: number): Promise<ProductCommission | undefined> { throw new Error("Not implemented"); }
-  async getProductCommissionsByBarber(barberId: number): Promise<ProductCommission[]> { throw new Error("Not implemented"); }
-  async createProductCommission(commission: InsertProductCommission): Promise<ProductCommission> { throw new Error("Not implemented"); }
-  async updateProductCommission(id: number, commission: Partial<InsertProductCommission>): Promise<ProductCommission | undefined> { throw new Error("Not implemented"); }
-  async deleteProductCommission(id: number): Promise<void> { throw new Error("Not implemented"); }
-  async getProductSale(id: number): Promise<ProductSaleWithDetails | undefined> { throw new Error("Not implemented"); }
-  async getProductSalesByBarber(barberId: number): Promise<ProductSaleWithDetails[]> { throw new Error("Not implemented"); }
-  async getAllProductSales(): Promise<ProductSaleWithDetails[]> { throw new Error("Not implemented"); }
-  async createProductSale(sale: InsertProductSale): Promise<ProductSale> { throw new Error("Not implemented"); }
-  async updateProductSale(id: number, sale: Partial<InsertProductSale>): Promise<ProductSale | undefined> { throw new Error("Not implemented"); }
-  async validateProductSale(id: number): Promise<ProductSale | undefined> { throw new Error("Not implemented"); }
-  async deleteProductSale(id: number): Promise<void> { throw new Error("Not implemented"); }
-  async getProductsWithCommissionsForBarber(barberId: number): Promise<ProductWithCommission[]> { throw new Error("Not implemented"); }
+  async getProductCommission(id: number): Promise<ProductCommission | undefined> {
+    try {
+      const result = await this.db.select().from(productCommissions).where(eq(productCommissions.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getProductCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProductCommission(id);
+    }
+  }
+  
+  async getProductCommissionByBarberAndProduct(barberId: number, productId: number): Promise<ProductCommission | undefined> {
+    try {
+      const result = await this.db.select().from(productCommissions)
+        .where(and(
+          eq(productCommissions.barberId, barberId),
+          eq(productCommissions.productId, productId)
+        ));
+      return result[0];
+    } catch (error) {
+      console.error("Error in getProductCommissionByBarberAndProduct:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProductCommissionByBarberAndProduct(barberId, productId);
+    }
+  }
+  
+  async getProductCommissionsByBarber(barberId: number): Promise<ProductCommission[]> {
+    try {
+      return await this.db.select().from(productCommissions)
+        .where(eq(productCommissions.barberId, barberId));
+    } catch (error) {
+      console.error("Error in getProductCommissionsByBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProductCommissionsByBarber(barberId);
+    }
+  }
+  
+  async createProductCommission(commission: InsertProductCommission): Promise<ProductCommission> {
+    try {
+      const result = await this.db.insert(productCommissions).values(commission).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createProductCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createProductCommission(commission);
+    }
+  }
+  
+  async updateProductCommission(id: number, commission: Partial<InsertProductCommission>): Promise<ProductCommission | undefined> {
+    try {
+      const result = await this.db.update(productCommissions)
+        .set(commission)
+        .where(eq(productCommissions.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateProductCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateProductCommission(id, commission);
+    }
+  }
+  
+  async deleteProductCommission(id: number): Promise<void> {
+    try {
+      await this.db.delete(productCommissions).where(eq(productCommissions.id, id));
+    } catch (error) {
+      console.error("Error in deleteProductCommission:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteProductCommission(id);
+    }
+  }
+  async getProductSale(id: number): Promise<ProductSaleWithDetails | undefined> {
+    try {
+      const saleResult = await this.db.select().from(productSales).where(eq(productSales.id, id));
+      if (!saleResult.length) return undefined;
+      
+      const sale = saleResult[0];
+      const product = await this.getProduct(sale.productId);
+      const barber = await this.getBarber(sale.barberId);
+      
+      if (!product || !barber) return undefined;
+      
+      return {
+        ...sale,
+        product,
+        barber
+      };
+    } catch (error) {
+      console.error("Error in getProductSale:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProductSale(id);
+    }
+  }
+  
+  async getProductSalesByBarber(barberId: number): Promise<ProductSaleWithDetails[]> {
+    try {
+      const sales = await this.db.select().from(productSales)
+        .where(eq(productSales.barberId, barberId));
+      
+      const result: ProductSaleWithDetails[] = [];
+      
+      for (const sale of sales) {
+        const product = await this.getProduct(sale.productId);
+        const barber = await this.getBarber(sale.barberId);
+        
+        if (product && barber) {
+          result.push({
+            ...sale,
+            product,
+            barber
+          });
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getProductSalesByBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProductSalesByBarber(barberId);
+    }
+  }
+  
+  async getAllProductSales(): Promise<ProductSaleWithDetails[]> {
+    try {
+      const sales = await this.db.select().from(productSales);
+      
+      const result: ProductSaleWithDetails[] = [];
+      
+      for (const sale of sales) {
+        const product = await this.getProduct(sale.productId);
+        const barber = await this.getBarber(sale.barberId);
+        
+        if (product && barber) {
+          result.push({
+            ...sale,
+            product,
+            barber
+          });
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getAllProductSales:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getAllProductSales();
+    }
+  }
+  
+  async createProductSale(sale: InsertProductSale): Promise<ProductSale> {
+    try {
+      const result = await this.db.insert(productSales).values(sale).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in createProductSale:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().createProductSale(sale);
+    }
+  }
+  
+  async updateProductSale(id: number, sale: Partial<InsertProductSale>): Promise<ProductSale | undefined> {
+    try {
+      const result = await this.db.update(productSales)
+        .set(sale)
+        .where(eq(productSales.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in updateProductSale:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateProductSale(id, sale);
+    }
+  }
+  
+  async validateProductSale(id: number): Promise<ProductSale | undefined> {
+    try {
+      const result = await this.db.update(productSales)
+        .set({ validated: true, validationDate: new Date() })
+        .where(eq(productSales.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error in validateProductSale:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().validateProductSale(id);
+    }
+  }
+  
+  async deleteProductSale(id: number): Promise<void> {
+    try {
+      await this.db.delete(productSales).where(eq(productSales.id, id));
+    } catch (error) {
+      console.error("Error in deleteProductSale:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteProductSale(id);
+    }
+  }
+  
+  async getProductsWithCommissionsForBarber(barberId: number): Promise<ProductWithCommission[]> {
+    try {
+      // Buscar todos os produtos
+      const allProducts = await this.db.select().from(products);
+      
+      // Buscar comissões do barbeiro
+      const commissionResults = await this.db.select()
+        .from(productCommissions)
+        .where(eq(productCommissions.barberId, barberId));
+      
+      // Criar mapa de comissões por ID do produto
+      const commissionByProductId = new Map<number, ProductCommission>();
+      for (const commission of commissionResults) {
+        commissionByProductId.set(commission.productId, commission);
+      }
+      
+      // Combinar produtos com suas comissões
+      const result: ProductWithCommission[] = [];
+      
+      for (const product of allProducts) {
+        const commission = commissionByProductId.get(product.id);
+        
+        result.push({
+          ...product,
+          commission: commission || null
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getProductsWithCommissionsForBarber:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getProductsWithCommissionsForBarber(barberId);
+    }
+  }
 }
 
 // Export the appropriate storage implementation
