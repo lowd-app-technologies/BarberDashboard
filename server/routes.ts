@@ -581,6 +581,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  app.post("/api/services", async (req: Request, res: Response) => {
+    try {
+      // Verificar autenticação e permissão (somente administradores)
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autenticado' });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem adicionar serviços.' });
+      }
+      
+      const serviceData = insertServiceSchema.parse(req.body);
+      const service = await storage.createService(serviceData);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'create',
+        entity: 'service',
+        entityId: service.id,
+        details: `Serviço criado: ${service.name}`
+      });
+      
+      res.status(201).json(service);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/services/:id", async (req: Request, res: Response) => {
+    try {
+      // Verificar autenticação e permissão (somente administradores)
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autenticado' });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem editar serviços.' });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID de serviço inválido' });
+      }
+      
+      const service = await storage.getService(id);
+      if (!service) {
+        return res.status(404).json({ message: 'Serviço não encontrado' });
+      }
+      
+      const serviceData = insertServiceSchema.partial().parse(req.body);
+      const updatedService = await storage.updateService(id, serviceData);
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'update',
+        entity: 'service',
+        entityId: id,
+        details: `Serviço atualizado: ${updatedService.name}`
+      });
+      
+      res.json(updatedService);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/services/:id", async (req: Request, res: Response) => {
+    try {
+      // Verificar autenticação e permissão (somente administradores)
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autenticado' });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem remover serviços.' });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'ID de serviço inválido' });
+      }
+      
+      const service = await storage.getService(id);
+      if (!service) {
+        return res.status(404).json({ message: 'Serviço não encontrado' });
+      }
+      
+      // Em vez de excluir, apenas desativar o serviço
+      await storage.updateService(id, { active: false });
+      
+      // Registrar ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'delete',
+        entity: 'service',
+        entityId: id,
+        details: `Serviço desativado: ${service.name}`
+      });
+      
+      res.json({ success: true, message: 'Serviço desativado com sucesso' });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   
   // Rotas para serviços concluídos
   app.get("/api/completed-services", async (req, res) => {
