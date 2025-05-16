@@ -557,65 +557,43 @@ export default function ProductSales() {
             )}
 
             {/* Diálogo para adicionar venda */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogContent>
+            <Dialog 
+              open={isAddDialogOpen} 
+              onOpenChange={(open) => {
+                if (!open) {
+                  // Limpa as seleções quando o diálogo é fechado
+                  setProductSelections([]);
+                  setTotalAmount("0.00");
+                  form.reset({
+                    productIds: [],
+                    barberId: isBarber && barber?.id ? barber.id : 0,
+                    clientName: '',
+                    clientId: null,
+                    date: new Date().toISOString().substring(0, 10),
+                    totalAmount: '0.00',
+                  });
+                }
+                setIsAddDialogOpen(open);
+              }}
+            >
+              <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                  <DialogTitle>Registrar Venda de Produto</DialogTitle>
+                  <DialogTitle className="text-xl">Registrar Venda de Produto</DialogTitle>
                   <DialogDescription>
-                    Preencha os detalhes da venda abaixo.
+                    Adicione produtos à venda e preencha os detalhes abaixo.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmitAddSale)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onSubmitAddSale)} className="space-y-5">
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-base font-medium">Produtos Selecionados</Label>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {productSelections.map((item, index) => {
-                            const product = products?.find(p => p.id === item.productId);
-                            return (
-                              <div key={index} className="flex flex-col bg-accent rounded-md p-2 border border-border">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="font-semibold text-sm">
-                                    {product?.name}
-                                  </span>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-5 w-5" 
-                                    onClick={() => removeProductSelection(index)}
-                                    type="button"
-                                  >
-                                    <Trash className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Input 
-                                    type="number" 
-                                    min="1" 
-                                    value={item.quantity} 
-                                    onChange={(e) => updateProductQuantity(index, parseInt(e.target.value))}
-                                    className="h-7 text-xs"
-                                  />
-                                  <span className="text-xs">
-                                    R$ {(parseFloat(product?.price || "0") * item.quantity).toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          
-                          {productSelections.length === 0 && (
-                            <div className="text-sm text-muted-foreground italic">
-                              Nenhum produto selecionado
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label>Adicionar Produto</Label>
+                        <Label className="text-base font-medium flex items-center gap-2">
+                          Adicionar Produto
+                          <span className="text-xs font-normal text-muted-foreground">
+                            (Selecione os produtos da venda)
+                          </span>
+                        </Label>
                         <div className="flex gap-2 mt-1">
                           <Select 
                             onValueChange={(value) => {
@@ -644,6 +622,63 @@ export default function ProductSales() {
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-base font-medium">Produtos Selecionados</Label>
+                        <div className="mt-2 border rounded-md p-2 bg-card min-h-[100px] max-h-[200px] overflow-y-auto">
+                          {productSelections.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-sm text-muted-foreground italic">
+                              Nenhum produto selecionado ainda
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {productSelections.map((item, index) => {
+                                const product = products?.find(p => p.id === item.productId);
+                                return (
+                                  <div key={index} className="flex items-center justify-between p-2 rounded-md bg-accent">
+                                    <div className="flex-1">
+                                      <div className="font-medium">{product?.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        Preço unitário: R$ {parseFloat(product?.price || "0").toFixed(2)}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-2 w-24">
+                                        <Label htmlFor={`qty-${index}`} className="text-xs whitespace-nowrap">Qtd:</Label>
+                                        <Input 
+                                          id={`qty-${index}`}
+                                          type="number" 
+                                          min="1" 
+                                          value={item.quantity} 
+                                          onChange={(e) => updateProductQuantity(index, parseInt(e.target.value))}
+                                          className="h-8 w-16"
+                                        />
+                                      </div>
+                                      <div className="text-sm font-medium w-20 text-right">
+                                        R$ {(parseFloat(product?.price || "0") * item.quantity).toFixed(2)}
+                                      </div>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 rounded-full hover:bg-destructive/10" 
+                                        onClick={() => removeProductSelection(index)}
+                                        type="button"
+                                      >
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        {productSelections.length > 0 && (
+                          <div className="flex justify-end mt-2 font-medium">
+                            Total: R$ {totalAmount}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
