@@ -193,13 +193,12 @@ export default function Booking() {
   ];
 
   // Buscar barbeiros da API
-  const { data: barbersFromApi = [], isLoading: isLoadingBarbers, isError: isBarbersError } = useQuery<Barber[]>({
+  const { data: barbers = [], isLoading: isLoadingBarbers, isError: isBarbersError } = useQuery<Barber[]>({
     queryKey: ['/api/barbers'],
     staleTime: 60 * 1000, // 1 minuto
+    retry: 3, // Tenta 3 vezes antes de falhar
+    retryDelay: 1000, // Espera 1 segundo entre as tentativas
   });
-  
-  // Usar os barbeiros da API ou fallback se a API falhar
-  const barbers = isBarbersError || barbersFromApi.length === 0 ? fallbackBarbers : barbersFromApi;
   
   // Obter o serviço selecionado
   const selectedService = services.find(s => s.id.toString() === service);
@@ -444,6 +443,22 @@ export default function Booking() {
                       {isLoadingBarbers ? (
                         <div className="flex justify-center items-center h-40">
                           <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                        </div>
+                      ) : isBarbersError ? (
+                        <div className="flex flex-col items-center justify-center h-40 space-y-2">
+                          <p className="text-red-500">Não foi possível carregar os barbeiros</p>
+                          <Button 
+                            onClick={() => window.location.reload()}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Tentar novamente
+                          </Button>
+                        </div>
+                      ) : barbers.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-40 space-y-2">
+                          <p className="text-amber-600">Não há barbeiros disponíveis no momento</p>
+                          <p className="text-sm text-gray-500">Por favor, tente novamente mais tarde</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
