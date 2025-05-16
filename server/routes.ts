@@ -518,7 +518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nif, 
         iban, 
         paymentPeriod, 
-        active 
+        active,
+        calendarVisibility 
       } = req.body;
       
       // Atualizar os dados do usuário associado
