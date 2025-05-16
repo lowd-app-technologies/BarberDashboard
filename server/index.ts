@@ -15,8 +15,8 @@ declare module "express-session" {
 }
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' })); // Aumentado para suportar imagens base64
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Configure session middleware
 app.use(
