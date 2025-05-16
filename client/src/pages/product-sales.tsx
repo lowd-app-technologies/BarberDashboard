@@ -576,7 +576,7 @@ export default function ProductSales() {
                 setIsAddDialogOpen(open);
               }}
             >
-              <DialogContent className="sm:max-w-[600px]">
+              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                   <DialogTitle className="text-xl">Registrar Venda de Produto</DialogTitle>
                   <DialogDescription>
@@ -585,7 +585,7 @@ export default function ProductSales() {
                 </DialogHeader>
                 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmitAddSale)} className="space-y-5">
+                  <form onSubmit={form.handleSubmit(onSubmitAddSale)} className="space-y-5 overflow-y-auto pr-1" style={{maxHeight: "calc(80vh - 200px)"}}>
                     <div className="space-y-4">
                       <div>
                         <Label className="text-base font-medium flex items-center gap-2">
