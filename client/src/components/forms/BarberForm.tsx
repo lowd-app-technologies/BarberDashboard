@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertBarberSchema, insertUserSchema } from "@shared/schema";
@@ -6,13 +6,15 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Form, 
   FormControl, 
   FormField, 
   FormItem, 
   FormLabel, 
-  FormMessage 
+  FormMessage,
+  FormDescription 
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,10 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { isValidNIF, isValidIBAN } from "@/lib/utils";
 
 // Combined schema for barber and user data
@@ -45,6 +51,10 @@ const barberFormSchema = z.object({
   ),
   paymentPeriod: insertBarberSchema.shape.paymentPeriod,
   active: insertBarberSchema.shape.active,
+  
+  // Calendar visibility fields
+  calendarVisibilityType: z.enum(['own', 'all', 'selected']),
+  calendarVisibilityBarbers: z.array(z.number()).optional(),
 });
 
 type BarberFormValues = z.infer<typeof barberFormSchema>;
@@ -57,7 +67,14 @@ interface BarberFormProps {
 
 export function BarberForm({ barberId, onSuccess, onCancel }: BarberFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedBarbers, setSelectedBarbers] = useState<number[]>([]);
   const { toast } = useToast();
+  
+  // Fetch available barbers for calendar visibility selection
+  const { data: barbers } = useQuery({
+    queryKey: ['/api/barbers'],
+    select: (data) => Array.isArray(data) ? data : []
+  });
   
   // Initialize form with default values
   const form = useForm<BarberFormValues>({
@@ -71,18 +88,48 @@ export function BarberForm({ barberId, onSuccess, onCancel }: BarberFormProps) {
       nif: "",
       iban: "",
       paymentPeriod: "monthly",
-      active: true
+      active: true,
+      calendarVisibilityType: "own",
+      calendarVisibilityBarbers: []
     }
   });
   
+  // Watch for calendar visibility type changes
+  const calendarVisibilityType = form.watch("calendarVisibilityType");
+  
   // Load barber data if editing an existing barber
-  useState(() => {
+  useEffect(() => {
     const loadBarber = async () => {
       if (barberId) {
         setIsLoading(true);
         try {
           const res = await apiRequest("GET", `/api/barbers/${barberId}`);
           const barber = await res.json();
+          
+          // Parse calendar visibility settings
+          let visibilityType = "own";
+          let visibilityBarbers: number[] = [];
+          
+          if (barber.calendarVisibility) {
+            if (barber.calendarVisibility === "all") {
+              visibilityType = "all";
+            } else if (barber.calendarVisibility === "own") {
+              visibilityType = "own";
+            } else {
+              // Tenta fazer parse do JSON se for uma lista de IDs
+              try {
+                const parsedIds = JSON.parse(barber.calendarVisibility);
+                if (Array.isArray(parsedIds) && parsedIds.length > 0) {
+                  visibilityType = "selected";
+                  visibilityBarbers = parsedIds;
+                  setSelectedBarbers(parsedIds);
+                }
+              } catch (e) {
+                // Se não for um JSON válido, assume configuração padrão
+                visibilityType = "own";
+              }
+            }
+          }
           
           form.reset({
             username: barber.user.username,
@@ -92,7 +139,9 @@ export function BarberForm({ barberId, onSuccess, onCancel }: BarberFormProps) {
             nif: barber.nif,
             iban: barber.iban,
             paymentPeriod: barber.paymentPeriod,
-            active: barber.active
+            active: barber.active,
+            calendarVisibilityType: visibilityType as "own" | "all" | "selected",
+            calendarVisibilityBarbers: visibilityBarbers
           });
         } catch (error) {
           toast({
@@ -107,23 +156,42 @@ export function BarberForm({ barberId, onSuccess, onCancel }: BarberFormProps) {
     };
     
     loadBarber();
-  }, [barberId]);
+  }, [barberId, form, toast]);
+  
+  // Update form value when selected barbers change
+  useEffect(() => {
+    form.setValue("calendarVisibilityBarbers", selectedBarbers);
+  }, [selectedBarbers, form]);
   
   // Form submission handler
   const onSubmit = async (data: BarberFormValues) => {
     setIsLoading(true);
     
     try {
+      // Processar a configuração de visibilidade do calendário
+      let calendarVisibility: string = data.calendarVisibilityType;
+      
+      if (data.calendarVisibilityType === 'selected' && data.calendarVisibilityBarbers && data.calendarVisibilityBarbers.length > 0) {
+        // Se selecionar barbeiros específicos, armazena como JSON
+        calendarVisibility = JSON.stringify(data.calendarVisibilityBarbers);
+      }
+      
+      // Preparar dados para envio
+      const formData = {
+        ...data,
+        calendarVisibility
+      };
+      
       if (barberId) {
         // Update existing barber
-        await apiRequest("PATCH", `/api/barbers/${barberId}`, data);
+        await apiRequest("PATCH", `/api/barbers/${barberId}`, formData);
         toast({
           title: "Barbeiro atualizado",
           description: "Os dados do barbeiro foram atualizados com sucesso."
         });
       } else {
         // Create new barber
-        await apiRequest("POST", "/api/barbers", data);
+        await apiRequest("POST", "/api/barbers", formData);
         toast({
           title: "Barbeiro criado",
           description: "O barbeiro foi cadastrado com sucesso."
@@ -290,6 +358,80 @@ export function BarberForm({ barberId, onSuccess, onCancel }: BarberFormProps) {
               </FormItem>
             )}
           />
+        </div>
+        
+        <div className="space-y-4 pt-4">
+          <h3 className="text-lg font-semibold">Configurações de Calendário</h3>
+          <FormField
+            control={form.control}
+            name="calendarVisibilityType"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel>Visibilidade de Calendários</FormLabel>
+                <FormDescription>
+                  Configure quais calendários este barbeiro pode visualizar na sua agenda
+                </FormDescription>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex flex-col space-y-1"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="own" id="r1" />
+                      <Label htmlFor="r1">Apenas o calendário próprio</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="all" id="r2" />
+                      <Label htmlFor="r2">Todos os calendários</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="selected" id="r3" />
+                      <Label htmlFor="r3">Calendários selecionados</Label>
+                    </div>
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {calendarVisibilityType === "selected" && (
+            <div className="pl-6 pt-2">
+              <FormLabel className="mb-2 block">Selecione os Barbeiros</FormLabel>
+              <ScrollArea className="h-[200px] border rounded-md p-4">
+                <div className="space-y-2">
+                  {barbers?.map((barber: any) => (
+                    <div key={barber.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`barber-${barber.id}`}
+                        checked={selectedBarbers.includes(barber.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedBarbers(prev => [...prev, barber.id]);
+                          } else {
+                            setSelectedBarbers(prev => prev.filter(id => id !== barber.id));
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor={`barber-${barber.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {barber.user.fullName}
+                      </label>
+                    </div>
+                  ))}
+                  {barbers?.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum barbeiro disponível</p>
+                  )}
+                </div>
+              </ScrollArea>
+              {selectedBarbers.length === 0 && calendarVisibilityType === "selected" && (
+                <p className="text-red-500 text-sm mt-2">Selecione pelo menos um barbeiro</p>
+              )}
+            </div>
+          )}
         </div>
         
         <div className="flex justify-end space-x-2 pt-4">
