@@ -5,11 +5,12 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Link2, UserPlus, Mail, CheckCircle } from "lucide-react";
+import { Copy, Link2, UserPlus, Mail, CheckCircle, Send } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { sendBarberInviteEmail } from "@/lib/emailService";
 import {
   Form,
   FormControl,
@@ -77,12 +78,24 @@ export default function InviteBarber() {
       const baseUrl = window.location.origin;
       const inviteUrl = `${baseUrl}/barber/register?token=${responseData.token}`;
       setInviteLink(inviteUrl);
+      
+      // Envia o email com o link de convite para o barbeiro
+      const emailSent = await sendBarberInviteEmail(data.email, responseData.token);
+      
       setInviteSent(true);
 
-      toast({
-        title: "Convite enviado com sucesso",
-        description: "Um link de convite foi gerado e pode ser compartilhado com o barbeiro"
-      });
+      if (emailSent) {
+        toast({
+          title: "Convite enviado com sucesso",
+          description: `Um email de convite foi enviado para ${data.email} e o link também está disponível para cópia.`
+        });
+      } else {
+        toast({
+          title: "Convite gerado, mas o email não foi enviado",
+          description: "Ocorreu um erro ao enviar o email. Por favor, copie e compartilhe o link manualmente.",
+          variant: "warning"
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao criar convite",
@@ -170,12 +183,12 @@ export default function InviteBarber() {
                     {isLoading ? (
                       <>
                         <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Gerando convite...
+                        Enviando convite...
                       </>
                     ) : (
                       <>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Convidar Barbeiro
+                        <Send className="mr-2 h-4 w-4" />
+                        Enviar Convite por Email
                       </>
                     )}
                   </Button>
