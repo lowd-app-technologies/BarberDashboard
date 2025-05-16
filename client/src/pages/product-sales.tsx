@@ -27,7 +27,6 @@ const productSaleSchema = z.object({
   clientName: z.string().min(2, { message: 'Nome do cliente é obrigatório' }),
   clientId: z.number().nullable().optional(),
   date: z.string().transform(val => new Date(val)),
-  quantity: z.string().transform(val => parseInt(val)),
   totalAmount: z.string().min(1, { message: 'Total é obrigatório' }),
 });
 
@@ -208,8 +207,13 @@ export default function ProductSales() {
   });
 
   // Formulário para adicionar venda
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-  const [totalAmount, setTotalAmount] = useState<number>(0);
+  interface ProductSelection {
+    productId: number;
+    quantity: number;
+  }
+  
+  const [productSelections, setProductSelections] = useState<ProductSelection[]>([]);
+  const [totalAmount, setTotalAmount] = useState<string>("0.00");
   
   const form = useForm<ProductSaleFormValues>({
     resolver: zodResolver(productSaleSchema),
@@ -219,8 +223,7 @@ export default function ProductSales() {
       clientName: '',
       clientId: null,
       date: new Date().toISOString().substring(0, 10),
-      quantity: '1',
-      totalAmount: '0',
+      totalAmount: '0.00',
     },
   });
 
