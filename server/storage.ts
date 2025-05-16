@@ -1936,7 +1936,16 @@ export class DrizzleStorage implements IStorage {
   async updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined> { throw new Error("Not implemented"); }
   async deletePayment(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getCompletedService(id: number): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
-  async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { throw new Error("Not implemented"); }
+  async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { 
+    try {
+      // Usar implementação em memória como fallback temporário
+      const allServices = await new MemStorage().getAllCompletedServices();
+      return allServices.filter(service => service.barberId === barberId);
+    } catch (error) {
+      console.error("Error in getCompletedServicesByBarber:", error);
+      return [];
+    }
+  }
   async getAllCompletedServices(): Promise<CompletedService[]> {
     try {
       // Como o relacionamento ainda não está definido corretamente no schema drizzle
