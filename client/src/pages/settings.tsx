@@ -295,6 +295,53 @@ export default function Settings() {
                 <CardDescription>Gerencie suas informações pessoais</CardDescription>
               </CardHeader>
               <CardContent className="px-6 py-4 space-y-6">
+                {user?.role === 'barber' && (
+                  <div className="mb-6">
+                    <Label htmlFor="profile-image" className="block mb-2">Foto de Perfil</Label>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border">
+                        {user?.barber?.profileImage ? (
+                          <img 
+                            src={user.barber.profileImage} 
+                            alt="Foto de perfil" 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                            <User className="h-12 w-12 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2 flex-1">
+                        <Input 
+                          id="profile-image" 
+                          type="file" 
+                          accept="image/*"
+                          className="max-w-xs"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // Aqui implementaremos o upload da imagem na próxima etapa
+                              console.log("Arquivo selecionado:", file);
+                              // Por enquanto exibimos um feedback de que essa funcionalidade está em desenvolvimento
+                              toast({
+                                title: "Em desenvolvimento",
+                                description: "O upload de fotos será implementado em breve.",
+                                variant: "default"
+                              });
+                            }
+                          }}
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Adicione uma foto de perfil que será mostrada aos clientes durante o agendamento.
+                          Formatos aceitos: JPG, PNG. Máximo 2MB.
+                        </p>
+                      </div>
+                    </div>
+                    <Separator className="my-6" />
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="full-name">Nome Completo</Label>
@@ -324,7 +371,11 @@ export default function Settings() {
                     <Label htmlFor="phone">Telefone</Label>
                     <div className="flex items-center space-x-2">
                       <Bell className="h-4 w-4 text-muted-foreground" />
-                      <Input id="phone" placeholder="(00) 00000-0000" />
+                      <Input 
+                        id="phone" 
+                        placeholder="+351 000000000" 
+                        defaultValue={user?.phone || ""}
+                      />
                     </div>
                   </div>
                 </div>
