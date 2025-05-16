@@ -2182,9 +2182,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rota para obter serviços populares
   app.get('/api/services/popular', async (req: Request, res: Response) => {
     try {
+      // Verificar se o usuário está autenticado
+      const userId = req.session.userId;
+      const userRole = req.session.userRole;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+      
       // Buscar serviços e dados de serviços concluídos
       const allServices = await storage.getActiveServices();
-      const completedServices = await storage.getAllCompletedServices();
+      let completedServices = [];
+      let barberId = null;
+      
+      // Filtrar por barbeiro se o usuário for um barbeiro
+      if (userRole === 'barber') {
+        const barber = await storage.getBarberByUserId(userId);
+        if (barber) {
+          barberId = barber.id;
+          completedServices = await storage.getCompletedServicesByBarber(barber.id);
+        }
+      } else {
+        // Para administradores, buscar todos os serviços concluídos
+        completedServices = await storage.getAllCompletedServices();
+      }
       
       // Contar ocorrências de cada serviço nos serviços concluídos
       const serviceCounts = new Map();
@@ -2209,13 +2230,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         // Ordenar por popularidade e retornar os top 5
-        const popularServices = servicesWithPopularity.sort((a, b) => b.popularity - a.popularity).slice(0, 5);
-        res.json(popularServices);
+        const popularServices = servicesWithPopularity
+          .filter(service => service.popularity > 0) // Filtrar apenas serviços que foram realizados
+          .sort((a, b) => b.popularity - a.popularity)
+          .slice(0, 5);
+          
+        if (popularServices.length > 0) {
+          return res.json(popularServices);
+        }
+      }
+      
+      // Caso não haja dados suficientes, retornar dados simulados
+      // com base no papel do usuário
+      if (userRole === 'barber' && barberId) {
+        // Para barbeiros, mostrar apenas alguns serviços simulados
+        const barberServices = allServices.slice(0, 3).map((service, index) => ({
+          ...service,
+          popularity: 10 - index,
+          bookings: 10 - index,
+          growth: Math.floor(Math.random() * 20) - 5
+        }));
+        
+        res.json(barberServices);
       } else {
-        // Se não houver dados de serviços concluídos, retornar os 5 primeiros com dados fictícios de popularidade
+        // Para administradores, mostrar todos os serviços populares
         const servicesWithDummyData = allServices.map((service, index) => ({
           ...service,
-          popularity: 10 - index, // Simulação decrescente de popularidade
+          popularity: 10 - index,
           bookings: 10 - index,
           growth: Math.floor(Math.random() * 20) - 5
         }));

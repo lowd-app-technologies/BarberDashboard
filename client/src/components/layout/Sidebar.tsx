@@ -1,18 +1,18 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  BarChart4, 
-  Calendar, 
-  Home, 
-  Users, 
-  Scissors, 
-  FileText, 
+import {
+  BarChart4,
+  Calendar,
+  Home,
+  Users,
+  Scissors,
+  FileText,
   LogOut,
   DollarSign,
   UserPlus,
   ClipboardCheck,
   Package,
-  Settings
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,9 +25,9 @@ export function Sidebar() {
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
@@ -47,9 +47,14 @@ export function Sidebar() {
       {
         title: "Dashboard",
         icon: <Home className="h-5 w-5" />,
-        path: user?.role === "admin" ? "/admin" : (user?.role === "barber" ? "/barber" : "/"),
-        show: true
-      }
+        path:
+          user?.role === "admin"
+            ? "/admin"
+            : user?.role === "barber"
+              ? "/barber"
+              : "/",
+        show: true,
+      },
     ];
 
     // Items específicos para admin
@@ -58,56 +63,56 @@ export function Sidebar() {
         title: "Serviços",
         icon: <Scissors className="h-5 w-5" />,
         path: "/admin/services",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Produtos",
         icon: <Package className="h-5 w-5" />,
         path: "/admin/products",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Barbeiros",
         icon: <Users className="h-5 w-5" />,
         path: "/admin/barbers",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Agendamentos",
         icon: <Calendar className="h-5 w-5" />,
         path: "/admin/appointments",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Pagamentos",
         icon: <DollarSign className="h-5 w-5" />,
         path: "/admin/payments",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Clientes",
         icon: <Users className="h-5 w-5" />,
         path: "/admin/clients",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Vendas de Produtos",
         icon: <FileText className="h-5 w-5" />,
         path: "/admin/product-sales",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Convidar Barbeiro",
         icon: <UserPlus className="h-5 w-5" />,
         path: "/admin/invite-barber",
-        show: user?.role === "admin"
+        show: user?.role === "admin",
       },
       {
         title: "Configurações",
         icon: <Settings className="h-5 w-5" />,
         path: "/admin/settings",
-        show: user?.role === "admin"
-      }
+        show: user?.role === "admin",
+      },
     ];
 
     // Items específicos para barbeiro
@@ -116,54 +121,50 @@ export function Sidebar() {
         title: "Agendamentos",
         icon: <Calendar className="h-5 w-5" />,
         path: "/barber/appointments",
-        show: user?.role === "barber"
+        show: user?.role === "barber",
       },
       {
         title: "Registros de Serviços",
         icon: <ClipboardCheck className="h-5 w-5" />,
         path: "/barber/service-records",
-        show: user?.role === "barber"
+        show: user?.role === "barber",
       },
       {
         title: "Visualizar Produtos",
         icon: <Package className="h-5 w-5" />,
         path: "/barber/products",
-        show: false // Temporariamente desabilitado
+        show: false, // Temporariamente desabilitado
       },
       {
         title: "Vendas de Produtos",
         icon: <FileText className="h-5 w-5" />,
         path: "/barber/product-sales",
-        show: user?.role === "barber"
+        show: user?.role === "barber",
       },
       {
         title: "Clientes",
         icon: <Users className="h-5 w-5" />,
         path: "/barber/clients",
-        show: user?.role === "barber"
+        show: user?.role === "barber",
       },
       {
         title: "Pagamentos",
         icon: <DollarSign className="h-5 w-5" />,
         path: "/barber/payments",
-        show: user?.role === "barber"
-      },
-      {
-        title: "Relatórios",
-        icon: <BarChart4 className="h-5 w-5" />,
-        path: "/barber/reports",
-        show: user?.role === "barber"
+        show: user?.role === "barber",
       },
       {
         title: "Configurações",
         icon: <Settings className="h-5 w-5" />,
         path: "/barber/settings",
-        show: user?.role === "barber"
-      }
+        show: user?.role === "barber",
+      },
     ];
 
     // Combina todos os itens
-    return [...commonItems, ...adminItems, ...barberItems].filter(item => item.show);
+    return [...commonItems, ...adminItems, ...barberItems].filter(
+      (item) => item.show,
+    );
   };
 
   const items = getNavigationItems();
@@ -182,7 +183,10 @@ export function Sidebar() {
             <Button
               key={index}
               variant={isActive(item.path) ? "default" : "ghost"}
-              className={cn("justify-start", isActive(item.path) && "bg-primary text-primary-foreground")}
+              className={cn(
+                "justify-start",
+                isActive(item.path) && "bg-primary text-primary-foreground",
+              )}
               onClick={() => setLocation(item.path)}
             >
               {item.icon}
@@ -196,19 +200,28 @@ export function Sidebar() {
           <div className="flex items-center gap-2 pb-4">
             <Avatar>
               <AvatarFallback>
-                {user.fullName ? getInitials(user.fullName) : 'U'}
+                {user.fullName ? getInitials(user.fullName) : "U"}
               </AvatarFallback>
             </Avatar>
             <div className="grid gap-0.5">
               <div className="font-medium">{user.fullName}</div>
               <div className="text-xs text-muted-foreground">
-                {user.role === "admin" ? "Administrador" : (user.role === "barber" ? "Barbeiro" : "Cliente")}
+                {user.role === "admin"
+                  ? "Administrador"
+                  : user.role === "barber"
+                    ? "Barbeiro"
+                    : "Cliente"}
               </div>
             </div>
           </div>
         )}
         <Separator className="my-4" />
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start"
+          onClick={logout}
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Sair
         </Button>
