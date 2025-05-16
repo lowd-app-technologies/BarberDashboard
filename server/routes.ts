@@ -69,7 +69,11 @@ function generateToken(length = 32): string {
   return result;
 }
 
+import { registerBarberRoutes } from "./barberRoutes";
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Registrar as rotas específicas dos barbeiros
+  registerBarberRoutes(app);
   // Rotas de autenticação
   // Rota de login para área administrativa (barbeiros e administradores)
   app.post('/api/auth/login', async (req: Request, res: Response) => {

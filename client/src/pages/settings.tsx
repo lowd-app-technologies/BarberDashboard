@@ -321,14 +321,66 @@ export default function Settings() {
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              // Aqui implementaremos o upload da imagem na próxima etapa
-                              console.log("Arquivo selecionado:", file);
-                              // Por enquanto exibimos um feedback de que essa funcionalidade está em desenvolvimento
-                              toast({
-                                title: "Em desenvolvimento",
-                                description: "O upload de fotos será implementado em breve.",
-                                variant: "default"
-                              });
+                              // Verificar tamanho do arquivo (máximo 2MB)
+                              if (file.size > 2 * 1024 * 1024) {
+                                toast({
+                                  title: "Arquivo muito grande",
+                                  description: "O tamanho máximo permitido é 2MB.",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+
+                              // Converter a imagem para uma URL base64
+                              const reader = new FileReader();
+                              reader.onload = async (event) => {
+                                if (event.target?.result) {
+                                  const imageUrl = event.target.result as string;
+                                  
+                                  try {
+                                    // Mostrar indicador de carregamento
+                                    toast({
+                                      title: "Atualizando...",
+                                      description: "Enviando foto de perfil",
+                                    });
+                                    
+                                    // Enviar para o servidor
+                                    const response = await fetch('/api/barber/profile-image', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify({ imageUrl }),
+                                      credentials: 'include'
+                                    });
+                                    
+                                    if (response.ok) {
+                                      const data = await response.json();
+                                      toast({
+                                        title: "Sucesso!",
+                                        description: "Foto de perfil atualizada com sucesso.",
+                                        variant: "default"
+                                      });
+                                      
+                                      // Atualizar a página para mostrar a nova foto
+                                      setTimeout(() => {
+                                        window.location.reload();
+                                      }, 1500);
+                                    } else {
+                                      const error = await response.json();
+                                      throw new Error(error.message || "Erro ao atualizar foto");
+                                    }
+                                  } catch (error: any) {
+                                    console.error("Erro ao enviar imagem:", error);
+                                    toast({
+                                      title: "Erro",
+                                      description: error.message || "Não foi possível atualizar a foto de perfil.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }
+                              };
+                              reader.readAsDataURL(file);
                             }
                           }}
                         />
