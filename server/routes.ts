@@ -2030,22 +2030,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        const products = await storage.getAllProducts();
-        // Usar dados reais de produtos para simular vendas recentes
-        productSales = products.slice(0, 5).map((product, index) => ({
-          id: index + 1,
-          date: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)),
-          barberId: 1,
-          productId: product.id,
-          clientId: 1,
-          clientName: "Cliente Exemplo",
-          quantity: Math.floor(Math.random() * 3) + 1,
-          unitPrice: parseFloat(product.price),
-          totalAmount: parseFloat(product.price) * (Math.floor(Math.random() * 3) + 1),
-          validated: Math.random() > 0.5
-        }));
+        // Verificar o papel do usuário para decidir quais vendas exibir
+        if (req.session.userRole === 'admin') {
+          // Administradores veem todas as vendas da semana
+          productSales = await storage.getWeeklyProductSales();
+        } else if (req.session.userRole === 'barber') {
+          // Barbeiros veem apenas suas próprias vendas
+          const barber = await storage.getBarberByUserId(req.session.userId);
+          if (barber) {
+            productSales = await storage.getWeeklyProductSalesByBarber(barber.id);
+          }
+        } else {
+          // Se não for admin nem barbeiro, não mostra vendas
+          productSales = [];
+        }
       } catch (error) {
-        console.error("Error creating product sales data:", error);
+        console.error("Error fetching product sales:", error);
+        productSales = []; // Em caso de erro, retorna lista vazia em vez de dados falsos
       }
 
       // Filtrar por período
