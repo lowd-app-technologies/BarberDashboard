@@ -98,7 +98,8 @@ export default function Booking() {
   
   // Estados para usuário não logado
   const [guestName, setGuestName] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
+  const [guestPhone, setGuestPhone] = useState("+351"); // Prefixo Portugal
+  const [guestEmail, setGuestEmail] = useState("");
   
   // Dados de fallback para serviços caso a API falhe
   const fallbackServices: Service[] = [
@@ -254,6 +255,12 @@ export default function Booking() {
           return;
         }
         
+        // Verificar se o telefone começa com +351
+        if (!guestPhone.startsWith("+351")) {
+          alert("O telefone deve começar com o prefixo de Portugal (+351)");
+          return;
+        }
+        
         appointmentData = {
           barberId: parseInt(barber),
           serviceId: parseInt(service),
@@ -261,6 +268,8 @@ export default function Booking() {
           status: "pending",
           guestName: guestName,
           guestPhone: guestPhone,
+          guestEmail: guestEmail || undefined, // Incluir email apenas se foi fornecido
+          saveClientData: true, // Indicar para salvar os dados do cliente
           notes: `Agendamento feito pelo cliente não logado: ${guestName} (${guestPhone}) - ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
         };
       }
@@ -573,8 +582,19 @@ export default function Booking() {
                                   value={guestPhone}
                                   onChange={(e) => setGuestPhone(e.target.value)}
                                   className="w-full p-2 border rounded-md"
-                                  placeholder="(00) 00000-0000"
+                                  placeholder="+351 912 345 678"
                                   required
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Formato: +351 seguido do número</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium block mb-1">Email (opcional)</label>
+                                <input 
+                                  type="email" 
+                                  value={guestEmail}
+                                  onChange={(e) => setGuestEmail(e.target.value)}
+                                  className="w-full p-2 border rounded-md"
+                                  placeholder="seu.email@exemplo.com"
                                 />
                               </div>
                             </div>
