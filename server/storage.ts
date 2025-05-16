@@ -1931,16 +1931,50 @@ export class DrizzleStorage implements IStorage {
   async deleteAppointment(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getPayment(id: number): Promise<PaymentWithBarber | undefined> { throw new Error("Not implemented"); }
   async getPaymentsByBarber(barberId: number): Promise<PaymentWithBarber[]> { throw new Error("Not implemented"); }
-  async getAllPayments(): Promise<PaymentWithBarber[]> { throw new Error("Not implemented"); }
+  async getAllPayments(): Promise<PaymentWithBarber[]> { 
+    try {
+      // Usando banco de dados real se possível
+      return db.query.payments.findMany({
+        with: {
+          barber: true
+        }
+      }) as unknown as PaymentWithBarber[];
+    } catch (error) {
+      console.error("Error in getAllPayments:", error);
+      return []; // Em caso de erro, retornar array vazio em vez de dados simulados
+    }
+  }
   async createPayment(payment: InsertPayment): Promise<Payment> { throw new Error("Not implemented"); }
   async updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined> { throw new Error("Not implemented"); }
   async deletePayment(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getCompletedService(id: number): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
   async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { 
     try {
-      // Usar implementação em memória como fallback temporário
-      const allServices = await new MemStorage().getAllCompletedServices();
-      return allServices.filter(service => service.barberId === barberId);
+      // Buscar diretamente do banco de dados
+      const services = await db.query.completedServices.findMany({
+        where: eq(completedServices.barberId, barberId),
+        with: {
+          service: true,
+          barber: true
+        }
+      });
+      
+      // Mapear para o formato esperado
+      return services.map(s => ({
+        id: s.id,
+        serviceId: s.serviceId,
+        barberId: s.barberId,
+        clientId: s.clientId,
+        date: s.date,
+        price: s.price,
+        commission: s.commission,
+        status: s.status,
+        paymentId: s.paymentId,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        serviceName: s.service?.name || 'Serviço desconhecido',
+        barberName: s.barber?.userId ? `Barbeiro #${s.barber.userId}` : 'Desconhecido'
+      }));
     } catch (error) {
       console.error("Error in getCompletedServicesByBarber:", error);
       return [];
@@ -1948,9 +1982,30 @@ export class DrizzleStorage implements IStorage {
   }
   async getAllCompletedServices(): Promise<CompletedService[]> {
     try {
-      // Como o relacionamento ainda não está definido corretamente no schema drizzle
-      // vamos usar a implementação em memória como fallback temporário
-      return new MemStorage().getAllCompletedServices();
+      // Buscar diretamente do banco de dados
+      const services = await db.query.completedServices.findMany({
+        with: {
+          service: true,
+          barber: true
+        }
+      });
+      
+      // Mapear para o formato esperado
+      return services.map(s => ({
+        id: s.id,
+        serviceId: s.serviceId,
+        barberId: s.barberId,
+        clientId: s.clientId,
+        date: s.date,
+        price: s.price,
+        commission: s.commission,
+        status: s.status,
+        paymentId: s.paymentId,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        serviceName: s.service?.name || 'Serviço desconhecido',
+        barberName: s.barber?.userId ? `Barbeiro #${s.barber.userId}` : 'Desconhecido'
+      }));
     } catch (error) {
       console.error("Error in getAllCompletedServices:", error);
       return [];
