@@ -230,7 +230,7 @@ export default function ProductSales() {
     // Efeito para atualizar o nome do cliente quando um cliente for selecionado
   const watchClientId = form.watch('clientId');
   const selectedClient = Array.isArray(clients) 
-    ? clients.find(c => c.id === watchClientId)
+    ? clients.find(c => c.id === Number(watchClientId))
     : null;
   
   // Funções para gerenciar os produtos selecionados
@@ -298,14 +298,15 @@ export default function ProductSales() {
       queryClient.invalidateQueries({ queryKey: ['/api/product-sales'] });
       queryClient.invalidateQueries({ queryKey: [`/api/product-sales/barber/${barber?.id}`] });
       setIsAddDialogOpen(false);
+      setProductSelections([]);
+      setTotalAmount("0.00");
       form.reset({
-        productId: 0,
+        productIds: [],
         barberId: isBarber && barber?.id ? barber.id : 0,
         clientName: '',
         clientId: null,
         date: new Date().toISOString().substring(0, 10),
-        quantity: '1',
-        unitPrice: '',
+        totalAmount: '0.00',
       });
       toast({
         title: 'Venda registrada',
@@ -362,11 +363,29 @@ export default function ProductSales() {
 
   // Handlers
   const onSubmitAddSale = (data: ProductSaleFormValues) => {
+    // Verifica se há produtos selecionados
+    if (productSelections.length === 0) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione pelo menos um produto',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     // Se clientId for "none", defina como null
-    if (data.clientId === "none") {
+    if (data.clientId && data.clientId.toString() === "none") {
       data.clientId = null;
     }
-    createSaleMutation.mutate(data);
+    
+    // Adiciona os IDs dos produtos selecionados aos dados do formulário
+    const finalData = {
+      ...data,
+      productIds: productSelections.map(item => item.productId),
+      totalAmount: totalAmount
+    };
+    
+    createSaleMutation.mutate(finalData);
   };
 
   const handleValidateSale = (id: number) => {
@@ -724,35 +743,23 @@ export default function ProductSales() {
                       )}
                     />
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="quantity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Quantidade</FormLabel>
-                            <FormControl>
-                              <Input type="number" min="1" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="unitPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Preço Unitário (€)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" min="0" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name="totalAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Total</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="text" 
+                              value={`R$ ${totalAmount}`}
+                              readOnly 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     
                     <DialogFooter>
                       <Button type="submit" disabled={createSaleMutation.isPending}>
