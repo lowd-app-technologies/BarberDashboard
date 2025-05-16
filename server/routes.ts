@@ -549,11 +549,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Atualizar os dados do barbeiro
-      const barberData: Partial<InsertBarber> = {};
+      const barberData: Partial<InsertBarber> & { calendarVisibility?: string } = {};
       if (nif) barberData.nif = nif;
       if (iban) barberData.iban = iban;
       if (paymentPeriod) barberData.paymentPeriod = paymentPeriod as any;
       if (active !== undefined) barberData.active = active;
+      if (calendarVisibility !== undefined) barberData.calendarVisibility = calendarVisibility;
       
       const updatedBarber = await storage.updateBarber(id, barberData);
       
@@ -1122,7 +1123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nif: "Pendente", // Valores padrão que serão atualizados depois
         iban: "Pendente",
         paymentPeriod: 'monthly',
-        active: true
+        active: true,
+        calendarVisibility: 'own' // Por padrão, barbeiros só veem seu próprio calendário
       });
       
       // Marcar convite como usado
