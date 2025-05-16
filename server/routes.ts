@@ -425,7 +425,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Retornar dados do usuário (exceto a senha)
       const { password: _, ...userWithoutPassword } = user;
       
-      res.json({ user: userWithoutPassword });
+      // Se o usuário for um barbeiro, buscar informações adicionais
+      let barberData = null;
+      if (user.role === 'barber') {
+        try {
+          barberData = await storage.getBarberByUserId(user.id);
+        } catch (err) {
+          console.error('Erro ao buscar dados do barbeiro:', err);
+          // Não falhar toda a requisição se só os dados do barbeiro não puderem ser carregados
+        }
+      }
+      
+      // Incluir dados do barbeiro na resposta
+      res.json({ 
+        user: {
+          ...userWithoutPassword,
+          barber: barberData 
+        }
+      });
     } catch (error: any) {
       console.error('Erro ao verificar usuário atual:', error);
       res.status(500).json({ message: 'Erro no servidor', error: error.message });

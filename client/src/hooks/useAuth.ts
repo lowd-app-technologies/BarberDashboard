@@ -58,6 +58,7 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data && data.user) {
               // Atualizar o usuário com os dados mais recentes do servidor
+              // Note: O servidor agora retorna dados da barbearia para usuários barbeiros
               const updatedUser = {
                 ...auth.currentUser,
                 ...data.user,
