@@ -26,7 +26,7 @@ const productSaleSchema = z.object({
   barberId: z.number(),
   clientName: z.string().min(2, { message: 'Nome do cliente é obrigatório' }),
   clientId: z.number().nullable().optional(),
-  date: z.string().transform(val => new Date(val)),
+  date: z.string(),
   totalAmount: z.string().min(1, { message: 'Total é obrigatório' }),
 });
 
@@ -227,25 +227,64 @@ export default function ProductSales() {
     },
   });
 
-  // Efeito para atualizar o preço unitário quando o produto for selecionado
-  const watchProductId = form.watch('productId');
-  const selectedProduct = Array.isArray(products) 
-    ? products.find(p => p.id === watchProductId)
-    : null;
-
-  // Efeito para atualizar o nome do cliente quando um cliente for selecionado
+    // Efeito para atualizar o nome do cliente quando um cliente for selecionado
   const watchClientId = form.watch('clientId');
   const selectedClient = Array.isArray(clients) 
     ? clients.find(c => c.id === watchClientId)
     : null;
-    
-  // Usando useEffect para atualizar os valores do formulário
-  useEffect(() => {
-    if (selectedProduct && !form.getValues('unitPrice')) {
-      form.setValue('unitPrice', selectedProduct.price);
-    }
-  }, [selectedProduct, form]);
   
+  // Funções para gerenciar os produtos selecionados
+  const addProductSelection = (productId: number) => {
+    // Previne adicionar o mesmo produto mais de uma vez
+    if (productSelections.some(item => item.productId === productId)) {
+      return;
+    }
+    
+    const newSelections = [...productSelections, { productId, quantity: 1 }];
+    setProductSelections(newSelections);
+    updateProductIds(newSelections);
+    calculateTotal(newSelections);
+  };
+  
+  const removeProductSelection = (index: number) => {
+    const newSelections = [...productSelections];
+    newSelections.splice(index, 1);
+    setProductSelections(newSelections);
+    updateProductIds(newSelections);
+    calculateTotal(newSelections);
+  };
+  
+  const updateProductQuantity = (index: number, quantity: number) => {
+    if (quantity < 1) return;
+    
+    const newSelections = [...productSelections];
+    newSelections[index].quantity = quantity;
+    setProductSelections(newSelections);
+    calculateTotal(newSelections);
+  };
+  
+  const updateProductIds = (selections: ProductSelection[]) => {
+    const ids = selections.map(item => item.productId);
+    form.setValue('productIds', ids);
+  };
+  
+  const calculateTotal = (selections: ProductSelection[] = productSelections) => {
+    if (!products) return;
+    
+    const total = selections.reduce((sum, item) => {
+      const product = products.find(p => p.id === item.productId);
+      if (product) {
+        return sum + (parseFloat(product.price) * item.quantity);
+      }
+      return sum;
+    }, 0);
+    
+    const formattedTotal = total.toFixed(2);
+    setTotalAmount(formattedTotal);
+    form.setValue('totalAmount', formattedTotal);
+  };
+  
+  // Usando useEffect para atualizar os valores do formulário
   useEffect(() => {
     if (selectedClient && !form.getValues('clientName')) {
       form.setValue('clientName', selectedClient.fullName);
@@ -510,39 +549,84 @@ export default function ProductSales() {
                 
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmitAddSale)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="productId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Produto</FormLabel>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-base font-medium">Produtos Selecionados</Label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {productSelections.map((item, index) => {
+                            const product = products?.find(p => p.id === item.productId);
+                            return (
+                              <div key={index} className="flex flex-col bg-accent rounded-md p-2 border border-border">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-semibold text-sm">
+                                    {product?.name}
+                                  </span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-5 w-5" 
+                                    onClick={() => removeProductSelection(index)}
+                                    type="button"
+                                  >
+                                    <Trash className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Input 
+                                    type="number" 
+                                    min="1" 
+                                    value={item.quantity} 
+                                    onChange={(e) => updateProductQuantity(index, parseInt(e.target.value))}
+                                    className="h-7 text-xs"
+                                  />
+                                  <span className="text-xs">
+                                    R$ {(parseFloat(product?.price || "0") * item.quantity).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          
+                          {productSelections.length === 0 && (
+                            <div className="text-sm text-muted-foreground italic">
+                              Nenhum produto selecionado
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label>Adicionar Produto</Label>
+                        <div className="flex gap-2 mt-1">
                           <Select 
-                            onValueChange={(value) => field.onChange(parseInt(value))} 
-                            defaultValue={field.value ? field.value.toString() : undefined}
+                            onValueChange={(value) => {
+                              const productId = parseInt(value);
+                              addProductSelection(productId);
+                            }}
+                            value=""
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione um produto" />
-                              </SelectTrigger>
-                            </FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Selecione um produto" />
+                            </SelectTrigger>
                             <SelectContent>
                               {isLoadingProducts ? (
                                 <div className="flex items-center justify-center p-2">
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 </div>
                               ) : (
-                                products?.map((product) => (
+                                products?.filter(product => 
+                                  !productSelections.some(selection => selection.productId === product.id)
+                                ).map((product) => (
                                   <SelectItem key={product.id} value={product.id.toString()}>
-                                    {product.name} - €{parseFloat(product.price).toFixed(2)}
+                                    {product.name} - R$ {parseFloat(product.price).toFixed(2)}
                                   </SelectItem>
                                 ))
                               )}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </div>
+                      </div>
+                    </div>
                     
                     {isAdmin && (
                       <FormField
