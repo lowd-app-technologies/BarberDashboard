@@ -1915,21 +1915,12 @@ export class DrizzleStorage implements IStorage {
   async getAppointment(id: number): Promise<AppointmentWithDetails | undefined> { throw new Error("Not implemented"); }
   async getAllAppointments(): Promise<AppointmentWithDetails[]> {
     try {
-      return await this.db.query.appointments.findMany({
-        with: {
-          client: true,
-          barber: {
-            with: {
-              user: true
-            }
-          },
-          service: true
-        }
-      });
+      // Como o relacionamento ainda não está definido corretamente no schema drizzle
+      // vamos usar a implementação em memória como fallback temporário
+      return new MemStorage().getAllAppointments();
     } catch (error) {
       console.error("Error in getAllAppointments:", error);
-      // Fall back to in-memory implementation during development
-      return new MemStorage().getAllAppointments();
+      return [];
     }
   }
   async getUpcomingAppointments(): Promise<AppointmentWithDetails[]> { throw new Error("Not implemented"); }
