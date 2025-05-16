@@ -307,87 +307,43 @@ export default function Booking() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="p-4 border-b bg-primary bg-opacity-10">
-        <div className="container mx-auto">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <div className="bg-primary bg-opacity-20 p-2 rounded-full">
-                <Scissors className="h-6 w-6 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold">Vossa Barbearia</h1>
-            </div>
-            
-            {/* Login/Registro ou Menu de usuário dependendo do estado de autenticação */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">{user.displayName || "Minha Conta"}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="flex items-center gap-2" onClick={() => navigate("/appointments")}>
-                    <CalendarDays className="h-4 w-4" />
-                    Meus Agendamentos
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2" onClick={() => navigate("/profile")}>
-                    <Settings className="h-4 w-4" />
-                    Perfil
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="flex items-center gap-2 text-destructive" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4" />
-                    Sair
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link href="/login">
-                <Button variant="outline">
-                  Login / Registro
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
-      
       {/* Conteúdo principal */}
-      <div className="container mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         {/* Página inicial com banner e botões */}
         {step === 0 && (
-          <div className="flex flex-col md:flex-row md:items-center gap-8 max-w-6xl mx-auto">
-            <div className="flex-1 md:order-2">
-              <div className="rounded-lg overflow-hidden shadow-lg">
-                <img 
-                  src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop" 
-                  alt="Barbeiro profissional"
-                  className="w-full h-auto object-cover rounded-lg"
-                />
-              </div>
+          <div className="flex flex-col md:flex-row h-screen">
+            <div className="flex-1 md:w-1/2 h-full">
+              <img 
+                src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop" 
+                alt="Barbeiro profissional"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <div className="flex-1 space-y-6 md:order-1">
-              <h1 className="text-4xl font-bold">Vossa Barbearia</h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300">
-                Bem-vindo à melhor experiência de barbearia. Cortes precisos, ambiente confortável e profissionais experientes.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button 
-                  onClick={startBooking} 
-                  className="bg-primary text-white hover:bg-primary/90 px-6 py-3 text-lg"
-                >
-                  Agendar Agora
-                </Button>
-                <Link href="/login">
-                  <Button variant="outline" className="px-6 py-3 text-lg">
-                    Entrar / Registrar
+            <div className="flex-1 flex items-center md:w-1/2">
+              <div className="p-8 lg:p-12 xl:p-16 space-y-6 max-w-lg mx-auto">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <Scissors className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="font-bold text-lg">Vossa Barbearia</span>
+                </div>
+                <h1 className="text-3xl lg:text-4xl font-bold">A melhor experiência para seu corte de cabelo</h1>
+                <p className="text-base lg:text-lg text-gray-600 dark:text-gray-300">
+                  Bem-vindo à melhor experiência de barbearia. Cortes precisos, ambiente confortável e profissionais experientes.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button 
+                    onClick={startBooking} 
+                    className="bg-primary text-white hover:bg-primary/90 px-4 py-2"
+                  >
+                    Agendar Agora
                   </Button>
-                </Link>
+                  <Link href="/login">
+                    <Button variant="outline" className="px-4 py-2">
+                      Entrar / Registrar
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -665,23 +621,6 @@ export default function Booking() {
           </>
         )}
       </div>
-      
-      {/* Footer */}
-      <footer className="py-6 border-t">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="bg-primary bg-opacity-20 p-2 rounded-full">
-                <Scissors className="h-4 w-4 text-primary" />
-              </div>
-              <span className="font-medium">Vossa Barbearia</span>
-            </div>
-            <div className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Vossa Barbearia. Todos os direitos reservados.
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
