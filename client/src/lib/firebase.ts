@@ -13,6 +13,12 @@ export interface User {
   role?: UserRole;
   username?: string;
   fullName?: string;
+  barber?: {
+    id: number;
+    profileImage: string | null;
+    userId: number;
+    [key: string]: any;
+  };
   getIdTokenResult: () => Promise<{ claims: { role: UserRole } }>;
 }
 
