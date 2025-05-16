@@ -95,6 +95,10 @@ export default function Booking() {
   const { user, logout } = useAuth();
   const timeSlots = generateTimeSlots();
   
+  // Estados para usuário não logado
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  
   // Buscar serviços da API
   const { data: services = [], isLoading: isLoadingServices } = useQuery<Service[]>({
     queryKey: ['/api/services'],
@@ -122,12 +126,6 @@ export default function Booking() {
   
   // Lidar com a confirmação do agendamento
   const handleBookingConfirmation = async () => {
-    if (!user) {
-      alert("Por favor, faça login para continuar");
-      navigate("/login");
-      return;
-    }
-
     try {
       const selectedBarber = barbers.find(b => b.id.toString() === barber);
       const appointmentDate = new Date(date!);
@@ -135,18 +133,35 @@ export default function Booking() {
       appointmentDate.setHours(hours, minutes);
 
       // Preparar os dados para enviar à API
-      // Criar um ID temporário para o usuário se não existir
-      // Isto é temporário e será substituído pelo ID real do usuário após autenticação
-      const tempUserId = user?.uid || "temp-user-1";
+      let appointmentData;
       
-      const appointmentData = {
-        clientId: 2, // Cliente de teste criado automaticamente pelo sistema
-        barberId: parseInt(barber),
-        serviceId: parseInt(service),
-        date: appointmentDate.toISOString(),
-        status: "pending",
-        notes: `Agendamento feito pelo cliente: ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
-      };
+      if (user) {
+        // Cliente logado, usamos o ID do usuário
+        appointmentData = {
+          clientId: parseInt(user.uid),
+          barberId: parseInt(barber),
+          serviceId: parseInt(service),
+          date: appointmentDate.toISOString(),
+          status: "pending",
+          notes: `Agendamento feito pelo cliente: ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
+        };
+      } else {
+        // Cliente não logado, usamos os dados fornecidos
+        if (!guestName || !guestPhone) {
+          alert("Por favor, preencha seu nome e telefone para continuar");
+          return;
+        }
+        
+        appointmentData = {
+          barberId: parseInt(barber),
+          serviceId: parseInt(service),
+          date: appointmentDate.toISOString(),
+          status: "pending",
+          guestName: guestName,
+          guestPhone: guestPhone,
+          notes: `Agendamento feito pelo cliente não logado: ${guestName} (${guestPhone}) - ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
+        };
+      }
 
       // Enviar para a API
       const response = await fetch('/api/appointments', {
@@ -177,6 +192,7 @@ export default function Booking() {
       case 1: return !!service;
       case 2: return !!barber;
       case 3: return !!date && !!time;
+      case 4: return user ? true : (!!guestName && !!guestPhone); // Verificar dados do convidado se não estiver logado
       default: return true;
     }
   };
@@ -401,17 +417,49 @@ export default function Booking() {
                 {/* Passo 4: Confirmação */}
                 {step === 4 && (
                   <div className="space-y-4">
+                    {!user && (
+                      <div className="border rounded-lg overflow-hidden mb-6">
+                        <div className="bg-muted p-4">
+                          <h3 className="font-medium text-lg">Seus Dados</h3>
+                        </div>
+                        <div className="p-4 space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Nome Completo</label>
+                            <input 
+                              type="text"
+                              value={guestName}
+                              onChange={(e) => setGuestName(e.target.value)}
+                              className="w-full p-2 border rounded-md bg-background"
+                              placeholder="Digite seu nome completo"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Telefone / Whatsapp</label>
+                            <input 
+                              type="tel"
+                              value={guestPhone}
+                              onChange={(e) => setGuestPhone(e.target.value)}
+                              className="w-full p-2 border rounded-md bg-background"
+                              placeholder="Digite seu número de telefone"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-muted p-4">
                         <h3 className="font-medium text-lg">Resumo do Agendamento</h3>
                       </div>
                       <div className="p-4 space-y-4">
                         <div className="flex justify-between items-center">
-                          <span className="text-white text-opacity-60">Serviço</span>
+                          <span className="text-muted-foreground">Serviço</span>
                           <span className="font-bold text-lg">{selectedService?.name}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-white text-opacity-60">Preço</span>
+                          <span className="text-muted-foreground">Preço</span>
                           <span className="font-bold text-lg">{selectedService?.price}</span>
                         </div>
                         <div className="flex justify-between items-center">
