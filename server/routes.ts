@@ -2128,10 +2128,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Formatar vendas recentes para exibição
+      const formattedSales = productSales.map(sale => {
+        // Extrair informações relevantes
+        return {
+          id: sale.id,
+          date: new Date(sale.date).toISOString().split('T')[0],
+          barber: sale.barber?.user?.fullName || 'Barbeiro não encontrado',
+          client: sale.clientName,
+          product: sale.product?.name || 'Produto não encontrado',
+          quantity: sale.quantity,
+          price: typeof sale.unitPrice === 'string' 
+            ? parseFloat(sale.unitPrice) 
+            : parseFloat(String(sale.unitPrice)),
+          total: (typeof sale.unitPrice === 'string' 
+            ? parseFloat(sale.unitPrice) 
+            : parseFloat(String(sale.unitPrice))) * sale.quantity
+        };
+      });
+      
+      // Ordenar vendas por data (mais recente primeiro)
+      formattedSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      // Limitar a 10 vendas mais recentes para o dashboard
+      const recentSalesToShow = formattedSales.slice(0, 10);
+      
       // Retornar dados do dashboard
       res.json({
         stats: {
-          sales: totalRevenue,
+          sales: Math.round(totalRevenue * 100) / 100, // Arredondar para 2 casas decimais
           appointments: recentAppointments.length,
           pendingPayments: pendingPayments.reduce((acc, p) => {
             const amount = typeof p.amount === 'string' 
@@ -2145,7 +2170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pendingPaymentsTrend,
           newClientsTrend
         },
-        salesChart: salesChartData
+        salesChart: salesChartData,
+        recentSales: recentSalesToShow
       });
     } catch (error: any) {
       console.error('Erro ao buscar dados do dashboard:', error);

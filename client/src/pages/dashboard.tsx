@@ -6,6 +6,7 @@ import { SalesChart } from "@/components/dashboard/SalesChart";
 import { AppointmentsList } from "@/components/dashboard/AppointmentsList";
 import { TopBarbers } from "@/components/dashboard/TopBarbers";
 import { PopularServices } from "@/components/dashboard/PopularServices";
+import { RecentSales } from "@/components/dashboard/RecentSales";
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -179,8 +180,18 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Recent Sales Section */}
+        <div className="mt-6">
+          <RecentSales 
+            sales={dashboardData?.recentSales || []}
+            title={user?.role === 'admin' ? "Vendas Recentes (Todos Barbeiros)" : "Suas Vendas Recentes"}
+            showAllLink="/product-sales"
+            emptyMessage={isLoadingDashboard ? "Carregando..." : "Não há vendas recentes"}
+          />
+        </div>
+
         {/* Top Performing Barbers & Services */}
-        <div className={user?.role === 'barber' ? '' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6'}>
+        <div className={user?.role === 'barber' ? 'mt-6' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6'}>
           {/* Top Barbers - Visible only for admins */}
           {user?.role !== 'barber' && (
             <TopBarbers 
@@ -190,7 +201,7 @@ export default function Dashboard() {
           )}
 
           {/* Popular Services */}
-          <div className={user?.role === 'barber' ? 'mt-6' : ''}>
+          <div className={user?.role === 'barber' ? '' : ''}>
             <PopularServices 
               services={services || []}
               title="Serviços Populares"
