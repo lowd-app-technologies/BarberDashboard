@@ -2130,6 +2130,111 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().getAllProductSales();
     }
   }
+
+  async getWeeklyProductSales(): Promise<ProductSaleWithDetails[]> {
+    try {
+      // Calcular data de uma semana atrás
+      const now = new Date();
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      
+      // Buscar vendas da última semana
+      const sales = await this.db.select()
+        .from(productSales)
+        .where(gte(productSales.date, oneWeekAgo));
+      
+      const result: ProductSaleWithDetails[] = [];
+      
+      for (const sale of sales) {
+        const product = await this.getProduct(sale.productId);
+        
+        // Buscar informações completas do barbeiro, incluindo dados do usuário
+        let barberWithUser: BarberWithUser | undefined;
+        const barber = await this.getBarber(sale.barberId);
+        
+        if (barber) {
+          const user = await this.getUser(barber.userId);
+          if (user) {
+            barberWithUser = {
+              ...barber,
+              user
+            };
+          }
+        }
+        
+        if (product && barberWithUser) {
+          result.push({
+            ...sale,
+            product,
+            barber: barberWithUser
+          });
+        }
+      }
+      
+      // Ordenar por data (mais recente primeiro)
+      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getWeeklyProductSales:", error);
+      return [];
+    }
+  }
+  
+  async getWeeklyProductSalesByBarber(barberId: number): Promise<ProductSaleWithDetails[]> {
+    try {
+      // Calcular data de uma semana atrás
+      const now = new Date();
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      
+      // Buscar vendas da última semana para o barbeiro específico
+      const sales = await this.db.select()
+        .from(productSales)
+        .where(
+          and(
+            eq(productSales.barberId, barberId),
+            gte(productSales.date, oneWeekAgo)
+          )
+        );
+      
+      const result: ProductSaleWithDetails[] = [];
+      
+      for (const sale of sales) {
+        const product = await this.getProduct(sale.productId);
+        
+        // Buscar informações completas do barbeiro, incluindo dados do usuário
+        let barberWithUser: BarberWithUser | undefined;
+        const barber = await this.getBarber(sale.barberId);
+        
+        if (barber) {
+          const user = await this.getUser(barber.userId);
+          if (user) {
+            barberWithUser = {
+              ...barber,
+              user
+            };
+          }
+        }
+        
+        if (product && barberWithUser) {
+          result.push({
+            ...sale,
+            product,
+            barber: barberWithUser
+          });
+        }
+      }
+      
+      // Ordenar por data (mais recente primeiro)
+      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      return result;
+    } catch (error) {
+      console.error("Error in getWeeklyProductSalesByBarber:", error);
+      return [];
+    }
+  }
   
   async createProductSale(sale: InsertProductSale): Promise<ProductSale> {
     try {
