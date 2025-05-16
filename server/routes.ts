@@ -1965,6 +1965,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para dados do dashboard
+  app.get('/api/dashboard', async (req: Request, res: Response) => {
+    try {
+      const period = req.query.period || 'week';
+      
+      // Definir datas com base no período selecionado
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (period === 'today') {
+        startDate.setHours(0, 0, 0, 0);
+      } else if (period === 'week') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (period === 'month') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else {
+        // Período padrão (semana)
+        startDate.setDate(now.getDate() - 7);
+      }
+      
+      // Buscar dados reais no banco de dados
+      const services = await storage.getAllCompletedServices();
+      const appointments = await storage.getAllAppointments();
+      const clients = await storage.getAllClients();
+      const payments = await storage.getAllPayments();
+      const productSales = await storage.getAllProductSales();
+      
+      // Filtrar por período
+      const recentServices = Array.isArray(services) ? services.filter(s => new Date(s.date) >= startDate) : [];
+      const recentAppointments = Array.isArray(appointments) ? appointments.filter(a => new Date(a.date) >= startDate) : [];
+      const recentClients = clients.filter(c => new Date(c.createdAt) >= startDate);
+      const pendingPayments = Array.isArray(payments) ? payments.filter(p => p.status === 'pending') : [];
+      const recentProductSales = Array.isArray(productSales) ? productSales.filter(p => new Date(p.date) >= startDate) : [];
+      
+      // Calcular receita (serviços + produtos)
+      const serviceRevenue = recentServices.reduce((acc, service) => {
+        const price = typeof service.price === 'string' 
+          ? parseFloat(service.price) 
+          : service.price;
+        return acc + price;
+      }, 0);
+      
+      const productRevenue = recentProductSales.reduce((acc, sale) => {
+        const unitPrice = typeof sale.unitPrice === 'string' 
+          ? parseFloat(sale.unitPrice) 
+          : sale.unitPrice;
+        return acc + (unitPrice * sale.quantity);
+      }, 0);
+      
+      const totalRevenue = serviceRevenue + productRevenue;
+      
+      // Calcular tendências (mock por enquanto, implementar cálculos reais depois)
+      // Em uma implementação completa, compararíamos com o período anterior
+      const salesTrend = 5.2;
+      const appointmentsTrend = 3.8;
+      const pendingPaymentsTrend = 1.5;
+      const newClientsTrend = 10.0;
+      
+      // Dados para o gráfico de vendas
+      // Gerar dados dos últimos 7 dias
+      const salesChartData = [];
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        
+        const nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        // Serviços deste dia
+        const dayServices = services && Array.isArray(services) ? services.filter(s => {
+          const serviceDate = new Date(s.date);
+          return serviceDate >= date && serviceDate < nextDay;
+        }) : [];
+        
+        // Produtos vendidos neste dia
+        const dayProductSales = productSales && Array.isArray(productSales) ? productSales.filter(p => {
+          const saleDate = new Date(p.date);
+          return saleDate >= date && saleDate < nextDay;
+        }) : [];
+        
+        // Calcular receita do dia
+        const dayServiceRevenue = dayServices.reduce((acc, service) => {
+          const price = typeof service.price === 'string' 
+            ? parseFloat(service.price) 
+            : service.price;
+          return acc + price;
+        }, 0);
+        
+        const dayProductRevenue = dayProductSales.reduce((acc, sale) => {
+          const unitPrice = typeof sale.unitPrice === 'string' 
+            ? parseFloat(sale.unitPrice) 
+            : sale.unitPrice;
+          return acc + (unitPrice * sale.quantity);
+        }, 0);
+        
+        const dayTotalRevenue = dayServiceRevenue + dayProductRevenue;
+        
+        salesChartData.push({
+          name: dayNames[date.getDay()],
+          sales: dayTotalRevenue
+        });
+      }
+      
+      // Retornar dados do dashboard
+      res.json({
+        stats: {
+          sales: totalRevenue,
+          appointments: recentAppointments.length,
+          pendingPayments: pendingPayments.reduce((acc, p) => {
+            const amount = typeof p.amount === 'string' 
+              ? parseFloat(p.amount) 
+              : p.amount;
+            return acc + amount;
+          }, 0),
+          newClients: recentClients.length,
+          salesTrend,
+          appointmentsTrend,
+          pendingPaymentsTrend,
+          newClientsTrend
+        },
+        salesChart: salesChartData
+      });
+    } catch (error: any) {
+      console.error('Erro ao buscar dados do dashboard:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Rota para obter serviços populares
+  app.get('/api/services/popular', async (req: Request, res: Response) => {
+    try {
+      const services = await storage.getActiveServices();
+      // Em uma implementação real, calcularia os serviços mais populares
+      // com base em agendamentos ou serviços concluídos
+      res.json(services.slice(0, 5));
+    } catch (error: any) {
+      console.error('Erro ao buscar serviços populares:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Rota para obter top barbeiros
+  app.get('/api/barbers/top', async (req: Request, res: Response) => {
+    try {
+      const barbers = await storage.getActiveBarbers();
+      // Em uma implementação real, calcularia os top barbeiros
+      // com base em serviços concluídos, avaliações ou receita gerada
+      res.json(barbers.slice(0, 3));
+    } catch (error: any) {
+      console.error('Erro ao buscar top barbeiros:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
