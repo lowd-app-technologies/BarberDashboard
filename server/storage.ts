@@ -1928,7 +1928,24 @@ export class DrizzleStorage implements IStorage {
   async deletePayment(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getCompletedService(id: number): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
   async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { throw new Error("Not implemented"); }
-  async getAllCompletedServices(): Promise<CompletedService[]> { throw new Error("Not implemented"); }
+  async getAllCompletedServices(): Promise<CompletedService[]> {
+    try {
+      return await this.db.query.completedServices.findMany({
+        with: {
+          service: true,
+          barber: {
+            with: {
+              user: true
+            }
+          },
+          client: true
+        }
+      });
+    } catch (error) {
+      console.error("Error in getAllCompletedServices:", error);
+      return [];
+    }
+  }
   async createCompletedService(service: InsertCompletedService): Promise<CompletedService> { throw new Error("Not implemented"); }
   async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
   async deleteCompletedService(id: number): Promise<void> { throw new Error("Not implemented"); }
