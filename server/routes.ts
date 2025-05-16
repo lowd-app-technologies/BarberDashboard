@@ -642,6 +642,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const serviceData = insertServiceSchema.partial().parse(req.body);
       const updatedService = await storage.updateService(id, serviceData);
       
+      if (!updatedService) {
+        return res.status(404).json({ message: "Não foi possível atualizar o serviço" });
+      }
+      
       // Registrar ação no log
       await storage.createActionLog({
         userId: req.session.userId,

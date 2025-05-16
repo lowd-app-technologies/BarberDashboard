@@ -59,7 +59,7 @@ export function StatsCard({
                   />
                 </svg>
               )}
-              {trend.value}%
+              {!isNaN(trend.value) ? trend.value.toFixed(1) : '0.0'}%
             </p>
           )}
         </div>

@@ -22,13 +22,13 @@ import { Layout } from "@/components/layout/Layout";
 
 // Schema para formulário de venda de produto
 const productSaleSchema = z.object({
-  productId: z.number(),
+  productIds: z.array(z.number()).min(1, { message: 'Selecione pelo menos um produto' }),
   barberId: z.number(),
   clientName: z.string().min(2, { message: 'Nome do cliente é obrigatório' }),
   clientId: z.number().nullable().optional(),
   date: z.string().transform(val => new Date(val)),
   quantity: z.string().transform(val => parseInt(val)),
-  unitPrice: z.string().min(1, { message: 'Preço unitário é obrigatório' }),
+  totalAmount: z.string().min(1, { message: 'Total é obrigatório' }),
 });
 
 // Tipo para o formulário
@@ -208,16 +208,19 @@ export default function ProductSales() {
   });
 
   // Formulário para adicionar venda
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [totalAmount, setTotalAmount] = useState<number>(0);
+  
   const form = useForm<ProductSaleFormValues>({
     resolver: zodResolver(productSaleSchema),
     defaultValues: {
-      productId: 0,
+      productIds: [],
       barberId: isBarber && barber?.id ? barber.id : 0,
       clientName: '',
       clientId: null,
       date: new Date().toISOString().substring(0, 10),
       quantity: '1',
-      unitPrice: '',
+      totalAmount: '0',
     },
   });
 
