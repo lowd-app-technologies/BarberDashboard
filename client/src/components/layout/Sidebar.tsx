@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 
 export function Sidebar() {
@@ -199,6 +199,9 @@ export function Sidebar() {
         {user && (
           <div className="flex items-center gap-2 pb-4">
             <Avatar>
+              {user.role === 'barber' && user.barber?.profileImage && (
+                <AvatarImage src={user.barber.profileImage} alt={user.fullName || 'Perfil'} />
+              )}
               <AvatarFallback>
                 {user.fullName ? getInitials(user.fullName) : "U"}
               </AvatarFallback>

@@ -145,21 +145,17 @@ export default function Settings() {
             // Limpar a imagem temporária
             setNewProfileImage(null);
             
-            // Atualizar o objeto de usuário na memória (evitando reload da página)
-            if (data.barber && user && 'barber' in user) {
-              const updatedUser = {
-                ...user,
-                barber: {
-                  ...user.barber,
-                  profileImage: data.barber.profileImage
-                }
-              };
-              // @ts-ignore - ignorando erro de tipos por ora
-              setUser && setUser(updatedUser);
-            } else {
-              // Se não conseguirmos atualizar o estado, recarregar a página
-              setTimeout(() => window.location.reload(), 1000);
-            }
+            // Forçar um refresh da página para garantir que a imagem apareça corretamente
+            // e que todos os componentes sejam atualizados
+            toast({
+              title: "Recarregando...",
+              description: "Atualizando a interface para mostrar sua nova foto de perfil",
+            });
+            
+            // Aguardar um momento para o usuário ver a mensagem de sucesso
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
           } else {
             const error = await response.json();
             throw new Error(error.message || "Erro ao atualizar foto");
