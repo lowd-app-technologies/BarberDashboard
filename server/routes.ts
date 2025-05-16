@@ -2225,7 +2225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             popularity: count,
             // Adicionar informações extras para a UI
             bookings: count,
-            growth: Math.floor(Math.random() * 20) - 5 // Simulação de tendência de crescimento
+            growth: count > 0 ? Math.floor(Math.random() * 20) : 0 // Garantir que growth seja número válido
           };
         });
         
@@ -2248,7 +2248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...service,
           popularity: 10 - index,
           bookings: 10 - index,
-          growth: Math.floor(Math.random() * 20) - 5
+          growth: 5 // Valor fixo para evitar NaN
         }));
         
         res.json(barberServices);
@@ -2258,7 +2258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...service,
           popularity: 10 - index,
           bookings: 10 - index,
-          growth: Math.floor(Math.random() * 20) - 5
+          growth: 5 // Valor fixo para evitar NaN
         }));
         
         res.json(servicesWithDummyData.slice(0, 5));
@@ -2272,23 +2272,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rota para obter top barbeiros
   app.get('/api/barbers/top', async (req: Request, res: Response) => {
     try {
+      // Verificar autenticação
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+      
       const barbers = await storage.getActiveBarbers();
-      // Calcular dados reais para os top barbeiros
+      
+      // Buscar dados reais do banco
       try {
         const services = await storage.getAllCompletedServices();
-        const productSales = await storage.getAllProducts().then(products => 
-          products.slice(0, 5).map((product, index) => ({
-            id: index + 1,
-            date: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)),
-            barberId: (index % barbers.length) + 1,
-            productId: product.id,
-            clientId: 1,
-            clientName: "Cliente Exemplo",
-            quantity: Math.floor(Math.random() * 3) + 1,
-            unitPrice: parseFloat(product.price),
-            totalAmount: parseFloat(product.price) * (Math.floor(Math.random() * 3) + 1)
-          }))
-        );
+        // Buscar vendas de produtos reais da última semana
+        const productSales = await storage.getWeeklyProductSales();
         
         // Calcular ganhos para cada barbeiro
         const barbersWithEarnings = barbers.map(barber => {
@@ -2309,7 +2304,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (Array.isArray(productSales)) {
             const barberProductSales = productSales.filter(s => s.barberId === barber.id);
             earnings += barberProductSales.reduce((sum, sale) => {
-              return sum + sale.totalAmount;
+              const unitPrice = typeof sale.unitPrice === 'string' 
+                ? parseFloat(sale.unitPrice) 
+                : parseFloat(String(sale.unitPrice));
+              return sum + (unitPrice * sale.quantity);
             }, 0);
           }
           
