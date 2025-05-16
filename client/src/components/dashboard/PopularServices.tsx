@@ -102,9 +102,9 @@ export function PopularServices({
                     <td className="text-right py-3">
                       <span className={cn(
                         "inline-flex items-center text-sm",
-                        service.trend > 0 ? "barber-pro-success" : "barber-pro-error"
+                        !service.trend || isNaN(service.trend) ? "text-muted-foreground" : (service.trend > 0 ? "barber-pro-success" : "barber-pro-error")
                       )}>
-                        {service.trend > 0 ? (
+                        {!service.trend || isNaN(service.trend) ? null : service.trend > 0 ? (
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
                             className="h-4 w-4 mr-1 text-xs" 
@@ -131,7 +131,7 @@ export function PopularServices({
                             />
                           </svg>
                         )}
-                        {Math.abs(service.trend)}%
+                        {Number.isNaN(service.trend) || service.trend === null ? '-' : `${Math.abs(service.trend)}%`}
                       </span>
                     </td>
                   </tr>
