@@ -33,6 +33,7 @@ export const barbers = pgTable("barbers", {
   paymentPeriod: paymentPeriodEnum("payment_period").notNull().default('monthly'),
   active: boolean("active").notNull().default(true),
   calendarVisibility: text("calendar_visibility").default('own'), // 'own', 'all', ou IDs específicos em formato JSON
+  profileImage: text("profile_image"), // URL da imagem de perfil do barbeiro
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

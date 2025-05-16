@@ -60,6 +60,7 @@ type Barber = {
   iban: string;
   paymentPeriod: string;
   active: boolean;
+  profileImage?: string; // Imagem de perfil do barbeiro (opcional)
   createdAt: string;
   user: {
     id: number;
@@ -89,7 +90,7 @@ export default function Booking() {
   const [barber, setBarber] = useState<string>("");
   const [service, setService] = useState<string>("");
   const [time, setTime] = useState<string>("");
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Começamos com 0 para mostrar a tela inicial
   const [isBooked, setIsBooked] = useState(false);
   const [, navigate] = useLocation();
   const { user, logout } = useAuth();
@@ -157,6 +158,7 @@ export default function Booking() {
       iban: "PT50123456789",
       paymentPeriod: "mensal",
       active: true,
+      profileImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=300&auto=format&fit=crop",
       createdAt: new Date().toISOString(),
       user: {
         id: 3,
@@ -175,6 +177,7 @@ export default function Booking() {
       iban: "PT50987654321",
       paymentPeriod: "mensal",
       active: true,
+      profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=300&auto=format&fit=crop",
       createdAt: new Date().toISOString(),
       user: {
         id: 4,
@@ -200,6 +203,9 @@ export default function Booking() {
   // Obter o serviço selecionado
   const selectedService = services.find(s => s.id.toString() === service);
   
+  // Obter o barbeiro selecionado
+  const selectedBarber = barbers.find(b => b.id.toString() === barber);
+  
   // Ir para o próximo passo
   const nextStep = () => {
     if (step < 4) setStep(step + 1);
@@ -210,10 +216,20 @@ export default function Booking() {
     if (step > 1) setStep(step - 1);
   };
   
+  // Iniciar o agendamento
+  const startBooking = () => {
+    setStep(1);
+  };
+  
+  // Formatar a data para exibição
+  const formatDate = (date?: Date) => {
+    if (!date) return "";
+    return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+  
   // Lidar com a confirmação do agendamento
-  const handleBookingConfirmation = async () => {
+  const handleCreateAppointment = async () => {
     try {
-      const selectedBarber = barbers.find(b => b.id.toString() === barber);
       const appointmentDate = new Date(date!);
       const [hours, minutes] = time.split(':').map(Number);
       appointmentDate.setHours(hours, minutes);
@@ -341,262 +357,331 @@ export default function Booking() {
         </div>
       </header>
       
-      {/* Passos do agendamento */}
-      <div className="container mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-center mb-6">Agende seu horário</h2>
-          
-          <div className="flex max-w-3xl mx-auto mb-8">
-            <div className={`step-item ${step >= 1 ? 'active' : ''}`}>
-              <div className="step-circle">
-                <span>1</span>
+      {/* Conteúdo principal */}
+      <div className="container mx-auto py-8 px-4 flex-1">
+        {/* Página inicial com banner e botões */}
+        {step === 0 && (
+          <div className="flex flex-col md:flex-row md:items-center gap-8 max-w-6xl mx-auto">
+            <div className="flex-1 md:order-2">
+              <div className="rounded-lg overflow-hidden shadow-lg">
+                <img 
+                  src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop" 
+                  alt="Barbeiro profissional"
+                  className="w-full h-auto object-cover rounded-lg"
+                />
               </div>
-              <p className="step-title">Serviço</p>
             </div>
-            <div className={`step-item ${step >= 2 ? 'active' : ''}`}>
-              <div className="step-circle">
-                <span>2</span>
+            <div className="flex-1 space-y-6 md:order-1">
+              <h1 className="text-4xl font-bold">Vossa Barbearia</h1>
+              <p className="text-xl text-gray-600 dark:text-gray-300">
+                Bem-vindo à melhor experiência de barbearia. Cortes precisos, ambiente confortável e profissionais experientes.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button 
+                  onClick={startBooking} 
+                  className="bg-primary text-white hover:bg-primary/90 px-6 py-3 text-lg"
+                >
+                  Agendar Agora
+                </Button>
+                <Link href="/login">
+                  <Button variant="outline" className="px-6 py-3 text-lg">
+                    Entrar / Registrar
+                  </Button>
+                </Link>
               </div>
-              <p className="step-title">Barbeiro</p>
-            </div>
-            <div className={`step-item ${step >= 3 ? 'active' : ''}`}>
-              <div className="step-circle">
-                <span>3</span>
-              </div>
-              <p className="step-title">Data/Hora</p>
-            </div>
-            <div className={`step-item ${step >= 4 ? 'active' : ''}`}>
-              <div className="step-circle">
-                <span>4</span>
-              </div>
-              <p className="step-title">Confirmação</p>
             </div>
           </div>
-          
-          <div className="max-w-3xl mx-auto">
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>
-                  {step === 1 && "Escolha o serviço"}
-                  {step === 2 && "Escolha o barbeiro"}
-                  {step === 3 && "Escolha a data e hora"}
-                  {step === 4 && "Confirme seu agendamento"}
-                </CardTitle>
-                <CardDescription>
-                  {step === 1 && "Selecione o serviço que deseja agendar"}
-                  {step === 2 && "Quem você prefere que realize o serviço?"}
-                  {step === 3 && "Escolha quando você deseja ser atendido"}
-                  {step === 4 && "Verifique as informações do seu agendamento"}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                {/* Passo 1: Escolha do serviço */}
-                {step === 1 && (
-                  <>
-                    {isLoadingServices ? (
-                      <div className="flex justify-center items-center h-40">
-                        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
-                      </div>
-                    ) : (
-                      <div className="grid gap-4 md:grid-cols-2">
-                        {services.filter(svc => svc.active).map(svc => (
-                          <div 
-                            key={svc.id} 
-                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${service === svc.id.toString() ? 'border-primary bg-primary' : 'hover:border-gray-400'}`}
-                            onClick={() => setService(svc.id.toString())}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className={`font-medium ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.name}</h3>
-                              <span className={`font-bold ${service === svc.id.toString() ? 'text-white' : ''}`}>{svc.price}</span>
-                            </div>
-                            <p className={`text-sm mb-2 ${service === svc.id.toString() ? 'text-white text-opacity-90' : 'text-gray-500'}`}>{svc.description}</p>
-                            <div className={`text-xs flex items-center ${service === svc.id.toString() ? 'text-white text-opacity-80' : 'text-gray-400'}`}>
-                              <Clock className="h-3 w-3 mr-1" /> {svc.duration} min
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
+        )}
+        
+        {/* Passos do agendamento */}
+        {step > 0 && (
+          <>
+            <h2 className="text-2xl font-bold text-center mb-6">Agende seu horário</h2>
+            
+            <div className="flex max-w-3xl mx-auto mb-8">
+              <div className={`step-item ${step >= 1 ? 'active' : ''}`}>
+                <div className="step-circle">
+                  <span>1</span>
+                </div>
+                <p className="step-title">Serviço</p>
+              </div>
+              <div className={`step-item ${step >= 2 ? 'active' : ''}`}>
+                <div className="step-circle">
+                  <span>2</span>
+                </div>
+                <p className="step-title">Barbeiro</p>
+              </div>
+              <div className={`step-item ${step >= 3 ? 'active' : ''}`}>
+                <div className="step-circle">
+                  <span>3</span>
+                </div>
+                <p className="step-title">Data/Hora</p>
+              </div>
+              <div className={`step-item ${step >= 4 ? 'active' : ''}`}>
+                <div className="step-circle">
+                  <span>4</span>
+                </div>
+                <p className="step-title">Confirmação</p>
+              </div>
+            </div>
+            
+            <div className="max-w-3xl mx-auto">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle>
+                    {step === 1 && "Escolha o serviço"}
+                    {step === 2 && "Escolha o barbeiro"}
+                    {step === 3 && "Escolha a data e hora"}
+                    {step === 4 && "Confirme seu agendamento"}
+                  </CardTitle>
+                  <CardDescription>
+                    {step === 1 && "Selecione o serviço que deseja agendar"}
+                    {step === 2 && "Quem você prefere que realize o serviço?"}
+                    {step === 3 && "Escolha quando você deseja ser atendido"}
+                    {step === 4 && "Verifique as informações do seu agendamento"}
+                  </CardDescription>
+                </CardHeader>
                 
-                {/* Passo 2: Escolha do barbeiro */}
-                {step === 2 && (
-                  <div className="space-y-4">
-                    {isLoadingBarbers ? (
-                      <div className="flex justify-center items-center h-40">
-                        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                <CardContent>
+                  {/* Passo 1: Escolha do serviço */}
+                  {step === 1 && (
+                    <>
+                      {isLoadingServices ? (
+                        <div className="flex justify-center items-center h-40">
+                          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                        </div>
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {services.filter(svc => svc.active).map(svc => (
+                            <div 
+                              key={svc.id} 
+                              className={`p-4 border rounded-lg cursor-pointer transition-colors ${service === svc.id.toString() ? 'border-primary bg-primary/10' : 'hover:border-gray-400'}`}
+                              onClick={() => setService(svc.id.toString())}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className={`font-medium ${service === svc.id.toString() ? 'text-primary' : ''}`}>{svc.name}</h3>
+                                <span className={`font-bold ${service === svc.id.toString() ? 'text-primary' : ''}`}>{svc.price}</span>
+                              </div>
+                              <p className={`text-sm mb-2 ${service === svc.id.toString() ? 'text-primary/80' : 'text-gray-500'}`}>{svc.description}</p>
+                              <div className={`text-xs flex items-center ${service === svc.id.toString() ? 'text-primary/80' : 'text-gray-400'}`}>
+                                <Clock className="h-3 w-3 mr-1" /> {svc.duration} min
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Passo 2: Escolha do barbeiro */}
+                  {step === 2 && (
+                    <div className="space-y-4">
+                      {isLoadingBarbers ? (
+                        <div className="flex justify-center items-center h-40">
+                          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {barbers.map(b => (
+                            <div 
+                              key={b.id} 
+                              onClick={() => setBarber(b.id.toString())} 
+                              className={`border rounded-lg overflow-hidden cursor-pointer transition-all ${barber === b.id.toString() ? 'border-primary ring-2 ring-primary' : 'hover:border-gray-400'}`}
+                            >
+                              <div className="p-4 flex items-center space-x-4">
+                                <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
+                                  {b.profileImage ? (
+                                    <img 
+                                      src={b.profileImage} 
+                                      alt={b.user.fullName} 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-primary text-white">
+                                      {b.user.fullName.charAt(0)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="font-medium text-lg">{b.user.fullName}</h3>
+                                  <p className="text-sm text-gray-500">
+                                    Especialista em cortes modernos e tradicionais
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Passo 3: Escolha da data e hora */}
+                  {step === 3 && (
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2 flex items-center">
+                          <CalendarIcon className="mr-2 h-4 w-4" /> 
+                          Selecione a data
+                        </h3>
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          locale={ptBR}
+                          disabled={(date) => {
+                            // Desabilita dias anteriores e domingos
+                            return date < new Date() || date.getDay() === 0;
+                          }}
+                          className="rounded-md border"
+                        />
                       </div>
-                    ) : (
-                      <>
-                        <Select value={barber} onValueChange={setBarber}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um barbeiro" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {barbers.map(b => (
-                              <SelectItem key={b.id} value={b.id.toString()}>
-                                {b.user.fullName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div>
+                        <h3 className="text-sm font-medium mb-2 flex items-center">
+                          <Clock className="mr-2 h-4 w-4" /> 
+                          Selecione o horário
+                        </h3>
+                        <div className="grid grid-cols-3 gap-2">
+                          {timeSlots.map((slot) => (
+                            <button
+                              key={slot}
+                              onClick={() => setTime(slot)}
+                              className={`py-2 px-3 rounded-md text-sm ${
+                                time === slot 
+                                  ? 'bg-primary text-white' 
+                                  : 'bg-background border hover:border-primary/50'
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Passo 4: Confirmação */}
+                  {step === 4 && (
+                    <div className="space-y-4">
+                      <div className="border rounded-lg p-4 divide-y space-y-3">
+                        <div className="pb-3">
+                          <h3 className="font-medium text-lg mb-4">Resumo do agendamento</h3>
+                          
+                          <div className="grid grid-cols-2 gap-y-2">
+                            <div className="text-gray-500">Serviço:</div>
+                            <div className="font-medium">{selectedService?.name}</div>
+                            
+                            <div className="text-gray-500">Barbeiro:</div>
+                            <div className="font-medium flex items-center gap-2">
+                              {selectedBarber?.profileImage && (
+                                <div className="w-6 h-6 rounded-full overflow-hidden">
+                                  <img src={selectedBarber.profileImage} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              {selectedBarber?.user.fullName}
+                            </div>
+                            
+                            <div className="text-gray-500">Data:</div>
+                            <div className="font-medium">{formatDate(date)}</div>
+                            
+                            <div className="text-gray-500">Horário:</div>
+                            <div className="font-medium">{time}</div>
+                            
+                            <div className="text-gray-500">Duração:</div>
+                            <div className="font-medium">{selectedService?.duration} min</div>
+                            
+                            <div className="text-gray-500">Preço:</div>
+                            <div className="font-medium text-primary">{selectedService?.price}</div>
+                          </div>
+                        </div>
                         
-                        {barber && (
-                          <div className="mt-6 border p-4 rounded-lg bg-background">
-                            <h3 className="font-medium text-lg mb-2">
-                              {barbers.find(b => b.id.toString() === barber)?.user.fullName}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              Especialista em cortes modernos e tradicionais.
-                            </p>
+                        {!user && (
+                          <div className="pt-3 space-y-4">
+                            <h3 className="font-medium text-lg">Seus dados</h3>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-medium block mb-1">Nome completo *</label>
+                                <input 
+                                  type="text" 
+                                  value={guestName}
+                                  onChange={(e) => setGuestName(e.target.value)}
+                                  className="w-full p-2 border rounded-md"
+                                  placeholder="Digite seu nome completo"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium block mb-1">Telefone / Whatsapp *</label>
+                                <input 
+                                  type="tel" 
+                                  value={guestPhone}
+                                  onChange={(e) => setGuestPhone(e.target.value)}
+                                  className="w-full p-2 border rounded-md"
+                                  placeholder="(00) 00000-0000"
+                                  required
+                                />
+                              </div>
+                            </div>
                           </div>
                         )}
-                      </>
-                    )}
-                  </div>
-                )}
-                
-                {/* Passo 3: Escolha da data e hora */}
-                {step === 3 && (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-sm font-medium mb-2 flex items-center">
-                        <CalendarIcon className="mr-2 h-4 w-4" /> 
-                        Selecione a data
-                      </h3>
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        locale={ptBR}
-                        disabled={(date) => {
-                          // Desabilita dias anteriores e domingos
-                          return date < new Date() || date.getDay() === 0;
-                        }}
-                        className="rounded-md border"
-                      />
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2 flex items-center">
-                        <Clock className="mr-2 h-4 w-4" /> 
-                        Selecione o horário
-                      </h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        {timeSlots.map((slot) => (
-                          <Button
-                            key={slot}
-                            variant={time === slot ? "default" : "outline"}
-                            className="text-sm"
-                            onClick={() => setTime(slot)}
-                          >
-                            {slot}
-                          </Button>
-                        ))}
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </CardContent>
                 
-                {/* Passo 4: Confirmação */}
-                {step === 4 && (
-                  <div className="space-y-4">
-                    {!user && (
-                      <div className="border rounded-lg overflow-hidden mb-6">
-                        <div className="bg-muted p-4">
-                          <h3 className="font-medium text-lg">Seus Dados</h3>
-                        </div>
-                        <div className="p-4 space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Nome Completo</label>
-                            <input 
-                              type="text"
-                              value={guestName}
-                              onChange={(e) => setGuestName(e.target.value)}
-                              className="w-full p-2 border rounded-md bg-background"
-                              placeholder="Digite seu nome completo"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Telefone / Whatsapp</label>
-                            <input 
-                              type="tel"
-                              value={guestPhone}
-                              onChange={(e) => setGuestPhone(e.target.value)}
-                              className="w-full p-2 border rounded-md bg-background"
-                              placeholder="Digite seu número de telefone"
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                <CardFooter className="flex justify-between">
+                  {step > 1 ? (
+                    <Button variant="outline" onClick={prevStep}>
+                      Voltar
+                    </Button>
+                  ) : (
+                    step === 1 ? (
+                      <Button variant="outline" onClick={() => setStep(0)}>
+                        Voltar para o início
+                      </Button>
+                    ) : (
+                      <div></div> // Espaçador para manter o layout
+                    )
+                  )}
                   
-                    <div className="border rounded-lg overflow-hidden">
-                      <div className="bg-muted p-4">
-                        <h3 className="font-medium text-lg">Resumo do Agendamento</h3>
-                      </div>
-                      <div className="p-4 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Serviço</span>
-                          <span className="font-bold text-lg">{selectedService?.name}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Preço</span>
-                          <span className="font-bold text-lg">{selectedService?.price}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white text-opacity-60">Duração</span>
-                          <span className="font-bold">{selectedService?.duration} min</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white text-opacity-60">Barbeiro</span>
-                          <span className="font-bold">{barbers.find(b => b.id.toString() === barber)?.user?.fullName || "Carregando..."}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white text-opacity-60">Data</span>
-                          <span className="font-bold">{date ? format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : ""}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white text-opacity-60">Horário</span>
-                          <span className="font-bold">{time}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-primary bg-opacity-10 p-4 rounded-lg">
-                      <p className="text-sm">Ao confirmar este agendamento, você concorda com nossos termos de serviço e política de cancelamento.</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-              
-              <CardFooter className="flex justify-between">
-                {step > 1 ? (
-                  <Button variant="outline" onClick={prevStep}>
-                    Anterior
-                  </Button>
-                ) : (
-                  <div></div>
-                )}
-                
-                {step < 4 ? (
-                  <Button onClick={nextStep} disabled={!canProceed()}>
-                    Próximo
-                  </Button>
-                ) : (
-                  <Button onClick={handleBookingConfirmation}>
-                    Confirmar Agendamento
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
+                  {step < 4 ? (
+                    <Button 
+                      onClick={nextStep} 
+                      disabled={!canProceed()}
+                    >
+                      Próximo
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleCreateAppointment}
+                      disabled={!canProceed()}
+                    >
+                      Confirmar agendamento
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            </div>
+          </>
+        )}
+      </div>
+      
+      {/* Footer */}
+      <footer className="py-6 border-t">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+              <div className="bg-primary bg-opacity-20 p-2 rounded-full">
+                <Scissors className="h-4 w-4 text-primary" />
+              </div>
+              <span className="font-medium">Vossa Barbearia</span>
+            </div>
+            <div className="text-sm text-gray-500">
+              &copy; {new Date().getFullYear()} Vossa Barbearia. Todos os direitos reservados.
+            </div>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
