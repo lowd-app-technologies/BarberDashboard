@@ -24,6 +24,7 @@ export default function Settings() {
   const [appointmentReminders, setAppointmentReminders] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [language, setLanguage] = useState("pt");
+  const [newProfileImage, setNewProfileImage] = useState<string | null>(null);
 
   // Carregar preferências do usuário (tema e idioma) do servidor
   useEffect(() => {
@@ -113,6 +114,66 @@ export default function Settings() {
         language,
         theme
       });
+      
+      // Se houver uma nova imagem de perfil para salvar, enviar para o servidor
+      if (newProfileImage && user?.role === 'barber') {
+        try {
+          // Mostrar indicador de carregamento
+          toast({
+            title: "Atualizando...",
+            description: "Enviando foto de perfil",
+          });
+          
+          // Enviar para o servidor
+          const response = await fetch('/api/barber/profile-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageUrl: newProfileImage }),
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            toast({
+              title: "Foto atualizada",
+              description: "Sua foto de perfil foi atualizada com sucesso.",
+              variant: "default"
+            });
+            
+            // Limpar a imagem temporária
+            setNewProfileImage(null);
+            
+            // Atualizar o objeto de usuário na memória (evitando reload da página)
+            if (data.barber && user && 'barber' in user) {
+              const updatedUser = {
+                ...user,
+                barber: {
+                  ...user.barber,
+                  profileImage: data.barber.profileImage
+                }
+              };
+              // @ts-ignore - ignorando erro de tipos por ora
+              setUser && setUser(updatedUser);
+            } else {
+              // Se não conseguirmos atualizar o estado, recarregar a página
+              setTimeout(() => window.location.reload(), 1000);
+            }
+          } else {
+            const error = await response.json();
+            throw new Error(error.message || "Erro ao atualizar foto");
+          }
+        } catch (error: any) {
+          console.error("Erro ao enviar imagem:", error);
+          toast({
+            title: "Erro na foto",
+            description: error.message || "Não foi possível atualizar a foto de perfil.",
+            variant: "destructive"
+          });
+          // Continuar com as outras configurações mesmo que a foto falhe
+        }
+      }
       
       // Salvamos corretamente, exibir feedback
       toast({
@@ -313,77 +374,66 @@ export default function Settings() {
                         )}
                       </div>
                       <div className="space-y-2 flex-1">
-                        <Input 
-                          id="profile-image" 
-                          type="file" 
-                          accept="image/*"
-                          className="max-w-xs"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              // Verificar tamanho do arquivo (máximo 2MB)
-                              if (file.size > 2 * 1024 * 1024) {
-                                toast({
-                                  title: "Arquivo muito grande",
-                                  description: "O tamanho máximo permitido é 2MB.",
-                                  variant: "destructive"
-                                });
-                                return;
-                              }
+                        <div className="space-y-4">
+                          <Input 
+                            id="profile-image" 
+                            type="file" 
+                            accept="image/*"
+                            className="max-w-xs"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // Verificar tamanho do arquivo (máximo 2MB)
+                                if (file.size > 2 * 1024 * 1024) {
+                                  toast({
+                                    title: "Arquivo muito grande",
+                                    description: "O tamanho máximo permitido é 2MB.",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
 
-                              // Converter a imagem para uma URL base64
-                              const reader = new FileReader();
-                              reader.onload = async (event) => {
-                                if (event.target?.result) {
-                                  const imageUrl = event.target.result as string;
-                                  
-                                  try {
-                                    // Mostrar indicador de carregamento
-                                    toast({
-                                      title: "Atualizando...",
-                                      description: "Enviando foto de perfil",
-                                    });
+                                // Converter a imagem para uma URL base64
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  if (event.target?.result) {
+                                    // Armazenar temporariamente a imagem no estado
+                                    setNewProfileImage(event.target.result as string);
                                     
-                                    // Enviar para o servidor
-                                    const response = await fetch('/api/barber/profile-image', {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify({ imageUrl }),
-                                      credentials: 'include'
-                                    });
-                                    
-                                    if (response.ok) {
-                                      const data = await response.json();
-                                      toast({
-                                        title: "Sucesso!",
-                                        description: "Foto de perfil atualizada com sucesso.",
-                                        variant: "default"
-                                      });
-                                      
-                                      // Atualizar a página para mostrar a nova foto
-                                      setTimeout(() => {
-                                        window.location.reload();
-                                      }, 1500);
-                                    } else {
-                                      const error = await response.json();
-                                      throw new Error(error.message || "Erro ao atualizar foto");
-                                    }
-                                  } catch (error: any) {
-                                    console.error("Erro ao enviar imagem:", error);
+                                    // Mostrar mensagem de preview
                                     toast({
-                                      title: "Erro",
-                                      description: error.message || "Não foi possível atualizar a foto de perfil.",
-                                      variant: "destructive"
+                                      title: "Imagem selecionada",
+                                      description: "Clique em Salvar Alterações para atualizar sua foto de perfil.",
+                                      variant: "default"
                                     });
                                   }
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          
+                          {newProfileImage && (
+                            <div className="mt-3">
+                              <p className="text-sm text-muted-foreground mb-2">Preview:</p>
+                              <div className="relative w-24 h-24 rounded-full overflow-hidden border border-primary">
+                                <img 
+                                  src={newProfileImage} 
+                                  alt="Preview" 
+                                  className="w-full h-full object-cover" 
+                                />
+                              </div>
+                              
+                              <Button 
+                                variant="outline"
+                                className="mt-3"
+                                onClick={() => setNewProfileImage(null)}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           Adicione uma foto de perfil que será mostrada aos clientes durante o agendamento.
                           Formatos aceitos: JPG, PNG. Máximo 2MB.
