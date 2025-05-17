@@ -661,11 +661,15 @@ export default function Booking() {
                                   type="tel" 
                                   value={guestPhone}
                                   onChange={(e) => setGuestPhone(e.target.value)}
-                                  className="w-full p-2 border rounded-md"
+                                  className={`w-full p-2 border rounded-md ${formErrors.guestPhone ? 'border-red-500' : ''}`}
                                   placeholder="+351 912 345 678"
                                   required
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Formato: +351 seguido do número</p>
+                                {formErrors.guestPhone ? (
+                                  <p className="text-xs text-red-500 mt-1">{formErrors.guestPhone}</p>
+                                ) : (
+                                  <p className="text-xs text-gray-500 mt-1">Formato: +351 seguido do número</p>
+                                )}
                               </div>
                               <div>
                                 <label className="text-sm font-medium block mb-1">Email (opcional)</label>
@@ -673,14 +677,27 @@ export default function Booking() {
                                   type="email" 
                                   value={guestEmail}
                                   onChange={(e) => setGuestEmail(e.target.value)}
-                                  className="w-full p-2 border rounded-md"
+                                  className={`w-full p-2 border rounded-md ${formErrors.guestEmail ? 'border-red-500' : ''}`}
                                   placeholder="seu.email@exemplo.com"
                                 />
+                                {formErrors.guestEmail && (
+                                  <p className="text-xs text-red-500 mt-1">{formErrors.guestEmail}</p>
+                                )}
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
+                      
+                      {formErrors.general && (
+                        <Alert variant="destructive" className="mt-4">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Erro</AlertTitle>
+                          <AlertDescription>
+                            {formErrors.general}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   )}
                 </CardContent>
