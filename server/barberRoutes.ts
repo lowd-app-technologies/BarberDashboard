@@ -65,11 +65,18 @@ export function registerBarberRoutes(app: any) {
         return res.status(403).json({ message: 'Acesso permitido apenas para barbeiros' });
       }
       
-      // Buscar o barbeiro pelo ID do usuário
+      // Buscar o barbeiro pelo ID do usuário, incluindo os dados do usuário associado
       const barber = await storage.getBarberByUserId(req.session.userId);
       
       if (!barber) {
         return res.status(404).json({ message: 'Perfil de barbeiro não encontrado' });
+      }
+      
+      // Buscar os dados completos do usuário associado ao barbeiro
+      const barberUser = await storage.getUser(barber.userId);
+      
+      if (!barberUser) {
+        return res.status(404).json({ message: 'Dados de usuário do barbeiro não encontrados' });
       }
       
       const { 
@@ -92,16 +99,16 @@ export function registerBarberRoutes(app: any) {
         if (phone) userData.phone = phone;
         
         // Verificar se o novo username ou email já existem
-        if (username && username !== barber.user.username) {
+        if (username && username !== barberUser.username) {
           const existingUser = await storage.getUserByUsername(username);
-          if (existingUser && existingUser.id !== barber.user.id) {
+          if (existingUser && existingUser.id !== barberUser.id) {
             return res.status(400).json({ message: 'Este nome de usuário já está em uso' });
           }
         }
         
-        if (email && email !== barber.user.email) {
+        if (email && email !== barberUser.email) {
           const existingUser = await storage.getUserByEmail(email);
-          if (existingUser && existingUser.id !== barber.user.id) {
+          if (existingUser && existingUser.id !== barberUser.id) {
             return res.status(400).json({ message: 'Este email já está em uso' });
           }
         }
@@ -122,11 +129,14 @@ export function registerBarberRoutes(app: any) {
       // Só atualiza se houver dados para atualizar
       let updatedBarber = barber;
       if (Object.keys(barberData).length > 0) {
-        updatedBarber = await storage.updateBarber(barber.id, barberData);
+        const updated = await storage.updateBarber(barber.id, barberData);
+        if (updated) {
+          updatedBarber = updated;
+        }
       }
       
       // Buscar os dados atualizados
-      const refreshedBarber = await storage.getBarber(barber.id);
+      const refreshedBarber = await storage.getBarberWithUser(barber.id);
       
       if (!refreshedBarber) {
         return res.status(500).json({ message: 'Erro ao recarregar dados do perfil' });

@@ -98,7 +98,7 @@ export default function Settings() {
 
   const saveSettings = async () => {
     try {
-      // Salvar perfil e notificações
+      // Salvar notificações e preferências para todos os usuários
       await updateProfileMutation.mutateAsync({
         notifications: {
           email: emailNotifications,
@@ -109,47 +109,62 @@ export default function Settings() {
         }
       });
       
-      // Salvar preferências separadamente
+      // Salvar preferências de tema e idioma
       await updatePreferencesMutation.mutateAsync({
         language,
         theme
       });
       
-      // Se houver uma nova imagem de perfil para salvar, enviar para o servidor
-      if (newProfileImage && user?.role === 'barber') {
+      // Se o usuário for um barbeiro, atualizar o perfil completo usando a nova rota
+      if (user?.role === 'barber') {
         try {
           // Mostrar indicador de carregamento
           toast({
-            title: "Atualizando...",
-            description: "Enviando foto de perfil",
+            title: "Atualizando perfil...",
+            description: "Salvando suas informações de perfil",
           });
           
-          // Enviar para o servidor
-          const response = await fetch('/api/barber/profile-image', {
-            method: 'POST',
+          // Preparar os dados do perfil do barbeiro
+          const profileData: any = {
+            fullName: user.fullName || "",
+            username: user.username || "",
+            email: user.email || "",
+            phone: user.phone || "",
+            nif: user.barber?.nif || "",
+            iban: user.barber?.iban || "",
+            paymentPeriod: user.barber?.paymentPeriod || "monthly"
+          };
+          
+          // Adicionar a nova imagem de perfil se existir
+          if (newProfileImage) {
+            profileData.profileImage = newProfileImage;
+          }
+          
+          // Enviar para o servidor usando a nova rota de perfil completo
+          const response = await fetch('/api/barber/profile', {
+            method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ imageUrl: newProfileImage }),
+            body: JSON.stringify(profileData),
             credentials: 'include'
           });
           
           if (response.ok) {
             const data = await response.json();
             toast({
-              title: "Foto atualizada",
-              description: "Sua foto de perfil foi atualizada com sucesso.",
+              title: "Perfil atualizado",
+              description: "Suas informações de perfil foram atualizadas com sucesso.",
               variant: "default"
             });
             
             // Limpar a imagem temporária
             setNewProfileImage(null);
             
-            // Forçar um refresh da página para garantir que a imagem apareça corretamente
-            // e que todos os componentes sejam atualizados
+            // Forçar um refresh da página para garantir que os dados apareçam corretamente
             toast({
               title: "Recarregando...",
-              description: "Atualizando a interface para mostrar sua nova foto de perfil",
+              description: "Atualizando a interface com suas novas informações",
             });
             
             // Aguardar um momento para o usuário ver a mensagem de sucesso
@@ -158,25 +173,24 @@ export default function Settings() {
             }, 1500);
           } else {
             const error = await response.json();
-            throw new Error(error.message || "Erro ao atualizar foto");
+            throw new Error(error.message || "Erro ao atualizar perfil");
           }
         } catch (error: any) {
-          console.error("Erro ao enviar imagem:", error);
+          console.error("Erro ao atualizar perfil do barbeiro:", error);
           toast({
-            title: "Erro na foto",
-            description: error.message || "Não foi possível atualizar a foto de perfil.",
+            title: "Erro no perfil",
+            description: error.message || "Não foi possível atualizar seu perfil.",
             variant: "destructive"
           });
-          // Continuar com as outras configurações mesmo que a foto falhe
         }
+      } else {
+        // Para usuários não-barbeiros, apenas exibir confirmação
+        toast({
+          title: "Configurações salvas",
+          description: "Todas as suas configurações foram aplicadas com sucesso.",
+          variant: "default"
+        });
       }
-      
-      // Salvamos corretamente, exibir feedback
-      toast({
-        title: "Configurações salvas",
-        description: "Todas as suas configurações foram aplicadas com sucesso.",
-        variant: "default"
-      });
     } catch (error) {
       // Se ocorrer erro em qualquer uma das operações, já será capturado aqui
       console.error("Erro ao salvar configurações:", error);

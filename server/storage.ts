@@ -403,6 +403,19 @@ export class MemStorage implements IStorage {
     );
   }
   
+  async getBarberWithUser(barberId: number): Promise<BarberWithUser | undefined> {
+    // Buscar o barbeiro pelo ID
+    const barber = this.barbersData.get(barberId);
+    if (!barber) return undefined;
+    
+    // Buscar o usuário associado
+    const user = this.usersData.get(barber.userId);
+    if (!user) return undefined;
+    
+    // Retornar o barbeiro com os dados do usuário
+    return { ...barber, user };
+  }
+  
   async createBarber(barberData: InsertBarber): Promise<Barber> {
     const id = this.barberIdCounter++;
     const createdAt = new Date();
