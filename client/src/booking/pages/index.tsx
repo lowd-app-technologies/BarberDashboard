@@ -290,13 +290,13 @@ export default function Booking() {
         }
         
         appointmentData = {
-          barberId: parseInt(barber),
-          serviceId: parseInt(service),
+          barberId: Number(barber),
+          serviceId: Number(service),
           date: appointmentDate.toISOString(),
           status: "pending",
           guestName: guestName,
           guestPhone: guestPhone,
-          guestEmail: guestEmail || undefined, // Incluir email apenas se foi fornecido
+          guestEmail: guestEmail || null, // Incluir email apenas se foi fornecido (usando null em vez de undefined)
           saveClientData: true, // Indicar para salvar os dados do cliente
           notes: `Agendamento feito pelo cliente não logado: ${guestName} (${guestPhone}) - ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
         };
@@ -327,11 +327,36 @@ export default function Booking() {
           const apiErrors: {[key: string]: string} = {};
           
           errorData.error.forEach((err: any) => {
-            // Converter o caminho do erro (como "data.guestName") para o nome do campo (como "guestName")
-            const fieldMatch = err.path?.match(/\.(\w+)$/);
-            const fieldName = fieldMatch ? fieldMatch[1] : 'general';
-            apiErrors[fieldName] = err.message || 'Campo inválido';
+            try {
+              // Maneira mais segura de extrair o nome do campo do erro
+              let fieldName = 'general';
+              
+              if (err.path && Array.isArray(err.path)) {
+                // Pegamos o último elemento do caminho, que geralmente é o nome do campo
+                fieldName = err.path[err.path.length - 1] || 'general';
+              } else if (typeof err.path === 'string') {
+                // Se path for uma string, podemos tentar extrair o último segmento após um ponto
+                const parts = err.path.split('.');
+                fieldName = parts[parts.length - 1] || 'general';
+              }
+              
+              // Mapeamento de nomes de campo para campos do formulário
+              if (fieldName === 'guestName') fieldName = 'guestName';
+              else if (fieldName === 'guestPhone') fieldName = 'guestPhone';
+              else if (fieldName === 'guestEmail') fieldName = 'guestEmail';
+              
+              apiErrors[fieldName] = err.message || 'Campo inválido';
+            } catch (e) {
+              // Se ocorrer qualquer erro no processamento, usamos o erro genérico
+              apiErrors.general = 'Erro de validação no formulário';
+              console.error("Erro ao processar mensagem de erro:", e, err);
+            }
           });
+          
+          // Se não tivermos erros específicos, pelo menos mostramos um erro genérico
+          if (Object.keys(apiErrors).length === 0) {
+            apiErrors.general = 'Erro de validação no formulário. Verifique os campos preenchidos.';
+          }
           
           setFormErrors(apiErrors);
           
