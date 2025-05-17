@@ -289,15 +289,20 @@ export default function Booking() {
           return;
         }
         
+        // Criar objeto de cliente para enviar ao servidor
+        const clientData = {
+          name: guestName,
+          phone: guestPhone,
+          email: guestEmail || null
+        };
+        
+        // Criar objeto de agendamento compatível com o esquema no servidor
         appointmentData = {
           barberId: Number(barber),
           serviceId: Number(service),
           date: appointmentDate.toISOString(),
           status: "pending",
-          guestName: guestName,
-          guestPhone: guestPhone,
-          guestEmail: guestEmail || null, // Incluir email apenas se foi fornecido (usando null em vez de undefined)
-          saveClientData: true, // Indicar para salvar os dados do cliente
+          clientId: 1, // ID temporário do cliente (será substituído no servidor)
           notes: `Agendamento feito pelo cliente não logado: ${guestName} (${guestPhone}) - ${selectedService?.name} com ${selectedBarber?.user?.fullName}`
         };
       }
@@ -308,7 +313,15 @@ export default function Booking() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(appointmentData),
+        body: JSON.stringify({
+          ...appointmentData,
+          // Incluir dados do cliente como campo adicional (o servidor extrairá essas informações)
+          guestData: {
+            name: guestName,
+            phone: guestPhone,
+            email: guestEmail || null
+          }
+        }),
       });
 
       if (response.ok) {

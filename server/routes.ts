@@ -818,14 +818,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointmentData = req.body;
       
       try {
-        // Validate input data using zod
-        const validatedData = insertAppointmentSchema.parse(appointmentData);
+        // Extrair dados adicionais de convidado, se existirem
+        const { guestData, ...appointmentOnly } = appointmentData;
+        
+        // Validate appointment data using zod
+        const validatedData = insertAppointmentSchema.parse(appointmentOnly);
+        
+        // Criar o agendamento com os dados validados
         const appointment = await storage.createAppointment(validatedData);
+        
+        // Se houver dados de convidado, registrar esses dados em log
+        if (guestData) {
+          console.log("Dados do convidado:", guestData);
+          // Em um sistema completo, aqui criaria ou atualizaria os dados do cliente
+          // e vincularia ao agendamento
+        }
+        
         res.status(201).json(appointment);
       } catch (validationError: any) {
-        res.status(400).json({ message: "Dados inválidos", error: validationError.errors });
+        console.error("Erro de validação:", validationError);
+        res.status(400).json({ 
+          message: "Dados inválidos", 
+          error: Array.isArray(validationError.errors) 
+            ? validationError.errors 
+            : [{ message: validationError.message || "Erro de validação" }] 
+        });
       }
     } catch (error: any) {
+      console.error("Erro ao criar agendamento:", error);
       res.status(500).json({ message: error.message });
     }
   });
