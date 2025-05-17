@@ -25,6 +25,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Scissors, 
   Calendar as CalendarIcon, 
@@ -34,7 +40,8 @@ import {
   LogOut,
   Settings,
   CalendarDays,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -94,12 +101,14 @@ export default function Booking() {
   const [isBooked, setIsBooked] = useState(false);
   const [, navigate] = useLocation();
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const timeSlots = generateTimeSlots();
   
   // Estados para usuário não logado
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("+351"); // Prefixo Portugal
   const [guestEmail, setGuestEmail] = useState("");
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   
   // Dados de fallback para serviços caso a API falhe
   const fallbackServices: Service[] = [
@@ -230,6 +239,13 @@ export default function Booking() {
   // Lidar com a confirmação do agendamento
   const handleCreateAppointment = async () => {
     try {
+      // Limpar erros anteriores
+      setFormErrors({});
+      
+      // Validar dados antes de prosseguir
+      let hasErrors = false;
+      const newErrors: {[key: string]: string} = {};
+      
       const appointmentDate = new Date(date!);
       const [hours, minutes] = time.split(':').map(Number);
       appointmentDate.setHours(hours, minutes);
@@ -249,14 +265,27 @@ export default function Booking() {
         };
       } else {
         // Cliente não logado, usamos os dados fornecidos
-        if (!guestName || !guestPhone) {
-          alert("Por favor, preencha seu nome e telefone para continuar");
-          return;
+        if (!guestName) {
+          newErrors.guestName = "Nome é obrigatório";
+          hasErrors = true;
         }
         
-        // Verificar se o telefone começa com +351
-        if (!guestPhone.startsWith("+351")) {
-          alert("O telefone deve começar com o prefixo de Portugal (+351)");
+        if (!guestPhone) {
+          newErrors.guestPhone = "Telefone é obrigatório";
+          hasErrors = true;
+        } else if (!guestPhone.startsWith("+351")) {
+          newErrors.guestPhone = "O telefone deve começar com o prefixo de Portugal (+351)";
+          hasErrors = true;
+        }
+        
+        // Se tiver erros, atualizar o estado e parar
+        if (hasErrors) {
+          setFormErrors(newErrors);
+          toast({
+            title: "Erro no formulário",
+            description: "Por favor, corrija os campos destacados",
+            variant: "destructive"
+          });
           return;
         }
         
@@ -284,15 +313,48 @@ export default function Booking() {
 
       if (response.ok) {
         // Redirecionamos para a página de agradecimento
+        toast({
+          title: "Agendamento realizado!",
+          description: "Seu horário foi reservado com sucesso",
+        });
         navigate("/thank-you");
       } else {
         // Tratamento de erro
         const errorData = await response.json();
-        alert(`Erro ao criar agendamento: ${errorData.message || 'Ocorreu um erro desconhecido'}`);
+        
+        if (errorData.error && Array.isArray(errorData.error)) {
+          // Mapear os erros da API para os campos do formulário
+          const apiErrors: {[key: string]: string} = {};
+          
+          errorData.error.forEach((err: any) => {
+            // Converter o caminho do erro (como "data.guestName") para o nome do campo (como "guestName")
+            const fieldMatch = err.path?.match(/\.(\w+)$/);
+            const fieldName = fieldMatch ? fieldMatch[1] : 'general';
+            apiErrors[fieldName] = err.message || 'Campo inválido';
+          });
+          
+          setFormErrors(apiErrors);
+          
+          toast({
+            title: "Erro de validação",
+            description: "Verifique os campos do formulário",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Erro ao agendar",
+            description: errorData.message || 'Ocorreu um erro desconhecido',
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error("Erro ao criar agendamento:", error);
-      alert("Ocorreu um erro ao criar o agendamento. Por favor, tente novamente.");
+      toast({
+        title: "Erro no sistema",
+        description: "Ocorreu um erro ao criar o agendamento. Por favor, tente novamente.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -585,10 +647,13 @@ export default function Booking() {
                                   type="text" 
                                   value={guestName}
                                   onChange={(e) => setGuestName(e.target.value)}
-                                  className="w-full p-2 border rounded-md"
+                                  className={`w-full p-2 border rounded-md ${formErrors.guestName ? 'border-red-500' : ''}`}
                                   placeholder="Digite seu nome completo"
                                   required
                                 />
+                                {formErrors.guestName && (
+                                  <p className="text-xs text-red-500 mt-1">{formErrors.guestName}</p>
+                                )}
                               </div>
                               <div>
                                 <label className="text-sm font-medium block mb-1">Telefone / Whatsapp *</label>
