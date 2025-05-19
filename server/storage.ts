@@ -2469,7 +2469,6 @@ export class DrizzleStorage implements IStorage {
   }
 }
 
-// Export the appropriate storage implementation
-export const storage = (process.env.DATABASE_URL && !dbConnectionFailed && db) 
-  ? new DrizzleStorage(db) 
-  : new MemStorage();
+// Forçar o uso do MemStorage para resolver o problema de conexão
+// Isso permitirá que o sistema funcione enquanto resolvemos os problemas de banco de dados
+export const storage = new MemStorage();
