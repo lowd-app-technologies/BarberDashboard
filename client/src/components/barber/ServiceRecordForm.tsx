@@ -64,9 +64,18 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
     queryKey: ['/api/services'],
     queryFn: async () => {
       console.log("Buscando serviços");
-      const response = await apiRequest('GET', '/api/services');
-      console.log("Serviços recebidos:", response);
-      return response;
+      try {
+        const res = await fetch('/api/services');
+        if (!res.ok) {
+          throw new Error('Falha ao carregar serviços');
+        }
+        const data = await res.json();
+        console.log("Serviços recebidos:", data);
+        return data;
+      } catch (error) {
+        console.error("Erro ao buscar serviços:", error);
+        return [];
+      }
     },
   });
 
@@ -75,9 +84,23 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
     queryKey: ['/api/clients'],
     queryFn: async () => {
       console.log("Buscando clientes");
-      const response = await apiRequest('GET', '/api/clients');
-      console.log("Clientes recebidos:", response);
-      return response;
+      try {
+        const res = await fetch('/api/clients', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!res.ok) {
+          throw new Error('Falha ao carregar clientes');
+        }
+        const data = await res.json();
+        console.log("Clientes recebidos:", data);
+        return data;
+      } catch (error) {
+        console.error("Erro ao buscar clientes:", error);
+        return [];
+      }
     },
   });
 
