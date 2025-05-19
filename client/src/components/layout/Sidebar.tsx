@@ -102,6 +102,12 @@ export function Sidebar() {
         show: user?.role === "admin",
       },
       {
+        title: "Serviços Realizados",
+        icon: <ClipboardCheck className="h-5 w-5" />,
+        path: "/admin/completed-services",
+        show: user?.role === "admin",
+      },
+      {
         title: "Convidar Barbeiro",
         icon: <UserPlus className="h-5 w-5" />,
         path: "/admin/invite-barber",
@@ -139,6 +145,12 @@ export function Sidebar() {
         title: "Vendas de Produtos",
         icon: <FileText className="h-5 w-5" />,
         path: "/barber/product-sales",
+        show: user?.role === "barber",
+      },
+      {
+        title: "Serviços Realizados",
+        icon: <ClipboardCheck className="h-5 w-5" />,
+        path: "/barber/completed-services",
         show: user?.role === "barber",
       },
       {

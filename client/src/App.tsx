@@ -124,7 +124,8 @@ function Router() {
       location === "/payments" ||
       location === "/products" ||
       location === "/settings" ||
-      location === "/product-sales") {
+      location === "/product-sales" ||
+      location === "/completed-services") {
     return (
       <Switch>
         <Route path="/" component={Dashboard} />
@@ -135,6 +136,7 @@ function Router() {
         <Route path="/payments" component={Payments} />
         <Route path="/products" component={Products} />
         <Route path="/product-sales" component={ProductSales} />
+        <Route path="/completed-services" component={CompletedServices} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
