@@ -2257,13 +2257,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Verificar o papel do usuário para decidir quais vendas exibir
         if (req.session.userRole === 'admin') {
-          // Administradores veem todas as vendas da semana
-          productSales = await storage.getWeeklyProductSales();
+          // Administradores veem todas as vendas 
+          productSales = await storage.getAllProductSales();
         } else if (req.session.userRole === 'barber') {
           // Barbeiros veem apenas suas próprias vendas
           const barber = await storage.getBarberByUserId(req.session.userId);
           if (barber) {
-            productSales = await storage.getWeeklyProductSalesByBarber(barber.id);
+            productSales = await storage.getProductSalesByBarber(barber.id);
           }
         } else {
           // Se não for admin nem barbeiro, não mostra vendas
