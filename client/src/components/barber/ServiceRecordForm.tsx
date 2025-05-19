@@ -143,11 +143,21 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
 
   // Submit do formulário
   const onSubmit = (data: ServiceRecordFormValues) => {
+    if (!user?.barber?.id) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado como barbeiro para registrar serviços.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     createServiceRecordMutation.mutate({
       serviceId: parseInt(data.serviceId),
       clientId: parseInt(data.clientId),
+      barberId: user.barber.id,
       date: data.date,
-      price: parseFloat(data.price),
+      price: data.price,
       notes: data.notes || null,
     });
   };
