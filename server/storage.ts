@@ -2054,7 +2054,47 @@ export class DrizzleStorage implements IStorage {
       return [];
     }
   }
-  async createCompletedService(service: InsertCompletedService): Promise<CompletedService> { throw new Error("Not implemented"); }
+  async createCompletedService(service: InsertCompletedService): Promise<CompletedService> {
+    try {
+      // Inserir no banco de dados
+      const result = await db.insert(completedServices).values({
+        serviceId: service.serviceId,
+        barberId: service.barberId,
+        clientId: service.clientId,
+        date: service.date,
+        price: service.price,
+        commission: service.commission,
+        status: service.status || 'pending',
+        paymentId: service.paymentId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      if (!result || result.length === 0) {
+        throw new Error("Falha ao criar registro de serviço");
+      }
+
+      const createdService = result[0];
+      
+      // Buscar informações relacionadas
+      const serviceInfo = await db.query.services.findFirst({
+        where: eq(services.id, createdService.serviceId)
+      });
+      
+      const barberInfo = await db.query.barbers.findFirst({
+        where: eq(barbers.id, createdService.barberId)
+      });
+
+      return {
+        ...createdService,
+        serviceName: serviceInfo?.name || 'Serviço desconhecido',
+        barberName: barberInfo ? `Barbeiro #${barberInfo.userId}` : 'Desconhecido'
+      };
+    } catch (error) {
+      console.error("Error in createCompletedService:", error);
+      throw error;
+    }
+  }
   async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
   async deleteCompletedService(id: number): Promise<void> { throw new Error("Not implemented"); }
   async createActionLog(log: InsertActionLog): Promise<ActionLog> {
