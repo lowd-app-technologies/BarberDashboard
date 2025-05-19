@@ -1116,11 +1116,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/completed-services', async (req: Request, res: Response) => {
     try {
+      // Verificar autenticação
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+      
+      // Obter informações do usuário
+      const currentUser = await storage.getUserById(req.session.userId);
+      
       const { barberId, serviceId, clientId, clientName, price, date, appointmentId, notes } = req.body;
       
       // Validar dados
       if (!barberId || !serviceId || price === undefined || !date) {
         return res.status(400).json({ message: "Dados incompletos para o registro do serviço" });
+      }
+      
+      // Verificação adicional para garantir que o usuário tem permissão
+      // Permitir se o usuário for admin ou se for o próprio barbeiro
+      const isAdmin = currentUser?.role === 'admin';
+      const isBarber = currentUser?.role === 'barber';
+      
+      // Para barbeiros, verificar se está adicionando serviço para si mesmo
+      if (!isAdmin && isBarber) {
+        // Buscar informações do barbeiro pelo userId
+        const userBarber = await storage.getBarberByUserId(req.session.userId);
+        
+        if (!userBarber || userBarber.id !== barberId) {
+          console.log('Tentativa de adicionar serviço para outro barbeiro:', 
+                      { sessionUserId: req.session.userId, barberId });
+          return res.status(403).json({ 
+            message: "Como barbeiro, você só pode registrar serviços para si mesmo" 
+          });
+        }
       }
       
       // Verificar se o barbeiro existe

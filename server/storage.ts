@@ -398,18 +398,18 @@ export class MemStorage implements IStorage {
   
   async getBarberByUserId(userId: number): Promise<Barber | undefined> {
     // Encontrar um barbeiro pelo ID do usuário associado
-    return Array.from(this.barbersData.values()).find(
+    return Array.from(this.barbers.values()).find(
       (barber) => barber.userId === userId
     );
   }
   
   async getBarberWithUser(barberId: number): Promise<BarberWithUser | undefined> {
     // Buscar o barbeiro pelo ID
-    const barber = this.barbersData.get(barberId);
+    const barber = this.barbers.get(barberId);
     if (!barber) return undefined;
     
     // Buscar o usuário associado
-    const user = this.usersData.get(barber.userId);
+    const user = this.users.get(barber.userId);
     if (!user) return undefined;
     
     // Retornar o barbeiro com os dados do usuário
