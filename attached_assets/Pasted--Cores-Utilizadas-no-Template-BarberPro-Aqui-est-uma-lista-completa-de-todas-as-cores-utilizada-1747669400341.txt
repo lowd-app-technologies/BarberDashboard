@@ -1,0 +1,106 @@
+### Cores Utilizadas no Template BarberPro
+
+Aqui está uma lista completa de todas as cores utilizadas no template da landing page do BarberPro, organizadas por categoria para facilitar a implementação no dashboard:
+
+## Cores Principais (Identidade Visual)
+
+### Vermelho
+
+- `text-red-600` - Texto vermelho principal
+- `bg-red-600` - Fundo vermelho principal (botões)
+- `hover:bg-red-700` - Hover de botões vermelhos
+- `border-red-600` - Bordas vermelhas
+- `from-red-600` - Início de gradientes
+- `from-red-900/40` - Início de gradientes com transparência
+- `bg-red-600/20` - Fundo vermelho com transparência (ícones)
+
+
+### Azul
+
+- `text-blue-500` - Texto azul claro
+- `text-blue-600` - Texto azul principal
+- `bg-blue-600` - Fundo azul principal
+- `hover:bg-blue-700` - Hover de botões azuis
+- `border-blue-600` - Bordas azuis
+- `to-blue-600` - Final de gradientes
+- `to-blue-900/40` - Final de gradientes com transparência
+- `bg-blue-600/20` - Fundo azul com transparência (ícones)
+- `hover:bg-blue-950` - Hover de botões outline azuis
+
+
+## Cores de Fundo
+
+### Tons Escuros
+
+- `bg-zinc-900` - Fundo principal (corpo da página, header)
+- `bg-zinc-800` - Fundo de cards e elementos secundários
+
+
+### Bordas
+
+- `border-zinc-800` - Bordas principais (separação de seções)
+- `border-zinc-700` - Bordas de cards
+
+
+## Cores de Texto
+
+### Texto Principal
+
+- `text-white` - Texto branco (títulos, botões)
+
+
+### Texto Secundário
+
+- `text-zinc-300` - Links de navegação
+- `text-zinc-400` - Texto de parágrafos e descrições
+- `text-zinc-500` - Texto de copyright (footer)
+
+
+## Gradientes
+
+- `bg-gradient-to-r from-red-600 to-blue-600` - Gradiente principal (logo, bordas de imagens)
+- `bg-gradient-to-r from-red-900/40 to-blue-900/40` - Gradiente com transparência (seção CTA)
+
+
+## Efeitos e Estados
+
+- `hover:text-white` - Hover de links
+- `hover:text-red-600` - Hover de ícones sociais
+- `hover:text-blue-600` - Hover de ícones sociais
+- `hover:border-red-600` - Hover de bordas de cards
+- `hover:border-blue-600` - Hover de bordas de cards
+
+
+## Valores Hexadecimais (para implementação direta)
+
+### Cores Principais
+
+- Vermelho principal: `#dc2626` (red-600)
+- Vermelho hover: `#b91c1c` (red-700)
+- Azul principal: `#2563eb` (blue-600)
+- Azul claro (texto): `#3b82f6` (blue-500)
+- Azul hover: `#1d4ed8` (blue-700)
+- Azul escuro (hover outline): `#172554` (blue-950)
+
+
+### Cores de Fundo
+
+- Fundo principal: `#18181b` (zinc-900)
+- Fundo secundário: `#27272a` (zinc-800)
+
+
+### Cores de Texto
+
+- Texto principal: `#ffffff` (white)
+- Texto secundário: `#d4d4d8` (zinc-300)
+- Texto de parágrafos: `#a1a1aa` (zinc-400)
+- Texto de copyright: `#71717a` (zinc-500)
+
+
+### Cores de Bordas
+
+- Bordas principais: `#27272a` (zinc-800)
+- Bordas de cards: `#3f3f46` (zinc-700)
+
+
+Estas cores formam a paleta completa utilizada no template do BarberPro, mantendo a identidade visual de barbearia tradicional com o contraste entre o fundo escuro e os detalhes em vermelho e azul.

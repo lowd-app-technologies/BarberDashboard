@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* Base colors */
+  /* Base colors - Light mode */
   --background: 0 0% 98%;
   --foreground: 0 0% 12%;
   
@@ -20,12 +20,12 @@
   --border: 0 0% 82%;
   --input: 0 0% 82%;
   
-  /* Brand colors */
-  --primary: 46 74% 52%; /* Gold */
-  --primary-foreground: 0 0% 7%;
+  /* Brand colors - BarberPro */
+  --primary: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
+  --primary-foreground: 0 0% 100%; /* Branco */
   
-  --secondary: 353 56% 30%; /* Wine */
-  --secondary-foreground: 0 0% 98%;
+  --secondary: 220 84% 53%; /* Azul principal #2563eb (blue-600) */
+  --secondary-foreground: 0 0% 100%; /* Branco */
   
   --accent: 0 0% 90%;
   --accent-foreground: 0 0% 12%;
@@ -39,80 +39,80 @@
   --error: 0 68% 42%;
   
   /* Chart colors */
-  --chart-1: 46 74% 52%;
-  --chart-2: 353 56% 30%;
-  --chart-3: 36 100% 50%;
-  --chart-4: 122 39% 34%;
-  --chart-5: 0 84% 60%;
+  --chart-1: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
+  --chart-2: 220 84% 53%; /* Azul principal #2563eb (blue-600) */
+  --chart-3: 215 95% 61%; /* Azul claro #3b82f6 (blue-500) */
+  --chart-4: 0 82% 45%; /* Vermelho hover #b91c1c (red-700) */
+  --chart-5: 220 76% 48%; /* Azul hover #1d4ed8 (blue-700) */
   
   /* Sidebar specific colors */
   --sidebar-background: 0 0% 95%;
   --sidebar-foreground: 0 0% 12%;
-  --sidebar-primary: 46 74% 52%;
-  --sidebar-primary-foreground: 0 0% 7%;
+  --sidebar-primary: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
+  --sidebar-primary-foreground: 0 0% 100%; /* Branco */
   --sidebar-accent: 0 0% 90%;
   --sidebar-accent-foreground: 0 0% 12%;
   --sidebar-border: 0 0% 82%;
   --sidebar-ring: 0 0% 82%;
   
-  --ring: 46 74% 52%;
+  --ring: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
   --radius: 0.5rem;
 }
 
 .dark {
-  /* Base colors */
-  --background: 0 0% 7%;
-  --foreground: 0 0% 95%;
+  /* Base colors - Dark mode (seguindo o design da landing page) */
+  --background: 240 4% 10%; /* #18181b (zinc-900) */
+  --foreground: 0 0% 100%; /* #ffffff (white) */
   
   /* Component colors */
-  --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 60%;
+  --muted: 240 5% 16%; /* #27272a (zinc-800) */
+  --muted-foreground: 240 5% 84%; /* #d4d4d8 (zinc-300) */
   
-  --popover: 0 0% 12%;
-  --popover-foreground: 0 0% 95%;
+  --popover: 240 5% 16%; /* #27272a (zinc-800) */
+  --popover-foreground: 0 0% 100%; /* #ffffff (white) */
   
-  --card: 0 0% 12%;
-  --card-foreground: 0 0% 95%;
+  --card: 240 5% 16%; /* #27272a (zinc-800) */
+  --card-foreground: 0 0% 100%; /* #ffffff (white) */
   
-  --border: 0 0% 20%;
-  --input: 0 0% 20%;
+  --border: 240 4% 26%; /* #3f3f46 (zinc-700) */
+  --input: 240 5% 16%; /* #27272a (zinc-800) */
   
-  /* Brand colors */
-  --primary: 46 74% 52%; /* Gold */
-  --primary-foreground: 0 0% 7%;
+  /* Brand colors - BarberPro */
+  --primary: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
+  --primary-foreground: 0 0% 100%; /* Branco */
   
-  --secondary: 353 56% 30%; /* Wine */
-  --secondary-foreground: 0 0% 98%;
+  --secondary: 220 84% 53%; /* Azul principal #2563eb (blue-600) */
+  --secondary-foreground: 0 0% 100%; /* Branco */
   
-  --accent: 0 0% 20%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 240 5% 16%; /* #27272a (zinc-800) */
+  --accent-foreground: 0 0% 100%; /* #ffffff (white) */
   
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 82% 45%; /* #b91c1c (red-700) */
+  --destructive-foreground: 0 0% 100%; /* #ffffff (white) */
   
   /* Status colors */
-  --success: 122 39% 34%;
-  --warning: 36 100% 50%;
-  --error: 0 68% 42%;
+  --success: 142 71% 45%; /* #22c55e (green-500) */
+  --warning: 36 100% 50%; /* #ffc107 (yellow-500) */
+  --error: 0 68% 42%; /* #ef4444 (red-500) */
   
   /* Chart colors */
-  --chart-1: 46 74% 52%;
-  --chart-2: 353 56% 30%;
-  --chart-3: 36 100% 50%;
-  --chart-4: 122 39% 34%;
-  --chart-5: 0 84% 60%;
+  --chart-1: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
+  --chart-2: 220 84% 53%; /* Azul principal #2563eb (blue-600) */
+  --chart-3: 215 95% 61%; /* Azul claro #3b82f6 (blue-500) */
+  --chart-4: 0 82% 45%; /* Vermelho hover #b91c1c (red-700) */
+  --chart-5: 220 76% 48%; /* Azul hover #1d4ed8 (blue-700) */
   
   /* Sidebar specific colors */
-  --sidebar-background: 0 0% 12%;
-  --sidebar-foreground: 0 0% 95%;
-  --sidebar-primary: 46 74% 52%;
-  --sidebar-primary-foreground: 0 0% 7%;
-  --sidebar-accent: 0 0% 20%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 20%;
-  --sidebar-ring: 0 0% 20%;
+  --sidebar-background: 240 4% 10%; /* #18181b (zinc-900) */
+  --sidebar-foreground: 0 0% 100%; /* #ffffff (white) */
+  --sidebar-primary: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
+  --sidebar-primary-foreground: 0 0% 100%; /* Branco */
+  --sidebar-accent: 240 5% 16%; /* #27272a (zinc-800) */
+  --sidebar-accent-foreground: 240 5% 84%; /* #d4d4d8 (zinc-300) */
+  --sidebar-border: 240 5% 16%; /* #27272a (zinc-800) */
+  --sidebar-ring: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
   
-  --ring: 46 74% 52%;
+  --ring: 0 74% 50%; /* Vermelho principal #dc2626 (red-600) */
   --radius: 0.5rem;
 }
 
@@ -137,35 +137,61 @@
   }
 }
 
-/* Custom classes */
-.barber-pro-text-gold {
-  @apply text-primary;
+/* Custom classes BarberPro */
+.barber-pro-text-red {
+  @apply text-[hsl(var(--primary))];
 }
 
-.barber-pro-bg-gold {
-  @apply bg-primary;
+.barber-pro-bg-red {
+  @apply bg-[hsl(var(--primary))];
 }
 
-.barber-pro-text-wine {
-  @apply text-secondary;
+.barber-pro-text-blue {
+  @apply text-[hsl(var(--secondary))];
 }
 
-.barber-pro-bg-wine {
-  @apply bg-secondary;
+.barber-pro-bg-blue {
+  @apply bg-[hsl(var(--secondary))];
 }
 
 .barber-pro-bg-dark {
-  @apply bg-background;
+  @apply bg-[#18181b]; /* zinc-900 */
 }
 
 .barber-pro-bg-graphite {
-  @apply bg-card;
+  @apply bg-[#27272a]; /* zinc-800 */
 }
 
 .barber-pro-border-dark {
-  @apply border-border;
+  @apply border-[#3f3f46]; /* zinc-700 */
 }
 
+.barber-pro-text-white {
+  @apply text-white;
+}
+
+.barber-pro-text-light {
+  @apply text-[#d4d4d8]; /* zinc-300 */
+}
+
+.barber-pro-text-muted {
+  @apply text-[#a1a1aa]; /* zinc-400 */
+}
+
+.barber-pro-text-subtle {
+  @apply text-[#71717a]; /* zinc-500 */
+}
+
+/* Gradientes */
+.barber-pro-gradient {
+  @apply bg-gradient-to-r from-[#dc2626] to-[#2563eb]; /* red-600 to blue-600 */
+}
+
+.barber-pro-gradient-transparent {
+  @apply bg-gradient-to-r from-[rgba(185,28,28,0.4)] to-[rgba(29,78,216,0.4)]; /* red-900/40 to blue-900/40 */
+}
+
+/* Status colors */
 .barber-pro-success {
   @apply text-[hsl(var(--success))];
 }
@@ -176,4 +202,37 @@
 
 .barber-pro-error {
   @apply text-[hsl(var(--error))];
+}
+
+/* Efeitos de hover */
+.barber-pro-hover-red:hover {
+  @apply text-[#dc2626]; /* red-600 */
+}
+
+.barber-pro-hover-blue:hover {
+  @apply text-[#2563eb]; /* blue-600 */
+}
+
+.barber-pro-hover-white:hover {
+  @apply text-white;
+}
+
+.barber-pro-hover-bg-red:hover {
+  @apply bg-[#b91c1c]; /* red-700 */
+}
+
+.barber-pro-hover-bg-blue:hover {
+  @apply bg-[#1d4ed8]; /* blue-700 */
+}
+
+.barber-pro-hover-bg-blue-dark:hover {
+  @apply bg-[#172554]; /* blue-950 */
+}
+
+.barber-pro-hover-border-red:hover {
+  @apply border-[#dc2626]; /* red-600 */
+}
+
+.barber-pro-hover-border-blue:hover {
+  @apply border-[#2563eb]; /* blue-600 */
 }
