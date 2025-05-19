@@ -398,14 +398,34 @@ export default function Products() {
                 </CardContent>
                 {isAdmin && (
                   <CardFooter className="flex justify-between gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}>
-                      <Edit className="mr-2 h-4 w-4" /> Editar
+                    <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)} disabled={updateProductMutation.isPending}>
+                      {updateProductMutation.isPending && updateProductMutation.variables?.id === product.id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Edit className="mr-2 h-4 w-4" />
+                      )} 
+                      Editar
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleAddCommission(product)}>
-                      <Check className="mr-2 h-4 w-4" /> Comissão
+                    <Button variant="outline" size="sm" onClick={() => handleAddCommission(product)} disabled={createCommissionMutation.isPending}>
+                      {createCommissionMutation.isPending && createCommissionMutation.variables?.productId === product.id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="mr-2 h-4 w-4" />
+                      )} 
+                      Comissão
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteProduct(product.id)}>
-                      <Trash className="mr-2 h-4 w-4" /> Excluir
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDeleteProduct(product.id)}
+                      disabled={deleteProductMutation.isPending}
+                    >
+                      {deleteProductMutation.isPending && deleteProductMutation.variables === product.id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash className="mr-2 h-4 w-4" />
+                      )} 
+                      Excluir
                     </Button>
                   </CardFooter>
                 )}
