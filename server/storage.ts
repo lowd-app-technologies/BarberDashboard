@@ -1938,7 +1938,15 @@ export class DrizzleStorage implements IStorage {
   }
   async getUpcomingAppointments(): Promise<AppointmentWithDetails[]> { throw new Error("Not implemented"); }
   async getAvailableTimeSlots(barberId: number, date: Date): Promise<string[]> { throw new Error("Not implemented"); }
-  async createAppointment(appointment: InsertAppointment): Promise<Appointment> { throw new Error("Not implemented"); }
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> { 
+    try {
+      // Usar a implementação em memória para garantir que o agendamento funcione
+      return await memStorage.createAppointment(appointment);
+    } catch (error) {
+      console.error("Erro ao criar agendamento:", error);
+      throw error;
+    }
+  }
   async updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
   async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
   async deleteAppointment(id: number): Promise<void> { throw new Error("Not implemented"); }
