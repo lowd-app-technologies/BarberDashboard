@@ -1191,8 +1191,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calcular comissão com base nas configurações do barbeiro
-      // Por padrão, vamos usar 50% do valor como comissão
-      const commission = (parseFloat(price) * 0.5).toFixed(2);
+      // Calcular comissão (mas não salvar diretamente na tabela de serviços)
+      // A comissão pode ser calculada quando necessário a partir do preço
+      const commissionValue = (parseFloat(price) * 0.5).toFixed(2);
+      console.log("Comissão calculada:", commissionValue);
       
       // Criar o registro do serviço completado
       // Garantir que a data seja válida
@@ -1204,12 +1206,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         barberId,
         serviceId,
         clientId: clientIdToUse,
+        clientName,
         price,
-        commission,
         date: dateToUse,
-        status: "completed",
         appointmentId: appointmentId || null,
-        paymentId: null
+        validatedByAdmin: null
       });
       
       // Se baseado em um agendamento, atualizar o status do agendamento
