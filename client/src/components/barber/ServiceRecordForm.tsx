@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Form, 
   FormControl, 
@@ -55,18 +56,29 @@ interface ServiceRecordFormProps {
 
 export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [date, setDate] = useState<Date | undefined>(new Date());
 
   // Buscar serviços
   const { data: services, isLoading: isLoadingServices } = useQuery({
     queryKey: ['/api/services'],
-    queryFn: () => apiRequest('GET', '/api/services'),
+    queryFn: async () => {
+      console.log("Buscando serviços");
+      const response = await apiRequest('GET', '/api/services');
+      console.log("Serviços recebidos:", response);
+      return response;
+    },
   });
 
   // Buscar clientes
   const { data: clients, isLoading: isLoadingClients } = useQuery({
     queryKey: ['/api/clients'],
-    queryFn: () => apiRequest('GET', '/api/clients'),
+    queryFn: async () => {
+      console.log("Buscando clientes");
+      const response = await apiRequest('GET', '/api/clients');
+      console.log("Clientes recebidos:", response);
+      return response;
+    },
   });
 
   // Formulário
@@ -97,10 +109,21 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
   // Criar registro de serviço
   const createServiceRecordMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Enviando dados para API:", data);
       return await apiRequest("POST", "/api/completed-services", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-services'] });
+      if (user?.barber?.id) {
+        // Invalidar especificamente a consulta dos serviços deste barbeiro
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/completed-services/barber', user.barber.id] 
+        });
+      }
+      // Também invalidar a consulta geral
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/completed-services'] 
+      });
+      
       toast({
         title: "Serviço registrado com sucesso",
         description: "O registro do serviço foi criado."
@@ -109,6 +132,7 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
       if (onSuccess) onSuccess();
     },
     onError: (error: any) => {
+      console.error("Erro ao registrar serviço:", error);
       toast({
         title: "Erro ao registrar serviço",
         description: error.message || "Ocorreu um erro ao registrar o serviço.",
@@ -146,11 +170,15 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="0">Selecione um serviço</SelectItem>
-                    {Array.isArray(services) && services.map((service: any) => (
-                      <SelectItem key={service.id} value={service.id.toString()}>
-                        {service.name}
-                      </SelectItem>
-                    ))}
+                    {Array.isArray(services) ? (
+                      services.map((service: any) => (
+                        <SelectItem key={service.id} value={service.id.toString()}>
+                          {service.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="-1">Carregando serviços...</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -172,11 +200,15 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="0">Selecione um cliente</SelectItem>
-                    {Array.isArray(clients) && clients.map((client: any) => (
-                      <SelectItem key={client.id} value={client.id.toString()}>
-                        {client.fullName}
-                      </SelectItem>
-                    ))}
+                    {Array.isArray(clients) ? (
+                      clients.map((client: any) => (
+                        <SelectItem key={client.id} value={client.id.toString()}>
+                          {client.fullName}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="-1">Carregando clientes...</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
