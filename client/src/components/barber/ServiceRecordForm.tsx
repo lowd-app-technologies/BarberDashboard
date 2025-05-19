@@ -133,7 +133,7 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
   const createServiceRecordMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Enviando dados para API:", data);
-      return await apiRequest("POST", "/api/completed-services", data);
+      return await apiRequest("POST", "/api/barber/services", data);
     },
     onSuccess: () => {
       if (user?.barber?.id) {

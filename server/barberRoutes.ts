@@ -2,6 +2,118 @@ import { Request, Response } from "express";
 import { storage } from "./storage";
 
 export function registerBarberRoutes(app: any) {
+  // Rota para barbeiro registrar um serviço completado 
+  app.post('/api/barber/services', async (req: Request, res: Response) => {
+    try {
+      // Verificar se usuário está autenticado e é um barbeiro
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+      
+      if (req.session.userRole !== 'barber') {
+        return res.status(403).json({ message: 'Acesso permitido apenas para barbeiros' });
+      }
+      
+      // Buscar o barbeiro pelo ID do usuário
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      
+      if (!barber) {
+        return res.status(404).json({ message: 'Perfil de barbeiro não encontrado' });
+      }
+      
+      // Extrair dados do corpo da requisição
+      const { 
+        serviceId, 
+        clientId, 
+        clientName, 
+        price, 
+        date, 
+        notes 
+      } = req.body;
+      
+      // Validações
+      if (!serviceId || !clientName || !price || !date) {
+        return res.status(400).json({ 
+          message: 'Dados incompletos. Necessário: serviceId, clientName, price e date' 
+        });
+      }
+      
+      // Verificar se o serviço existe
+      const service = await storage.getService(parseInt(serviceId));
+      if (!service) {
+        return res.status(404).json({ message: 'Serviço não encontrado' });
+      }
+      
+      // Converter data para objeto Date
+      const serviceDate = new Date(date);
+      
+      console.log('Dados do serviço a ser registrado:', {
+        barberId: barber.id,
+        serviceId: parseInt(serviceId),
+        clientId: clientId ? parseInt(clientId) : null,
+        clientName,
+        price,
+        date: serviceDate,
+        notes
+      });
+      
+      // Criar o registro de serviço
+      const completedService = await storage.createCompletedService({
+        barberId: barber.id,
+        serviceId: parseInt(serviceId),
+        clientId: clientId ? parseInt(clientId) : null,
+        clientName,
+        price,
+        date: serviceDate,
+        validatedByAdmin: false
+      });
+      
+      // Registrar a ação no log
+      await storage.createActionLog({
+        userId: req.session.userId,
+        action: 'create',
+        entity: 'completed_service',
+        entityId: completedService.id,
+        details: `Serviço ${service.name} registrado para o cliente ${clientName}`
+      });
+      
+      // Retornar o serviço criado
+      return res.status(201).json(completedService);
+    } catch (error: any) {
+      console.error('Erro ao registrar serviço:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Rota para obter serviços do barbeiro
+  app.get('/api/barber/services', async (req: Request, res: Response) => {
+    try {
+      // Verificar se usuário está autenticado e é um barbeiro
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Não autorizado' });
+      }
+      
+      if (req.session.userRole !== 'barber') {
+        return res.status(403).json({ message: 'Acesso permitido apenas para barbeiros' });
+      }
+      
+      // Buscar o barbeiro pelo ID do usuário
+      const barber = await storage.getBarberByUserId(req.session.userId);
+      
+      if (!barber) {
+        return res.status(404).json({ message: 'Perfil de barbeiro não encontrado' });
+      }
+      
+      // Buscar serviços realizados pelo barbeiro
+      const services = await storage.getCompletedServicesByBarber(barber.id);
+      
+      return res.json(services);
+    } catch (error: any) {
+      console.error('Erro ao buscar serviços do barbeiro:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   // Rota para atualizar foto de perfil do barbeiro
   app.post('/api/barber/profile-image', async (req: Request, res: Response) => {
     try {
