@@ -2025,7 +2025,12 @@ export class DrizzleStorage implements IStorage {
   }
   async getAllCompletedServices(): Promise<CompletedService[]> {
     try {
-      // Buscar diretamente do banco de dados usando select
+      // Na implementação com memória, usamos o Map existente
+      if (this instanceof MemStorage) {
+        return Array.from(this.completedServicesData.values());
+      }
+      
+      // Na implementação com banco de dados, usamos o Drizzle
       const services = await db.select().from(completedServices);
       
       // Mapear para o formato esperado

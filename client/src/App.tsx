@@ -15,6 +15,7 @@ import Payments from "@/pages/payments";
 import Clients from "@/pages/clients";
 import Products from "@/pages/products";
 import ProductSales from "@/pages/product-sales";
+import CompletedServices from "@/pages/completed-services";
 
 // Barber Pages
 import InviteBarber from "@/pages/barber/invite";
@@ -89,6 +90,7 @@ function Router() {
         <Route path="/admin/clients" component={Clients} />
         <Route path="/admin/products" component={Products} />
         <Route path="/admin/product-sales" component={ProductSales} />
+        <Route path="/admin/completed-services" component={CompletedServices} />
         <Route path="/admin/invite-barber" component={InviteBarber} />
         <Route path="/admin/settings" component={Settings} />
         <Route path="/barber/invite" component={InviteBarber} />
@@ -107,6 +109,7 @@ function Router() {
         <Route path="/barber/payments" component={Payments} />
         <Route path="/barber/service-records" component={ServiceRecords} />
         <Route path="/barber/product-sales" component={ProductSales} />
+        <Route path="/barber/completed-services" component={CompletedServices} />
         <Route path="/barber/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
