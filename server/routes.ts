@@ -735,25 +735,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/completed-services/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "ID de serviço inválido" });
-      }
-      
-      const service = await storage.getCompletedService(id);
-      if (!service) {
-        return res.status(404).json({ message: "Serviço não encontrado" });
-      }
-      
-      res.json(service);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
   // Endpoint para buscar serviços completados de um barbeiro específico
+  // Importante: esta rota deve vir antes da rota com ":id" para evitar conflitos
   app.get("/api/completed-services/barber/:barberId", async (req, res) => {
     try {
       const barberId = parseInt(req.params.barberId);
@@ -798,6 +781,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota para buscar um serviço específico por ID
+  app.get("/api/completed-services/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de serviço inválido" });
+      }
+      
+      const service = await storage.getCompletedService(id);
+      if (!service) {
+        return res.status(404).json({ message: "Serviço não encontrado" });
+      }
+      
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/completed-services", async (req, res) => {
     try {
       const serviceData = req.body;

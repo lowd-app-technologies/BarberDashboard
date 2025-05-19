@@ -54,10 +54,10 @@ export default function ServiceRecords() {
   
   // Carregar registros de serviços completos específicos do barbeiro logado
   const { data: completedServices, isLoading } = useQuery({
-    queryKey: ['/api/completed-services/barber'],
+    queryKey: ['/api/completed-services/barber', user?.barber?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
-      const response = await fetch(`/api/completed-services/barber/${user.barber?.id}`);
+      if (!user?.barber?.id) return [];
+      const response = await fetch(`/api/completed-services/barber/${user.barber.id}`);
       if (!response.ok) {
         throw new Error('Falha ao carregar os serviços realizados');
       }
