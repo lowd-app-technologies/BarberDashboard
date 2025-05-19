@@ -821,6 +821,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Extrair dados adicionais de convidado, se existirem
         const { guestData, ...appointmentOnly } = appointmentData;
         
+        // Adicionar log para verificar o formato da data recebida
+        console.log("Dados do agendamento recebidos:", JSON.stringify(appointmentOnly));
+        
+        // Se a data estiver em formato de string, convertê-la para objeto Date
+        if (appointmentOnly.date && typeof appointmentOnly.date === 'string') {
+          try {
+            appointmentOnly.date = new Date(appointmentOnly.date);
+            console.log("Data convertida:", appointmentOnly.date);
+          } catch (error) {
+            console.error("Erro ao converter data:", error);
+          }
+        }
+        
         // Validate appointment data using zod
         const validatedData = insertAppointmentSchema.parse(appointmentOnly);
         
