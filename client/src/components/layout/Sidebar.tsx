@@ -147,12 +147,7 @@ export function Sidebar() {
         path: "/barber/product-sales",
         show: user?.role === "barber",
       },
-      {
-        title: "Serviços Realizados",
-        icon: <ClipboardCheck className="h-5 w-5" />,
-        path: "/barber/completed-services",
-        show: user?.role === "barber",
-      },
+
       {
         title: "Clientes",
         icon: <Users className="h-5 w-5" />,

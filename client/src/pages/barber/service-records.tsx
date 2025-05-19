@@ -52,9 +52,18 @@ export default function ServiceRecords() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { user } = useAuth();
   
-  // Carregar registros de serviços completos
+  // Carregar registros de serviços completos específicos do barbeiro logado
   const { data: completedServices, isLoading } = useQuery({
-    queryKey: ['/api/completed-services'],
+    queryKey: ['/api/completed-services/barber'],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const response = await fetch(`/api/completed-services/barber/${user.barber?.id}`);
+      if (!response.ok) {
+        throw new Error('Falha ao carregar os serviços realizados');
+      }
+      return response.json();
+    },
+    enabled: !!user?.barber?.id,
   });
 
   const handleAddSuccess = () => {

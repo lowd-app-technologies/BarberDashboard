@@ -753,6 +753,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint para buscar serviços completados de um barbeiro específico
+  app.get("/api/completed-services/barber/:barberId", async (req, res) => {
+    try {
+      const barberId = parseInt(req.params.barberId);
+      if (isNaN(barberId)) {
+        return res.status(400).json({ message: "ID de barbeiro inválido" });
+      }
+      
+      // Verificar se o usuário tem permissão para acessar esses dados
+      const { userId, userRole } = req.session;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Não autorizado" });
+      }
+      
+      // Se for um barbeiro, só pode ver seus próprios serviços
+      if (userRole === 'barber') {
+        const barber = await storage.getBarberByUserId(userId);
+        if (!barber || barber.id !== barberId) {
+          return res.status(403).json({ message: "Acesso negado" });
+        }
+      }
+      
+      // Buscar os serviços completados pelo barbeiro
+      const services = await storage.getCompletedServicesByBarber(barberId);
+      
+      // Enriquecer os dados com informações de serviço e cliente
+      const enrichedServices = await Promise.all(services.map(async (service) => {
+        const serviceDetails = await storage.getService(service.serviceId);
+        const client = await storage.getUserById(service.clientId);
+        
+        return {
+          ...service,
+          service: serviceDetails,
+          client
+        };
+      }));
+      
+      res.json(enrichedServices);
+    } catch (error: any) {
+      console.error('Error in getCompletedServicesByBarber:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
   app.post("/api/completed-services", async (req, res) => {
     try {
       const serviceData = req.body;
