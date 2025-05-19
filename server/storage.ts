@@ -2025,13 +2025,8 @@ export class DrizzleStorage implements IStorage {
   }
   async getAllCompletedServices(): Promise<CompletedService[]> {
     try {
-      // Buscar diretamente do banco de dados
-      const services = await db.query.completedServices.findMany({
-        with: {
-          service: true,
-          barber: true
-        }
-      });
+      // Buscar diretamente do banco de dados usando select
+      const services = await db.select().from(completedServices);
       
       // Mapear para o formato esperado
       return services.map(s => ({

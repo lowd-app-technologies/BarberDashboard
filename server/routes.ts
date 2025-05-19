@@ -2053,6 +2053,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: `Erro ao obter clientes: ${error.message}` });
     }
   });
+  
+  // Rota para criar um novo cliente
+  app.post('/api/clients', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Usuário não autenticado' });
+      }
+      
+      const { fullName, email, phone, notes, address } = req.body;
+      
+      if (!fullName || !email) {
+        return res.status(400).json({ message: 'Nome completo e email são obrigatórios' });
+      }
+      
+      // Verificar se o email já está em uso
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'Este email já está em uso' });
+      }
+      
+      // Gerar um username único baseado no nome
+      const baseUsername = fullName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+      const timestamp = Date.now().toString().slice(-4);
+      const username = `${baseUsername}.${timestamp}`;
+      
+      // Gerar uma senha temporária aleatória (em um sistema real, enviaríamos por email)
+      const tempPassword = Math.random().toString(36).slice(-8);
+      
+      // Criar o usuário cliente
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password: tempPassword, // Em produção, isso seria hasheado
+        role: 'client',
+        fullName,
+        phone: phone || null,
+        metadata: JSON.stringify({ 
+          preferences: { theme: 'light' },
+          notes: notes || '',
+          address: address || '' 
+        })
+      });
+      
+      // Em um sistema real, aqui enviaríamos um email com instruções de acesso
+      console.log(`Novo cliente criado: ${newUser.id} (${newUser.email})`);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Cliente criado com sucesso',
+        client: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          fullName: newUser.fullName,
+          role: newUser.role
+        }
+      });
+    } catch (error: any) {
+      console.error('Erro ao criar cliente:', error);
+      return res.status(500).json({ message: `Erro ao criar cliente: ${error.message}` });
+    }
+  });
 
   // Rota para dados do dashboard
   app.get('/api/dashboard', async (req: Request, res: Response) => {
