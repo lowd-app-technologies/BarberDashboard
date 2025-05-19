@@ -180,11 +180,17 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
       ? data.date.toISOString() 
       : new Date().toISOString();
     
+    // Buscar o nome do cliente selecionado
+    const selectedClient = clients?.find((client: any) => client.id.toString() === data.clientId);
+    const clientName = selectedClient?.fullName || `Cliente #${data.clientId}`;
+    
     console.log("Enviando data formatada:", formattedDate);
+    console.log("Cliente selecionado:", clientName);
     
     createServiceRecordMutation.mutate({
       serviceId: parseInt(data.serviceId),
       clientId: parseInt(data.clientId),
+      clientName: clientName,
       barberId: user.barber.id,
       date: formattedDate,
       price: data.price,
