@@ -348,9 +348,18 @@ export default function Products() {
     setIsCommissionDialogOpen(true);
   };
 
-  const handleDeleteProduct = (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      deleteProductMutation.mutate(id);
+  // Função para abrir modal de confirmação de exclusão
+  const handleOpenDeleteDialog = (id: number) => {
+    setProductToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Função para confirmar exclusão de produto
+  const handleConfirmDelete = () => {
+    if (productToDelete !== null) {
+      deleteProductMutation.mutate(productToDelete);
+      setIsDeleteDialogOpen(false);
+      setProductToDelete(null);
     }
   };
 
@@ -450,7 +459,7 @@ export default function Products() {
                     <Button 
                       variant="destructive" 
                       size="sm" 
-                      onClick={() => handleDeleteProduct(product.id)}
+                      onClick={() => handleOpenDeleteDialog(product.id)}
                       disabled={deleteProductMutation.isPending}
                     >
                       {deleteProductMutation.isPending && deleteProductMutation.variables === product.id ? (
@@ -877,6 +886,40 @@ export default function Products() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de confirmação de exclusão */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este produto? Esta ação não poderá ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete}
+              disabled={deleteProductMutation.isPending}
+            >
+              {deleteProductMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir produto'
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </Layout>
