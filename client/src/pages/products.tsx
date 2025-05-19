@@ -27,7 +27,7 @@ const productSchema = z.object({
   costPrice: z.string().min(1, { message: 'Preço de custo é obrigatório' }),
   category: z.enum(['shampoo', 'conditioner', 'styling', 'beard', 'skincare', 'equipment', 'other']),
   sku: z.string().min(2, { message: 'SKU deve ter no mínimo 2 caracteres' }),
-  stockQuantity: z.string().transform(val => parseInt(val)),
+  stockQuantity: z.coerce.number().min(0, { message: 'Quantidade não pode ser negativa' }),
   active: z.boolean().default(true),
   imageUrl: z.string().optional(),
 });
@@ -129,7 +129,7 @@ export default function Products() {
       costPrice: '',
       category: 'other',
       sku: '',
-      stockQuantity: '0',
+      stockQuantity: 0,
       active: true,
       imageUrl: '',
     },
@@ -149,7 +149,14 @@ export default function Products() {
   const createProductMutation = useMutation({
     mutationFn: async (data: ProductFormValues) => {
       try {
-        const response = await apiRequest('POST', '/api/products', data);
+        // Formatar preços para usar ponto ao invés de vírgula para evitar erros no banco
+        const formattedData = {
+          ...data,
+          price: data.price.replace(',', '.'),
+          costPrice: data.costPrice.replace(',', '.')
+        };
+        
+        const response = await apiRequest('POST', '/api/products', formattedData);
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Falha ao adicionar produto');
@@ -161,13 +168,20 @@ export default function Products() {
       }
     },
     onSuccess: () => {
+      console.log("Produto criado com sucesso, atualizando lista...");
+      // Forçar a atualização da lista de produtos
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      setIsAddDialogOpen(false);
-      form.reset();
-      toast({
-        title: 'Produto criado',
-        description: 'Produto foi adicionado com sucesso',
-      });
+      // Aguardar um momento para garantir que a atualização seja processada
+      setTimeout(() => {
+        // Fechar o diálogo e limpar o formulário
+        setIsAddDialogOpen(false);
+        form.reset();
+        
+        toast({
+          title: 'Produto criado',
+          description: 'Produto foi adicionado com sucesso e a lista foi atualizada',
+        });
+      }, 500);
     },
     onError: (error: any) => {
       toast({
@@ -182,7 +196,14 @@ export default function Products() {
   const updateProductMutation = useMutation({
     mutationFn: async (data: { id: number; product: ProductFormValues }) => {
       try {
-        const response = await apiRequest('PUT', `/api/products/${data.id}`, data.product);
+        // Formatar preços para usar ponto ao invés de vírgula para evitar erros no banco
+        const formattedProduct = {
+          ...data.product,
+          price: data.product.price.replace(',', '.'),
+          costPrice: data.product.costPrice.replace(',', '.')
+        };
+        
+        const response = await apiRequest('PUT', `/api/products/${data.id}`, formattedProduct);
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Falha ao atualizar produto');
@@ -194,12 +215,19 @@ export default function Products() {
       }
     },
     onSuccess: () => {
+      console.log("Produto atualizado com sucesso, atualizando lista...");
+      // Forçar a atualização da lista de produtos
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      setIsEditDialogOpen(false);
-      toast({
-        title: 'Produto atualizado',
-        description: 'Produto foi atualizado com sucesso',
-      });
+      // Aguardar um momento para garantir que a atualização seja processada
+      setTimeout(() => {
+        // Fechar o diálogo
+        setIsEditDialogOpen(false);
+        
+        toast({
+          title: 'Produto atualizado',
+          description: 'Produto foi atualizado com sucesso e a lista foi atualizada',
+        });
+      }, 500);
     },
     onError: (error: any) => {
       toast({
@@ -226,10 +254,13 @@ export default function Products() {
       }
     },
     onSuccess: () => {
+      console.log("Produto excluído com sucesso, atualizando lista...");
+      // Forçar a atualização da lista de produtos
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      
       toast({
         title: 'Produto excluído',
-        description: 'Produto foi excluído com sucesso',
+        description: 'Produto foi excluído com sucesso e a lista foi atualizada',
       });
     },
     onError: (error: any) => {
