@@ -175,11 +175,18 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
       return;
     }
     
+    // Garantir que a data seja enviada como string ISO
+    const formattedDate = data.date instanceof Date 
+      ? data.date.toISOString() 
+      : new Date().toISOString();
+    
+    console.log("Enviando data formatada:", formattedDate);
+    
     createServiceRecordMutation.mutate({
       serviceId: parseInt(data.serviceId),
       clientId: parseInt(data.clientId),
       barberId: user.barber.id,
-      date: data.date,
+      date: formattedDate,
       price: data.price,
       notes: data.notes || null,
     });
