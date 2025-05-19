@@ -47,7 +47,7 @@ const CompletedServicesPage = () => {
   
   // Query para buscar dados
   const { 
-    data: completedServices, 
+    data: completedServices = [], 
     isLoading: loadingServices, 
     isError: servicesError,
     refetch: refetchServices
@@ -56,21 +56,21 @@ const CompletedServicesPage = () => {
   });
   
   const { 
-    data: barbers, 
+    data: barbers = [], 
     isLoading: loadingBarbers 
   } = useQuery({ 
     queryKey: ['/api/barbers'], 
   });
   
   const { 
-    data: services, 
+    data: services = [], 
     isLoading: loadingServiceOptions 
   } = useQuery({ 
     queryKey: ['/api/services'], 
   });
   
   const { 
-    data: clients, 
+    data: clients = [], 
     isLoading: loadingClients 
   } = useQuery({ 
     queryKey: ['/api/clients'], 
@@ -230,7 +230,7 @@ const CompletedServicesPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {completedServices && completedServices.length > 0 ? (
+            {completedServices.length > 0 ? (
               <Table>
                 <TableCaption>Lista de serviços realizados</TableCaption>
                 <TableHeader>
@@ -245,8 +245,8 @@ const CompletedServicesPage = () => {
                 </TableHeader>
                 <TableBody>
                   {completedServices.map((service: any) => {
-                    const serviceDetails = services?.find((s: any) => s.id === service.serviceId);
-                    const barberDetails = barbers?.find((b: any) => b.id === service.barberId);
+                    const serviceDetails = services.find((s: any) => s.id === service.serviceId);
+                    const barberDetails = barbers.find((b: any) => b.id === service.barberId);
                     
                     return (
                       <TableRow key={service.id}>
@@ -307,7 +307,7 @@ const CompletedServicesPage = () => {
                         <SelectValue placeholder="Selecione o barbeiro" />
                       </SelectTrigger>
                       <SelectContent>
-                        {barbers && barbers.length > 0 ? barbers.map((barber: any) => (
+                        {barbers.length > 0 ? barbers.map((barber: any) => (
                           <SelectItem 
                             key={barber.id} 
                             value={barber.id.toString()}
@@ -335,7 +335,7 @@ const CompletedServicesPage = () => {
                         <SelectValue placeholder="Selecione o serviço" />
                       </SelectTrigger>
                       <SelectContent>
-                        {services && services.length > 0 ? services.map((service: any) => (
+                        {services.length > 0 ? services.map((service: any) => (
                           <SelectItem 
                             key={service.id} 
                             value={service.id.toString()}
@@ -363,7 +363,7 @@ const CompletedServicesPage = () => {
                         <SelectValue placeholder="Selecione o cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients && clients.length > 0 ? clients.map((client: any) => (
+                        {clients.length > 0 ? clients.map((client: any) => (
                           <SelectItem 
                             key={client.id}
                             value={client.fullName || client.username}
@@ -453,11 +453,6 @@ const CompletedServicesPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
-  );
-};
-
-export default CompletedServicesPage;
     </div>
   );
 };
