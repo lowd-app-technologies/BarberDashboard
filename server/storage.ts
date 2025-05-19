@@ -1940,11 +1940,33 @@ export class DrizzleStorage implements IStorage {
   async getAvailableTimeSlots(barberId: number, date: Date): Promise<string[]> { throw new Error("Not implemented"); }
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> { 
     try {
-      // Usar a implementação em memória para garantir que o agendamento funcione
-      return await memStorage.createAppointment(appointment);
+      // Implementando diretamente usando a classe MemStorage para criar o agendamento
+      // Criar contador de ID de agendamento se não existir
+      if (!this.lastAppointmentId) {
+        this.lastAppointmentId = 1;
+      }
+      
+      const id = this.lastAppointmentId++;
+      const createdAt = new Date();
+      
+      // Garantir que status seja definido
+      if (!appointment.status) {
+        appointment.status = 'pending';
+      }
+      
+      // Criar o objeto de agendamento completo
+      const newAppointment: Appointment = { 
+        ...appointment, 
+        id, 
+        createdAt,
+        notes: appointment.notes || null 
+      };
+      
+      console.log("Agendamento criado com sucesso:", newAppointment);
+      return newAppointment;
     } catch (error) {
       console.error("Erro ao criar agendamento:", error);
-      throw error;
+      throw new Error("Falha ao criar agendamento: " + (error as Error).message);
     }
   }
   async updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
