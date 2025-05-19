@@ -165,37 +165,105 @@ export function ServiceRecordForm({ onSuccess, onCancel }: ServiceRecordFormProp
   });
 
   // Submit do formulário
-  const onSubmit = (data: ServiceRecordFormValues) => {
-    if (!user?.barber?.id) {
+  const onSubmit = async (data: ServiceRecordFormValues) => {
+    // Verificar autenticação
+    if (!user) {
       toast({
-        title: "Erro",
-        description: "Você precisa estar logado como barbeiro para registrar serviços.",
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para registrar serviços.",
         variant: "destructive"
       });
       return;
     }
     
-    // Garantir que a data seja enviada como string ISO
-    const formattedDate = data.date instanceof Date 
-      ? data.date.toISOString() 
-      : new Date().toISOString();
+    if (user.role !== 'barber') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas barbeiros podem registrar serviços.",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    // Buscar o nome do cliente selecionado
-    const selectedClient = clients?.find((client: any) => client.id.toString() === data.clientId);
-    const clientName = selectedClient?.fullName || `Cliente #${data.clientId}`;
-    
-    console.log("Enviando data formatada:", formattedDate);
-    console.log("Cliente selecionado:", clientName);
-    
-    createServiceRecordMutation.mutate({
-      serviceId: parseInt(data.serviceId),
-      clientId: parseInt(data.clientId),
-      clientName: clientName,
-      barberId: user.barber.id,
-      date: formattedDate,
-      price: data.price,
-      notes: data.notes || null,
-    });
+    try {
+      // Buscar barber ID do usuário
+      const response = await fetch('/api/user/barber', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error("Não foi possível obter dados do barbeiro");
+      }
+      
+      const barberData = await response.json();
+      
+      if (!barberData || !barberData.id) {
+        throw new Error("Perfil de barbeiro não encontrado");
+      }
+      
+      // Garantir que a data seja enviada como string ISO
+      const formattedDate = data.date instanceof Date 
+        ? data.date.toISOString() 
+        : new Date().toISOString();
+      
+      // Buscar o nome do cliente selecionado
+      const selectedClient = clients?.find((client: any) => client.id.toString() === data.clientId);
+      const clientName = selectedClient?.fullName || `Cliente #${data.clientId}`;
+      
+      console.log("Enviando data formatada:", formattedDate);
+      console.log("Cliente selecionado:", clientName);
+      console.log("ID do barbeiro:", barberData.id);
+      
+      // Enviar dados usando fetch diretamente para mais controle
+      const serviceResponse = await fetch('/api/barber/services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          serviceId: parseInt(data.serviceId),
+          clientId: parseInt(data.clientId),
+          clientName: clientName,
+          barberId: barberData.id,
+          date: formattedDate,
+          price: data.price,
+          notes: data.notes || null,
+        }),
+      });
+      
+      if (!serviceResponse.ok) {
+        const errorData = await serviceResponse.json();
+        throw new Error(errorData.message || "Erro ao registrar serviço");
+      }
+      
+      const result = await serviceResponse.json();
+      
+      toast({
+        title: "Serviço registrado com sucesso",
+        description: "O registro do serviço foi criado."
+      });
+      
+      // Invalidar consultas para atualizar os dados
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/completed-services/barber', barberData.id] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/completed-services'] 
+      });
+      
+      form.reset();
+      if (onSuccess) onSuccess();
+      
+    } catch (error: any) {
+      console.error("Erro ao registrar serviço:", error);
+      toast({
+        title: "Erro ao registrar serviço",
+        description: error.message || "Ocorreu um erro ao registrar o serviço.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

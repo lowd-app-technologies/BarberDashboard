@@ -65,7 +65,7 @@ export function registerBarberRoutes(app: any) {
         clientName,
         price,
         date: serviceDate,
-        validatedByAdmin: false
+        appointmentId: null
       });
       
       // Registrar a ação no log
