@@ -45,34 +45,65 @@ const CompletedServicesPage = () => {
     notes: ''
   });
   
+  // Definindo tipos básicos para os dados
+  interface CompletedService {
+    id: number;
+    barberId: number;
+    serviceId: number;
+    clientName: string;
+    price: string;
+    date: string;
+    notes?: string;
+  }
+  
+  interface Barber {
+    id: number;
+    userId: number;
+    user?: {
+      fullName: string;
+    };
+  }
+  
+  interface Service {
+    id: number;
+    name: string;
+    price: string;
+  }
+  
+  interface Client {
+    id: number;
+    username: string;
+    fullName?: string;
+  }
+
   // Query para buscar dados
   const { 
-    data: completedServices = [], 
+    data: completedServices = [] as CompletedService[], 
     isLoading: loadingServices, 
     isError: servicesError,
     refetch: refetchServices
-  } = useQuery({ 
+  } = useQuery<CompletedService[]>({ 
     queryKey: ['/api/completed-services'], 
   });
   
   const { 
-    data: barbers = [], 
+    data: barbers = [] as Barber[], 
     isLoading: loadingBarbers 
-  } = useQuery({ 
+  } = useQuery<Barber[]>({ 
     queryKey: ['/api/barbers'], 
   });
   
   const { 
-    data: services = [], 
+    data: services = [] as Service[], 
     isLoading: loadingServiceOptions 
-  } = useQuery({ 
+  } = useQuery<Service[]>({ 
     queryKey: ['/api/services'], 
   });
   
   const { 
-    data: clients = [], 
+    data: clients = [] as Client[], 
     isLoading: loadingClients 
-  } = useQuery({ 
+  } = useQuery<Client[]>({ 
     queryKey: ['/api/clients'], 
   });
   

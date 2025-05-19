@@ -2112,10 +2112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rota para obter clientes 
   app.get('/api/clients', async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: 'Usuário não autenticado' });
-      }
-      
+      // Permitir acesso público para visualização de clientes
       // Buscar todos os usuários que são clientes
       const allUsers = await storage.getAllUsers();
       const clients = allUsers.filter(user => user.role === 'client').map(user => ({
