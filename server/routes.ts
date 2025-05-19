@@ -1069,10 +1069,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/completed-services', async (req: Request, res: Response) => {
     try {
-      const { barberId, serviceId, clientName, price, date, appointmentId, notes } = req.body;
+      const { barberId, serviceId, clientId, clientName, price, date, appointmentId, notes } = req.body;
       
       // Validar dados
-      if (!barberId || !serviceId || !clientName || price === undefined || !date) {
+      if (!barberId || !serviceId || price === undefined || !date) {
         return res.status(400).json({ message: "Dados incompletos para o registro do serviço" });
       }
       
@@ -1088,22 +1088,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Serviço não encontrado" });
       }
       
+      // Preparar os dados do serviço completado
+      let clientIdToUse = clientId;
+      
+      // Se temos nome do cliente mas não ID, podemos tentar encontrar ou criar um cliente
+      if (clientName && !clientIdToUse) {
+        try {
+          // Tenta encontrar um cliente pelo nome
+          const allUsers = await storage.getAllUsers();
+          const existingClient = allUsers.find(u => 
+            u.role === 'client' && 
+            (u.fullName.toLowerCase() === clientName.toLowerCase() || 
+             u.username.toLowerCase() === clientName.toLowerCase())
+          );
+          
+          if (existingClient) {
+            clientIdToUse = existingClient.id;
+            console.log(`Cliente encontrado com ID ${clientIdToUse}`);
+          } else {
+            // Criar um novo cliente usando o nome fornecido
+            // Isso seria uma funcionalidade completa em um sistema real
+            console.log(`Cliente não encontrado, seria necessário criar um novo`);
+            // Por enquanto, deixamos clientIdToUse como null
+          }
+        } catch (error) {
+          console.error("Erro ao buscar/criar cliente:", error);
+        }
+      }
+      
+      // Calcular comissão com base nas configurações do barbeiro
+      // Por padrão, vamos usar 50% do valor como comissão
+      const commission = (parseFloat(price) * 0.5).toFixed(2);
+      
       // Criar o registro do serviço completado
       const completedService = await storage.createCompletedService({
         barberId,
         serviceId,
-        clientName,
+        clientId: clientIdToUse,
         price,
+        commission,
         date: new Date(date),
-        appointmentId: appointmentId || undefined,
-        // Outros campos conforme necessário
+        status: "completed",
+        appointmentId: appointmentId || null,
+        paymentId: null
       });
-      
-      // Atualizar dados do cliente se fornecido um ID de cliente
-      if (req.body.clientId) {
-        // Aqui poderia atualizar last_visit do cliente, por exemplo
-        // Ou adicionar o serviço aos favoritos do cliente
-      }
       
       // Se baseado em um agendamento, atualizar o status do agendamento
       if (appointmentId) {
