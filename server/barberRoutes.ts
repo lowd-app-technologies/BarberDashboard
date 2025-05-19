@@ -77,6 +77,8 @@ export function registerBarberRoutes(app: any) {
         details: `Serviço ${service.name} registrado para o cliente ${clientName}`
       });
       
+      console.log("Serviço registrado com sucesso:", completedService);
+      
       // Retornar o serviço criado
       return res.status(201).json(completedService);
     } catch (error: any) {
