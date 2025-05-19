@@ -1168,13 +1168,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const commission = (parseFloat(price) * 0.5).toFixed(2);
       
       // Criar o registro do serviço completado
+      // Garantir que a data seja válida
+      const dateToUse = date instanceof Date ? date : new Date(date);
+      
+      console.log("Data para registro:", dateToUse);
+      
       const completedService = await storage.createCompletedService({
         barberId,
         serviceId,
         clientId: clientIdToUse,
         price,
         commission,
-        date: new Date(date),
+        date: dateToUse,
         status: "completed",
         appointmentId: appointmentId || null,
         paymentId: null
