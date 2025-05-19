@@ -762,15 +762,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Buscar os serviços completados pelo barbeiro
       const services = await storage.getCompletedServicesByBarber(barberId);
       
-      // Enriquecer os dados com informações de serviço e cliente
+      // Enriquecer os dados com informações de serviço
       const enrichedServices = await Promise.all(services.map(async (service) => {
         const serviceDetails = await storage.getService(service.serviceId);
-        const client = await storage.getUserById(service.clientId);
         
         return {
           ...service,
-          service: serviceDetails,
-          client
+          service: serviceDetails
         };
       }));
       
