@@ -16,6 +16,7 @@ import Clients from "@/pages/clients";
 import Products from "@/pages/products";
 import ProductSales from "@/pages/product-sales";
 import CompletedServices from "@/pages/completed-services";
+import AdminCompletedServices from "@/pages/admin/completed-services";
 
 // Barber Pages
 import InviteBarber from "@/pages/barber/invite";
@@ -90,7 +91,7 @@ function Router() {
         <Route path="/admin/clients" component={Clients} />
         <Route path="/admin/products" component={Products} />
         <Route path="/admin/product-sales" component={ProductSales} />
-        <Route path="/admin/completed-services" component={CompletedServices} />
+        <Route path="/admin/completed-services" component={AdminCompletedServices} />
         <Route path="/admin/invite-barber" component={InviteBarber} />
         <Route path="/admin/settings" component={Settings} />
         <Route path="/barber/invite" component={InviteBarber} />
