@@ -53,21 +53,52 @@ export default function ServiceRecords() {
   const { user } = useAuth();
   
   // Carregar registros de serviços completos específicos do barbeiro logado
-  const { data: completedServices, isLoading } = useQuery({
+  const { data: completedServices, isLoading, refetch } = useQuery({
     queryKey: ['/api/completed-services/barber', user?.barber?.id],
     queryFn: async () => {
-      if (!user?.barber?.id) return [];
-      const response = await fetch(`/api/completed-services/barber/${user.barber.id}`);
-      if (!response.ok) {
-        throw new Error('Falha ao carregar os serviços realizados');
+      if (!user || user.role !== 'barber') return [];
+      
+      try {
+        // Primeiro buscar o barbeiro associado ao usuário logado
+        const barberResponse = await fetch('/api/user/barber', {
+          credentials: 'include'
+        });
+        
+        if (!barberResponse.ok) {
+          throw new Error('Não foi possível obter os dados do barbeiro');
+        }
+        
+        const barberData = await barberResponse.json();
+        console.log('Dados do barbeiro recuperados:', barberData);
+        
+        if (!barberData || !barberData.id) {
+          throw new Error('ID do barbeiro não encontrado');
+        }
+        
+        // Agora buscar os serviços deste barbeiro
+        const response = await fetch(`/api/completed-services/barber/${barberData.id}`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Falha ao carregar os serviços realizados');
+        }
+        
+        const data = await response.json();
+        console.log('Serviços carregados:', data);
+        return data;
+      } catch (error: any) {
+        console.error('Erro ao carregar serviços:', error);
+        throw error;
       }
-      return response.json();
     },
-    enabled: !!user?.barber?.id,
+    enabled: !!user && user.role === 'barber',
   });
 
   const handleAddSuccess = () => {
     setIsAddDialogOpen(false);
+    // Atualizar a lista de serviços após adicionar um novo
+    refetch();
   };
 
   return (
@@ -185,13 +216,15 @@ export default function ServiceRecords() {
                         {formatDate(service.date)}
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{service.service.name}</div>
+                        <div className="font-medium">
+                          {service.service ? service.service.name : `Serviço #${service.serviceId}`}
+                        </div>
                         {service.notes && (
                           <div className="text-xs text-muted-foreground">{service.notes}</div>
                         )}
                       </TableCell>
                       <TableCell>
-                        {service.client.fullName}
+                        {service.clientName}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(service.price)}
