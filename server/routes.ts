@@ -730,8 +730,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/completed-services", async (req, res) => {
     try {
       const completedServices = await storage.getAllCompletedServices();
-      res.json(completedServices);
+      
+      // Buscar informações adicionais para cada serviço
+      const services = await Promise.all(completedServices.map(async (service) => {
+        try {
+          const serviceInfo = await storage.getService(service.serviceId);
+          const barberInfo = await storage.getBarber(service.barberId);
+          
+          return {
+            ...service,
+            serviceName: serviceInfo ? serviceInfo.name : "Serviço desconhecido",
+            barberName: barberInfo ? `${barberInfo.user?.fullName || 'Barbeiro ' + service.barberId}` : "Desconhecido"
+          };
+        } catch (err) {
+          return {
+            ...service,
+            serviceName: "Serviço desconhecido",
+            barberName: "Desconhecido"
+          };
+        }
+      }));
+      
+      res.json(services);
     } catch (error: any) {
+      console.error("Erro ao recuperar serviços concluídos:", error);
       res.status(500).json({ message: error.message });
     }
   });
