@@ -2469,6 +2469,8 @@ export class DrizzleStorage implements IStorage {
   }
 }
 
-// Forçar o uso do MemStorage para resolver o problema de conexão
-// Isso permitirá que o sistema funcione enquanto resolvemos os problemas de banco de dados
-export const storage = new MemStorage();
+// Verificar se temos uma conexão com o banco de dados PostgreSQL
+// e usar o DrizzleStorage se disponível, ou MemStorage como fallback
+export const storage = db && !dbConnectionFailed 
+  ? new DrizzleStorage(db) 
+  : new MemStorage();
