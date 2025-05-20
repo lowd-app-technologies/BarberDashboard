@@ -2078,8 +2078,35 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().createCompletedService(service);
     }
   }
-  async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
-  async deleteCompletedService(id: number): Promise<void> { throw new Error("Not implemented"); }
+  async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> {
+    try {
+      const result = await db.update(completedServices)
+        .set(data)
+        .where(eq(completedServices.id, id))
+        .returning();
+      
+      if (result && result.length > 0) {
+        console.log("Serviço atualizado com sucesso:", result[0]);
+        return result[0];
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error("Error in updateCompletedService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateCompletedService(id, data);
+    }
+  }
+  async deleteCompletedService(id: number): Promise<void> {
+    try {
+      await db.delete(completedServices).where(eq(completedServices.id, id));
+      console.log(`Serviço ID ${id} excluído com sucesso`);
+    } catch (error) {
+      console.error("Error in deleteCompletedService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().deleteCompletedService(id);
+    }
+  }
   async createActionLog(log: InsertActionLog): Promise<ActionLog> {
     try {
       const result = await this.db.insert(actionLogs).values(log).returning();

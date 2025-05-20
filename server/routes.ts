@@ -1,5 +1,6 @@
 import type { Express, Request as ExpressRequest, Response } from "express";
 import type { Session } from "express-session";
+import { eq } from "drizzle-orm";
 
 // Extend the Express Request type to include session
 interface Request extends ExpressRequest {
@@ -823,13 +824,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Serviço não encontrado" });
       }
       
+      console.log("Validando serviço:", id, req.body);
+      
       // Atualizar o serviço como validado
       const updatedService = await storage.updateCompletedService(id, {
         validatedByAdmin: true
       });
       
+      console.log("Serviço validado com sucesso:", updatedService);
+      
       res.json(updatedService);
     } catch (error: any) {
+      console.error("Erro ao validar serviço:", error);
       res.status(500).json({ message: error.message });
     }
   });
