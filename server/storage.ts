@@ -2001,8 +2001,8 @@ export class DrizzleStorage implements IStorage {
       const enhancedServices = [];
       for (const service of services) {
         // Buscar o serviço relacionado
-        const serviceInfo = await db.select().from(schemas.services)
-          .where(eq(schemas.services.id, service.serviceId))
+        const serviceInfo = await db.select().from(services)
+          .where(eq(services.id, service.serviceId))
           .limit(1);
           
         enhancedServices.push({
