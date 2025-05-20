@@ -1990,7 +1990,23 @@ export class DrizzleStorage implements IStorage {
   async createPayment(payment: InsertPayment): Promise<Payment> { throw new Error("Not implemented"); }
   async updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined> { throw new Error("Not implemented"); }
   async deletePayment(id: number): Promise<void> { throw new Error("Not implemented"); }
-  async getCompletedService(id: number): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
+  async getCompletedService(id: number): Promise<CompletedService | undefined> { 
+    try {
+      const result = await db.select().from(completedServices)
+        .where(eq(completedServices.id, id))
+        .limit(1);
+      
+      if (result.length > 0) {
+        return result[0];
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error("Error in getCompletedService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().getCompletedService(id);
+    }
+  }
   async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { 
     try {
       // Implementação simplificada para buscar do banco de dados
