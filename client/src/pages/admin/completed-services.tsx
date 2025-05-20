@@ -7,7 +7,6 @@ import {
   CheckCircle, 
   Plus, 
   Loader2,
-  XCircle,
   AlertTriangle,
   Check,
   X
@@ -51,7 +50,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
-
 import { AdminPageLayout } from "@/components/layout/AdminPageLayout";
 
 export default function CompletedServicesAdmin() {
@@ -251,7 +249,7 @@ export default function CompletedServicesAdmin() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <AdminPageLayout>
       <div className="container py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -611,6 +609,6 @@ export default function CompletedServicesAdmin() {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+    </AdminPageLayout>
   );
 }
