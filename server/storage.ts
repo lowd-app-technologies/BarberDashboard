@@ -2061,11 +2061,13 @@ export class DrizzleStorage implements IStorage {
         serviceId: service.serviceId,
         barberId: service.barberId,
         clientId: service.clientId,
+        clientName: service.clientName, // Adicionamos o campo clientName que estava faltando
         date: service.date,
         price: service.price,
         commission: service.commission,
         status: service.status || 'pending',
         paymentId: service.paymentId,
+        validatedByAdmin: service.validatedByAdmin || false,
         createdAt: new Date(),
         updatedAt: new Date()
       }).returning();
