@@ -2007,6 +2007,28 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().getCompletedService(id);
     }
   }
+  
+  async updateCompletedService(id: number, data: Partial<InsertCompletedService>): Promise<CompletedService | undefined> {
+    try {
+      // Verificar se o serviço existe
+      const existingService = await this.getCompletedService(id);
+      if (!existingService) {
+        return undefined;
+      }
+      
+      // Atualizar o serviço no banco de dados
+      await db.update(completedServices)
+        .set(data)
+        .where(eq(completedServices.id, id));
+      
+      // Buscar o serviço atualizado
+      return await this.getCompletedService(id);
+    } catch (error) {
+      console.error("Error in updateCompletedService:", error);
+      // Fall back to in-memory implementation during development
+      return new MemStorage().updateCompletedService(id, data);
+    }
+  }
   async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { 
     try {
       // Implementação simplificada para buscar do banco de dados

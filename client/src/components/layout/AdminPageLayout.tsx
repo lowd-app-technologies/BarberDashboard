@@ -13,6 +13,7 @@ import {
   UserPlus
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface AdminPageLayoutProps {
   children: ReactNode;
@@ -84,11 +85,11 @@ export function AdminPageLayout({ children }: AdminPageLayoutProps) {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-zinc-900 text-white">
+      <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 border-r border-border bg-background">
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4 mb-5">
-              <h1 className="text-xl font-bold">BarberPRO</h1>
+              <h1 className="text-xl font-bold text-primary">BarberPRO</h1>
             </div>
             <nav className="mt-5 flex-1 px-2 space-y-1">
               {menuItems.map((item) => (
@@ -98,8 +99,8 @@ export function AdminPageLayout({ children }: AdminPageLayoutProps) {
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                     location === item.path || 
                     (item.path !== "/admin" && location.startsWith(item.path))
-                      ? "bg-zinc-800 text-white"
-                      : "text-zinc-300 hover:bg-zinc-700 hover:text-white"
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   {item.icon}
@@ -108,21 +109,18 @@ export function AdminPageLayout({ children }: AdminPageLayoutProps) {
               ))}
             </nav>
           </div>
-          <div className="flex-shrink-0 flex border-t border-zinc-800 p-4">
+          <div className="flex-shrink-0 flex border-t border-border p-4">
             <div className="flex-shrink-0 w-full group block">
               <div className="flex items-center">
-                <div>
-                  <img
-                    className="inline-block h-9 w-9 rounded-full"
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                    alt=""
-                  />
-                </div>
+                <Avatar>
+                  <AvatarImage src="/user-avatar.png" alt={user?.fullName || 'Usuário'} />
+                  <AvatarFallback>{user?.fullName?.substring(0, 2) || 'AD'}</AvatarFallback>
+                </Avatar>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium">
                     {user?.fullName || user?.displayName || 'Administrador'}
                   </p>
-                  <p className="text-xs font-medium text-zinc-300 group-hover:text-zinc-200">
+                  <p className="text-xs text-muted-foreground">
                     {user?.email || 'admin@barberpro.com'}
                   </p>
                 </div>
