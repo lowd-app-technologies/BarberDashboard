@@ -1993,34 +1993,29 @@ export class DrizzleStorage implements IStorage {
   async getCompletedService(id: number): Promise<CompletedService | undefined> { throw new Error("Not implemented"); }
   async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { 
     try {
-      // Buscar diretamente do banco de dados
-      const services = await db.query.completedServices.findMany({
-        where: eq(completedServices.barberId, barberId),
-        with: {
-          service: true,
-          barber: true
-        }
-      });
+      // Implementação simplificada para buscar do banco de dados
+      const services = await db.select().from(completedServices)
+        .where(eq(completedServices.barberId, barberId));
       
-      // Mapear para o formato esperado
-      return services.map(s => ({
-        id: s.id,
-        serviceId: s.serviceId,
-        barberId: s.barberId,
-        clientId: s.clientId,
-        date: s.date,
-        price: s.price,
-        commission: s.commission,
-        status: s.status,
-        paymentId: s.paymentId,
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
-        serviceName: s.service?.name || 'Serviço desconhecido',
-        barberName: s.barber?.userId ? `Barbeiro #${s.barber.userId}` : 'Desconhecido'
-      }));
+      // Para cada serviço, buscar o detalhe do serviço
+      const enhancedServices = [];
+      for (const service of services) {
+        // Buscar o serviço relacionado
+        const serviceInfo = await db.select().from(schemas.services)
+          .where(eq(schemas.services.id, service.serviceId))
+          .limit(1);
+          
+        enhancedServices.push({
+          ...service,
+          service: serviceInfo.length > 0 ? serviceInfo[0] : null
+        });
+      }
+      
+      return enhancedServices;
     } catch (error) {
       console.error("Error in getCompletedServicesByBarber:", error);
-      return [];
+      // Fallback para implementação em memória
+      return new MemStorage().getCompletedServicesByBarber(barberId);
     }
   }
   async getAllCompletedServices(): Promise<CompletedService[]> {
