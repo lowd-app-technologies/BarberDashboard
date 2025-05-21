@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+// Importação do firebase.ts que agora contém apenas a implementação customizada
 import { auth, googleProvider, User, UserRole } from '@/lib/firebase';
 
 // Auth context type with our required functions
@@ -101,14 +102,13 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
 
   // Função para determinar o redirecionamento com base no papel do usuário (admin/barber)
   const redirectUserBasedOnRole = (user: User) => {
-    console.log("Redirecionando usuário com papel:", user.role);
     if (user.role === 'admin') {
       setLocation('/admin');
     } else if (user.role === 'barber') {
       setLocation('/barber');
     } else {
-      // Fallback para a raiz (embora não deva ocorrer)
-      setLocation('/');
+      // Fallback para dashboard geral
+      setLocation('/dashboard');
     }
   };
 
@@ -129,11 +129,9 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       
       toast({
         title: "Login bem-sucedido",
-        description: "Seja bem-vindo de volta!",
+        description: "Seja bem-vindo!",
       });
-
-      console.log("Login bem-sucedido, redirecionando usuário:", user);
-
+      
       // Redirecionar para a área correta com base no tipo de login
       if (isClientArea) {
         setLocation('/booking');
@@ -154,10 +152,13 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
     }
   };
 
-  // Login with Google OAuth
+  // Login with Google OAuth (agora usando uma implementação simulada)
   const loginWithGoogle = async (isClientArea: boolean = false) => {
     try {
       setLoading(true);
+      
+      // Aviso sobre a funcionalidade do Google desativada
+      console.warn("Login com Google está desativado. Usando implementação simulada.");
       
       // Use our custom auth wrapper with Google provider
       const { user } = await auth.signInWithPopup(googleProvider, isClientArea);
@@ -170,11 +171,9 @@ export const AuthProvider = (props: { children: React.ReactNode }) => {
       setUser(user);
       
       toast({
-        title: "Login bem-sucedido",
-        description: "Seja bem-vindo!",
+        title: "Login simulado bem-sucedido",
+        description: "Seja bem-vindo! (Nota: Login com Google está desativado)",
       });
-      
-      console.log("Login com Google bem-sucedido, redirecionando usuário:", user);
       
       // Redirecionar para a área correta com base no tipo de login
       if (isClientArea) {

@@ -102,9 +102,9 @@ export function Sidebar() {
         show: user?.role === "admin",
       },
       {
-        title: "Serviços Realizados",
+        title: "Serviços Completados",
         icon: <ClipboardCheck className="h-5 w-5" />,
-        path: "/admin/completed-services",
+        path: "/completed-services",
         show: user?.role === "admin",
       },
       {

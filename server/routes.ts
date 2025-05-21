@@ -33,15 +33,24 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
-// Initialize Supabase client
+// Initialize Supabase client (optional)
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Supabase URL or key is missing. Please set environment variables.');
+let supabase;
+try {
+  if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('Supabase client initialized successfully');
+  } else {
+    console.warn('Supabase URL or key is missing. Some features may not work properly.');
+    // Create a mock client or set to null based on your needs
+    supabase = null;
+  }
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+  supabase = null;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Função para gerar hash de senha
 const hashPassword = async (password: string): Promise<string> => {
@@ -520,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Atualizar um barbeiro existente
-  app.patch("/api/barbers/:id", async (req, res) => {
+  app.patch("/api/barbers/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -579,6 +588,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (calendarVisibility !== undefined) barberData.calendarVisibility = calendarVisibility;
       
       const updatedBarber = await storage.updateBarber(id, barberData);
+      
+      if (!updatedBarber) {
+        return res.status(404).json({ message: "Não foi possível atualizar o barbeiro" });
+      }
       
       // Buscar o barbeiro atualizado com os dados do usuário
       const barberWithUser = await storage.getBarber(id);
@@ -726,156 +739,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Rotas para serviços concluídos
-  app.get("/api/completed-services", async (req, res) => {
-    try {
-      const completedServices = await storage.getAllCompletedServices();
-      
-      // Buscar informações adicionais para cada serviço
-      const services = await Promise.all(completedServices.map(async (service) => {
-        try {
-          const serviceInfo = await storage.getService(service.serviceId);
-          const barberInfo = await storage.getBarber(service.barberId);
-          
-          return {
-            ...service,
-            serviceName: serviceInfo ? serviceInfo.name : "Serviço desconhecido",
-            barberName: barberInfo ? `${barberInfo.user?.fullName || 'Barbeiro ' + service.barberId}` : "Desconhecido"
-          };
-        } catch (err) {
-          return {
-            ...service,
-            serviceName: "Serviço desconhecido",
-            barberName: "Desconhecido"
-          };
-        }
-      }));
-      
-      res.json(services);
-    } catch (error: any) {
-      console.error("Erro ao recuperar serviços concluídos:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  // Endpoint para buscar serviços completados de um barbeiro específico
-  // Importante: esta rota deve vir antes da rota com ":id" para evitar conflitos
-  app.get("/api/completed-services/barber/:barberId", async (req, res) => {
-    try {
-      const barberId = parseInt(req.params.barberId);
-      if (isNaN(barberId)) {
-        return res.status(400).json({ message: "ID de barbeiro inválido" });
-      }
-      
-      // Verificar se o usuário tem permissão para acessar esses dados
-      const { userId, userRole } = req.session;
-      
-      if (!userId) {
-        return res.status(401).json({ message: "Não autorizado" });
-      }
-      
-      // Se for um barbeiro, só pode ver seus próprios serviços
-      if (userRole === 'barber') {
-        const barber = await storage.getBarberByUserId(userId);
-        if (!barber || barber.id !== barberId) {
-          return res.status(403).json({ message: "Acesso negado" });
-        }
-      }
-      
-      // Buscar os serviços completados pelo barbeiro
-      const services = await storage.getCompletedServicesByBarber(barberId);
-      
-      // Enriquecer os dados com informações de serviço
-      const enrichedServices = await Promise.all(services.map(async (service) => {
-        const serviceDetails = await storage.getService(service.serviceId);
-        
-        return {
-          ...service,
-          service: serviceDetails
-        };
-      }));
-      
-      res.json(enrichedServices);
-    } catch (error: any) {
-      console.error('Error in getCompletedServicesByBarber:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  // Rota para buscar um serviço específico por ID
-  app.get("/api/completed-services/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "ID de serviço inválido" });
-      }
-      
-      const service = await storage.getCompletedService(id);
-      if (!service) {
-        return res.status(404).json({ message: "Serviço não encontrado" });
-      }
-      
-      res.json(service);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/completed-services", async (req, res) => {
-    try {
-      const serviceData = req.body;
-      const completedService = await storage.createCompletedService({
-        ...serviceData,
-        validatedByAdmin: false
-      });
-      res.status(201).json(completedService);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.patch("/api/completed-services/:id/validate", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "ID de serviço inválido" });
-      }
-      
-      const service = await storage.getCompletedService(id);
-      if (!service) {
-        return res.status(404).json({ message: "Serviço não encontrado" });
-      }
-      
-      console.log("Validando serviço:", id, req.body);
-      
-      // Atualizar o serviço como validado
-      const updatedService = await storage.updateCompletedService(id, {
-        validatedByAdmin: true
-      });
-      
-      console.log("Serviço validado com sucesso:", updatedService);
-      
-      res.json(updatedService);
-    } catch (error: any) {
-      console.error("Erro ao validar serviço:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  app.delete("/api/completed-services/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "ID de serviço inválido" });
-      }
-      
-      await storage.deleteCompletedService(id);
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   // Rotas de agendamentos
   app.get("/api/appointments", async (req, res) => {
     try {
@@ -1110,7 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Rotas para serviços completados (atendimentos realizados)
+  // Rotas de serviços completados (atendimentos realizados)
   app.get('/api/completed-services', async (req: Request, res: Response) => {
     try {
       // Aqui você pode implementar filtros com base nos parâmetros de consulta
@@ -1119,6 +982,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(completedServices);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+  
+  app.get('/api/completed-services/barber/:barberId', async (req: Request, res: Response) => {
+    try {
+      const barberId = parseInt(req.params.barberId);
+      if (isNaN(barberId)) {
+        return res.status(400).json({ success: false, message: "ID do barbeiro inválido" });
+      }
+      
+      const services = await storage.getCompletedServicesByBarber(barberId);
+      res.json(services);
+    } catch (error: any) {
+      console.error('Erro ao buscar serviços do barbeiro:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Erro ao buscar serviços do barbeiro' 
+      });
     }
   });
   
@@ -1765,7 +1646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
-  
+
   // Obter produtos com comissões para barbeiro
   app.get('/api/barber/:barberId/products-with-commissions', async (req: Request, res: Response) => {
     try {
@@ -1926,320 +1807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate = new Date(year, month, 0, 23, 59, 59);
       }
 
-      // Buscar dados reais do banco de dados
-      const completedServices = await storage.getCompletedServicesForDateRange(barber.id, startDate, endDate);
-      
-      // Agrupar por serviço e calcular métricas
-      const serviceMap = new Map<number, { name: string, count: number, revenue: number }>();
-      
-      completedServices.forEach(service => {
-        const serviceId = service.serviceId;
-        const serviceName = service.serviceName || 'Serviço Desconhecido';
-        const price = parseFloat(service.price.toString());
-        
-        if (serviceMap.has(serviceId)) {
-          const existing = serviceMap.get(serviceId)!;
-          existing.count += 1;
-          existing.revenue += price;
-        } else {
-          serviceMap.set(serviceId, {
-            name: serviceName,
-            count: 1,
-            revenue: price
-          });
-        }
-      });
-      
-      const serviceReports = Array.from(serviceMap.values());
-      res.json(serviceReports.length > 0 ? serviceReports : [
-        { name: 'Nenhum serviço registrado', count: 0, revenue: 0 }
-      ]);
-    } catch (error: any) {
-      console.error('Erro ao buscar relatório de serviços:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get('/api/barber/reports/earnings', async (req: Request, res: Response) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: 'Não autorizado' });
-      }
-
-      const timeRange = req.query.timeRange as string || 'month';
-      const year = parseInt(req.query.year as string) || new Date().getFullYear();
-      const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
-
-      // Obter o barber ID do usuário atual
-      const barber = await storage.getBarberByUserId(req.session.userId);
-      if (!barber) {
-        return res.status(404).json({ message: 'Barbeiro não encontrado' });
-      }
-      
-      // Definir intervalo de datas
-      let startDate: Date;
-      let endDate: Date;
-
-      if (timeRange === 'year') {
-        startDate = new Date(year, 0, 1);
-        endDate = new Date(year, 11, 31, 23, 59, 59);
-      } else if (timeRange === 'month') {
-        startDate = new Date(year, month - 1, 1);
-        endDate = new Date(year, month, 0, 23, 59, 59);
-      } else {
-        // Por padrão, considere o mês atual
-        startDate = new Date(year, month - 1, 1);
-        endDate = new Date(year, month, 0, 23, 59, 59);
-      }
-      
-      // Buscar dados de serviços
-      const completedServices = await storage.getCompletedServicesForDateRange(barber.id, startDate, endDate);
-      const servicesEarnings = completedServices.reduce((sum, service) => 
-        sum + parseFloat(service.price.toString()), 0);
-        
-      // Buscar dados de vendas de produtos
-      const productSales = await storage.getProductSalesForBarberInDateRange(barber.id, startDate, endDate);
-      const productsEarnings = productSales.reduce((sum, sale) => {
-        // Calcular o valor com base na comissão
-        const commission = sale.commissionPercentage || 0;
-        const price = parseFloat(sale.price.toString());
-        return sum + (price * commission / 100);
-      }, 0);
-      
-      const earningsReport = [
-        { name: 'Serviços', earnings: servicesEarnings || 0 },
-        { name: 'Produtos', earnings: productsEarnings || 0 },
-        { name: 'Total', earnings: (servicesEarnings + productsEarnings) || 0 }
-      ];
-
-      res.json(earningsReport);
-    } catch (error: any) {
-      console.error('Erro ao buscar relatório de ganhos:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get('/api/barber/reports/products', async (req: Request, res: Response) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: 'Não autorizado' });
-      }
-
-      const timeRange = req.query.timeRange as string || 'month';
-      const year = parseInt(req.query.year as string) || new Date().getFullYear();
-      const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
-
-      // Obter o barber ID do usuário atual
-      const barber = await storage.getBarberByUserId(req.session.userId);
-      if (!barber) {
-        return res.status(404).json({ message: 'Barbeiro não encontrado' });
-      }
-      
-      // Definir intervalo de datas
-      let startDate: Date;
-      let endDate: Date;
-
-      if (timeRange === 'year') {
-        startDate = new Date(year, 0, 1);
-        endDate = new Date(year, 11, 31, 23, 59, 59);
-      } else if (timeRange === 'month') {
-        startDate = new Date(year, month - 1, 1);
-        endDate = new Date(year, month, 0, 23, 59, 59);
-      } else {
-        // Por padrão, considere o mês atual
-        startDate = new Date(year, month - 1, 1);
-        endDate = new Date(year, month, 0, 23, 59, 59);
-      }
-      
-      // Buscar vendas de produtos
-      const productSales = await storage.getProductSalesForBarberInDateRange(barber.id, startDate, endDate);
-      
-      // Agrupar por produto
-      const productMap = new Map<number, { name: string, count: number, revenue: number }>();
-      
-      productSales.forEach(sale => {
-        const productId = sale.productId;
-        const productName = sale.productName || 'Produto Desconhecido';
-        const price = parseFloat(sale.price.toString());
-        const commission = sale.commissionPercentage || 0;
-        const revenue = price * commission / 100;
-        
-        if (productMap.has(productId)) {
-          const existing = productMap.get(productId)!;
-          existing.count += sale.quantity || 1;
-          existing.revenue += revenue;
-        } else {
-          productMap.set(productId, {
-            name: productName,
-            count: sale.quantity || 1,
-            revenue: revenue
-          });
-        }
-      });
-      
-      const productsReport = Array.from(productMap.values());
-      res.json(productsReport.length > 0 ? productsReport : [
-        { name: 'Nenhum produto vendido', count: 0, revenue: 0 }
-      ]);
-    } catch (error: any) {
-      console.error('Erro ao buscar relatório de produtos:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // API para salvar preferências do usuário (incluindo tema)
-  app.put('/api/user/preferences', async (req: Request, res: Response) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: 'Não autorizado' });
-      }
-      
-      const { theme, language, notifications } = req.body;
-      
-      // Atualizar preferências do usuário
-      await storage.updateUserPreferences(req.session.userId, {
-        theme,
-        language,
-        notifications
-      });
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error('Erro ao salvar preferências:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  // Rota para obter informações do barbeiro atual 
-  app.get('/api/user/barber', async (req: Request, res: Response) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: 'Usuário não autenticado' });
-      }
-      
-      // Verificar se o usuário é um barbeiro
-      const user = await storage.getUser(req.session.userId);
-      if (!user || user.role !== 'barber') {
-        return res.status(403).json({ message: 'Usuário não é um barbeiro' });
-      }
-      
-      // Obter registro de barbeiro
-      const barber = await storage.getBarberByUserId(req.session.userId);
-      if (!barber) {
-        return res.status(404).json({ message: 'Registro de barbeiro não encontrado' });
-      }
-      
-      return res.json(barber);
-    } catch (error: any) {
-      console.error('Erro ao obter informações do barbeiro:', error);
-      return res.status(500).json({ message: `Erro ao obter informações do barbeiro: ${error.message}` });
-    }
-  });
-  
-  // Rota para obter clientes 
-  app.get('/api/clients', async (req: Request, res: Response) => {
-    try {
-      // Permitir acesso público para visualização de clientes
-      // Buscar todos os usuários que são clientes
-      const allUsers = await storage.getAllUsers();
-      const clients = allUsers.filter(user => user.role === 'client').map(user => ({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role
-      }));
-      
-      return res.json(clients);
-    } catch (error: any) {
-      console.error('Erro ao obter clientes:', error);
-      return res.status(500).json({ message: `Erro ao obter clientes: ${error.message}` });
-    }
-  });
-  
-  // Rota para criar um novo cliente
-  app.post('/api/clients', async (req: Request, res: Response) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: 'Usuário não autenticado' });
-      }
-      
-      const { fullName, email, phone, notes, address } = req.body;
-      
-      if (!fullName || !email) {
-        return res.status(400).json({ message: 'Nome completo e email são obrigatórios' });
-      }
-      
-      // Verificar se o email já está em uso
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: 'Este email já está em uso' });
-      }
-      
-      // Gerar um username único baseado no nome
-      const baseUsername = fullName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-      const timestamp = Date.now().toString().slice(-4);
-      const username = `${baseUsername}.${timestamp}`;
-      
-      // Gerar uma senha temporária aleatória (em um sistema real, enviaríamos por email)
-      const tempPassword = Math.random().toString(36).slice(-8);
-      
-      // Criar o usuário cliente
-      const newUser = await storage.createUser({
-        username,
-        email,
-        password: tempPassword, // Em produção, isso seria hasheado
-        role: 'client',
-        fullName,
-        phone: phone || null,
-        metadata: JSON.stringify({ 
-          preferences: { theme: 'light' },
-          notes: notes || '',
-          address: address || '' 
-        })
-      });
-      
-      // Em um sistema real, aqui enviaríamos um email com instruções de acesso
-      console.log(`Novo cliente criado: ${newUser.id} (${newUser.email})`);
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Cliente criado com sucesso',
-        client: {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email,
-          fullName: newUser.fullName,
-          role: newUser.role
-        }
-      });
-    } catch (error: any) {
-      console.error('Erro ao criar cliente:', error);
-      return res.status(500).json({ message: `Erro ao criar cliente: ${error.message}` });
-    }
-  });
-
-  // Rota para dados do dashboard
-  app.get('/api/dashboard', async (req: Request, res: Response) => {
-    try {
-      const period = req.query.period || 'week';
-      
-      // Definir datas com base no período selecionado
-      const now = new Date();
-      let startDate = new Date();
-      
-      if (period === 'today') {
-        startDate.setHours(0, 0, 0, 0);
-      } else if (period === 'week') {
-        startDate.setDate(now.getDate() - 7);
-      } else if (period === 'month') {
-        startDate.setMonth(now.getMonth() - 1);
-      } else {
-        // Período padrão (semana)
-        startDate.setDate(now.getDate() - 7);
-      }
-      
-      // Buscar dados reais no banco de dados
+      // Buscar dados reais do banco
       let services = [];
       let appointments = [];
       let clients = [];
@@ -2427,9 +1995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sales: Math.round(totalRevenue * 100) / 100, // Arredondar para 2 casas decimais
           appointments: recentAppointments.length,
           pendingPayments: pendingPayments.reduce((acc, p) => {
-            const amount = typeof p.amount === 'string' 
-              ? parseFloat(p.amount) 
-              : p.amount;
+            const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount;
             return acc + amount;
           }, 0),
           newClients: recentClients.length,
@@ -2612,6 +2178,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Erro ao buscar top barbeiros:', error);
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create a new client (for admins and barbers)
+  app.post('/api/clients', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        console.log('Acesso não autorizado - sessão inválida');
+        return res.status(401).json({ 
+          success: false,
+          message: 'Não autorizado' 
+        });
+      }
+
+      const { fullName, email, phone, notes, barberId } = req.body;
+      console.log('Dados recebidos para criação de cliente:', { fullName, email, phone, notes, barberId });
+
+      // Validate required fields
+      if (!fullName || !email || !phone) {
+        console.log('Campos obrigatórios não fornecidos');
+        return res.status(400).json({ 
+          success: false,
+          message: 'Nome, email e telefone são obrigatórios' 
+        });
+      }
+      
+      // Verificar se já existe um usuário com este telefone
+      const existingUserByPhone = await storage.getUserByPhone(phone);
+      if (existingUserByPhone) {
+        console.log('Telefone já cadastrado:', phone);
+        return res.status(422).json({
+          success: false,
+          code: 'PHONE_ALREADY_EXISTS',
+          message: 'Já existe um cliente com este número de telefone',
+          details: {
+            field: 'phone',
+            value: phone,
+            existingUser: {
+              id: existingUserByPhone.id,
+              name: existingUserByPhone.fullName
+            },
+            suggestion: 'Verifique se o cliente já está cadastrado ou utilize outro número de telefone'
+          }
+        });
+      }
+
+      // For barbers, use their own ID
+      let creatorBarberId: number | undefined;
+      
+      if (req.session.userRole === 'barber') {
+        const barber = await storage.getBarberByUserId(req.session.userId);
+        if (barber) {
+          creatorBarberId = barber.id;
+          console.log('Barbeiro encontrado:', { creatorBarberId });
+        }
+      } else if (barberId) {
+        creatorBarberId = barberId;
+      }
+
+      if (!creatorBarberId && req.session.userRole !== 'admin') {
+        console.log('Barbeiro não encontrado e usuário não é admin');
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Barbeiro não encontrado' 
+        });
+      }
+
+      // Check if user already exists with this email
+      const existingUser = await storage.getUserByEmail(email);
+      let userId: number;
+
+      if (existingUser) {
+        // Update existing user
+        console.log('Atualizando usuário existente:', existingUser.id);
+        userId = existingUser.id;
+        await storage.updateUser(userId, { 
+          fullName, 
+          phone: phone || existingUser.phone 
+        });
+      } else {
+        // Create new user with random password (can be reset later)
+        const randomPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await hashPassword(randomPassword);
+        
+        console.log('Criando novo usuário com senha aleatória');
+        const newUser = await storage.createUser({
+          username: email.split('@')[0],
+          email,
+          password: hashedPassword,
+          fullName,
+          phone,
+          role: 'client',
+        });
+        userId = newUser.id;
+        console.log('Novo usuário criado com ID:', userId);
+      }
+
+      // Create client profile if it doesn't exist
+      const clientProfile = await storage.getClientProfile(userId);
+      if (!clientProfile) {
+        console.log('Criando perfil do cliente para o usuário:', userId);
+        try {
+          await storage.createClientProfile({
+            userId,
+            // Add any additional profile fields here
+          });
+          console.log('Perfil do cliente criado com sucesso');
+        } catch (profileError) {
+          console.error('Erro ao criar perfil do cliente:', profileError);
+          throw new Error('Falha ao criar perfil do cliente');
+        }
+      } else {
+        console.log('Perfil do cliente já existe:', clientProfile.id);
+      }
+
+      // Add note if provided
+      if (notes && creatorBarberId) {
+        console.log('Adicionando nota para o cliente:', { clientId: userId, barberId: creatorBarberId });
+        try {
+          await storage.createClientNote({
+            clientId: userId,
+            barberId: creatorBarberId,
+            note: notes,
+          });
+          console.log('Nota adicionada com sucesso');
+        } catch (noteError) {
+          console.error('Erro ao adicionar nota:', noteError);
+          // Não interrompemos o fluxo se falhar ao adicionar a nota
+        }
+      }
+
+      // Log the action
+      try {
+        await storage.createActionLog({
+          userId: req.session.userId,
+          action: 'create_client',
+          entity: 'user',
+          entityId: userId,
+          details: `Cliente criado por ${req.session.userRole}`,
+        });
+        console.log('Log de ação criado com sucesso');
+      } catch (logError) {
+        console.error('Erro ao criar log de ação:', logError);
+        // Não interrompemos o fluxo se falhar ao criar o log
+      }
+
+      res.status(201).json({ 
+        success: true, 
+        userId,
+        message: existingUser ? 'Cliente atualizado com sucesso' : 'Cliente criado com sucesso'
+      });
+    } catch (error) {
+      console.error('Error creating client:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Erro ao criar cliente',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
     }
   });
 

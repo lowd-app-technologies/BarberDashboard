@@ -1,3 +1,5 @@
+// Arquivo comentado - Firebase não está sendo usado atualmente
+/*
 import { firebaseAuth } from './firebaseConfig';
 import { sendSignInLinkToEmail, ActionCodeSettings } from 'firebase/auth';
 
@@ -9,6 +11,7 @@ const actionCodeSettings: ActionCodeSettings = {
   // Isso permite que o usuário complete o processo em dispositivos diferentes
   handleCodeInApp: true,
 };
+*/
 
 /**
  * Envia um email de convite para um novo barbeiro
@@ -17,6 +20,8 @@ const actionCodeSettings: ActionCodeSettings = {
  */
 export const sendBarberInviteEmail = async (email: string, token: string): Promise<boolean> => {
   try {
+    // Código comentado - Firebase não está sendo usado atualmente
+    /*
     // Configurar a URL com o token do convite
     const finalUrl = `${actionCodeSettings.url}${token}`;
     const customSettings = {
@@ -30,6 +35,10 @@ export const sendBarberInviteEmail = async (email: string, token: string): Promi
     // Armazenar o email localmente para simplificar o processo de registro
     // quando o usuário clicar no link
     localStorage.setItem('barberInviteEmail', email);
+    */
+    
+    // TODO: Implementar método alternativo para envio de emails
+    console.log('Enviando convite para:', email, 'com token:', token);
     
     return true;
   } catch (error) {

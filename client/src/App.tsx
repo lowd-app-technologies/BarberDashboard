@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 
 // Admin Pages
@@ -15,13 +15,14 @@ import Payments from "@/pages/payments";
 import Clients from "@/pages/clients";
 import Products from "@/pages/products";
 import ProductSales from "@/pages/product-sales";
-import CompletedServices from "@/pages/completed-services";
-import AdminCompletedServices from "@/pages/admin/completed-services";
+import CompletedServicesAdmin from "@/pages/completed-services";
+import InviteBarber from "@/pages/barber/invite";
+import Settings from "@/pages/settings";
 
 // Barber Pages
-import InviteBarber from "@/pages/barber/invite";
 import BarberRegister from "@/pages/barber/register";
 import ServiceRecords from "@/pages/barber/service-records";
+import BarberClients from "@/pages/barber/clients";
 
 // Auth Pages
 import Login from "@/pages/login";
@@ -35,37 +36,23 @@ import ClientRegister from "@/booking/pages/register";
 
 // Other Pages
 import NotFound from "@/pages/not-found";
-import Settings from "@/pages/settings";
 
 function Router() {
   const [location] = useLocation();
+  const { user } = useAuth();
   const [isBookingDomain, setIsBookingDomain] = useState(false);
   
-  // Determinar o papel com base no caminho atual e no domínio
-  let role = 'client';
+  // Usar a role do usuário autenticado, ou 'client' como padrão
+  const role = user?.role || 'client';
   
   useEffect(() => {
-    // Verificar se estamos no subdomínio de booking ou no domínio principal
     const hostname = window.location.hostname;
-    // Lógica simplificada para verificar se estamos no contexto de agendamento
     const isBooking = hostname.includes('booking') || location.startsWith('/booking');
     setIsBookingDomain(isBooking);
   }, [location]);
   
   console.log("Current location:", location);
-  
-  if (location.startsWith("/admin")) {
-    role = 'admin';
-    console.log("Role set to admin based on path");
-  } else if (location.startsWith("/barber")) {
-    role = 'barber';
-    console.log("Role set to barber based on path");
-  } else if (location.startsWith("/booking") || isBookingDomain) {
-    role = 'client';
-    console.log("Role set to client based on path or domain");
-  } else {
-    console.log("Default role: client");
-  }
+  console.log("User role:", role);
 
   // Auth routes and Barber Registration routes
   if (location === "/login" || location === "/register" || location === "/barber/register") {
@@ -79,7 +66,7 @@ function Router() {
     );
   }
 
-  // Admin routes
+  // Admin routes - acessível apenas para usuários com role 'admin'
   if (role === 'admin') {
     return (
       <Switch>
@@ -91,45 +78,12 @@ function Router() {
         <Route path="/admin/clients" component={Clients} />
         <Route path="/admin/products" component={Products} />
         <Route path="/admin/product-sales" component={ProductSales} />
-        <Route path="/admin/completed-services" component={AdminCompletedServices} />
+        <Route path="/admin/completed-services" component={CompletedServicesAdmin} />
         <Route path="/admin/invite-barber" component={InviteBarber} />
         <Route path="/admin/settings" component={Settings} />
         <Route path="/barber/invite" component={InviteBarber} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
-  
-  // Barber routes
-  if (role === 'barber') {
-    return (
-      <Switch>
-        <Route path="/barber" component={Dashboard} />
-        <Route path="/barber/appointments" component={Appointments} />
-        <Route path="/barber/clients" component={Clients} />
-        <Route path="/barber/payments" component={Payments} />
-        <Route path="/barber/service-records" component={ServiceRecords} />
-        <Route path="/barber/product-sales" component={ProductSales} />
-        <Route path="/barber/completed-services" component={CompletedServices} />
-        <Route path="/barber/settings" component={Settings} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
-
-  // Direct access routes - without role prefix (for backward compatibility)
-  if (location === "/appointments" || 
-      location === "/services" || 
-      location === "/barbers" || 
-      location === "/clients" || 
-      location === "/payments" ||
-      location === "/products" ||
-      location === "/settings" ||
-      location === "/product-sales" ||
-      location === "/completed-services") {
-    return (
-      <Switch>
-        <Route path="/" component={Dashboard} />
+        
+        {/* Rotas sem prefixo para admin */}
         <Route path="/appointments" component={Appointments} />
         <Route path="/services" component={Services} />
         <Route path="/barbers" component={Barbers} />
@@ -137,8 +91,36 @@ function Router() {
         <Route path="/payments" component={Payments} />
         <Route path="/products" component={Products} />
         <Route path="/product-sales" component={ProductSales} />
-        <Route path="/completed-services" component={CompletedServices} />
+        <Route path="/completed-services" component={CompletedServicesAdmin} />
         <Route path="/settings" component={Settings} />
+        
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+  
+  // Barber routes - acessível apenas para usuários com role 'barber'
+  if (role === 'barber') {
+    return (
+      <Switch>
+        <Route path="/barber" component={Dashboard} />
+        <Route path="/barber/appointments" component={Appointments} />
+        <Route path="/barber/clients" component={BarberClients} />
+        <Route path="/barber/payments" component={Payments} />
+        <Route path="/barber/service-records" component={ServiceRecords} />
+        <Route path="/barber/product-sales" component={ProductSales} />
+        <Route path="/barber/completed-services" component={CompletedServicesAdmin} />
+        <Route path="/barber/settings" component={Settings} />
+        
+        {/* Rotas sem prefixo para barber */}
+        <Route path="/appointments" component={Appointments} />
+        <Route path="/clients" component={Clients} />
+        <Route path="/payments" component={Payments} />
+        <Route path="/service-records" component={ServiceRecords} />
+        <Route path="/product-sales" component={ProductSales} />
+        <Route path="/completed-services" component={CompletedServicesAdmin} />
+        <Route path="/settings" component={Settings} />
+        
         <Route component={NotFound} />
       </Switch>
     );

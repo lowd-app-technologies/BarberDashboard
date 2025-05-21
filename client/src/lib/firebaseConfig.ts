@@ -1,3 +1,5 @@
+// Arquivo comentado - Firebase não está sendo usado atualmente
+/*
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
@@ -14,3 +16,8 @@ const app = initializeApp(firebaseConfig);
 export const firebaseAuth = getAuth(app);
 
 export default app;
+*/
+
+// Exportando objetos vazios/mock para evitar erros de importação em outros arquivos
+export const firebaseAuth = {} as any;
+export default {} as any;

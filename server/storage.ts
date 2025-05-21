@@ -50,6 +50,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByPhone(phone: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
@@ -102,8 +103,8 @@ export interface IStorage {
 
   // Completed Service methods
   getCompletedService(id: number): Promise<CompletedService | undefined>;
-  getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]>;
-  getAllCompletedServices(): Promise<CompletedService[]>;
+  getCompletedServicesByBarber(barberId: number): Promise<CompletedServiceWithDetails[]>;
+  getAllCompletedServices(): Promise<any[]>;
   createCompletedService(service: InsertCompletedService): Promise<CompletedService>;
   updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined>;
   deleteCompletedService(id: number): Promise<void>;
@@ -138,6 +139,7 @@ export interface IStorage {
   getClientWithDetails(userId: number): Promise<ClientWithDetails | undefined>;
   getAllClientsWithProfiles(): Promise<ClientWithProfile[]>;
   getRecentClients(limit?: number): Promise<ClientWithProfile[]>;
+  getClientsForBarber(barberId: number): Promise<ClientWithProfile[]>;
   
   // Barber Invite methods
   createBarberInvite(invite: InsertBarberInvite): Promise<BarberInvite>;
@@ -274,6 +276,19 @@ export class MemStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     const user = Array.from(this.usersData.values()).find(
       (user) => user.email === email,
+    );
+    
+    if (!user) return undefined;
+    
+    return {
+      ...user,
+      metadata: user.metadata || null
+    };
+  }
+  
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    const user = Array.from(this.usersData.values()).find(
+      (user) => user.phone === phone,
     );
     
     if (!user) return undefined;
@@ -637,25 +652,17 @@ export class MemStorage implements IStorage {
     return updatedAppointment;
   }
   
-  async deleteAppointment(id: number): Promise<void> {
-    this.appointmentsData.delete(id);
-  }
-  
   async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> {
     const appointment = this.appointmentsData.get(id);
     if (!appointment) return undefined;
     
-    // Validate status
-    if (!["pending", "confirmed", "completed", "canceled"].includes(status)) {
-      throw new Error(`Invalid status: ${status}`);
-    }
-    
-    const updatedAppointment = { 
-      ...appointment, 
-      status: status as "pending" | "confirmed" | "completed" | "canceled"
-    };
+    const updatedAppointment = { ...appointment, status };
     this.appointmentsData.set(id, updatedAppointment);
     return updatedAppointment;
+  }
+  
+  async deleteAppointment(id: number): Promise<void> {
+    this.appointmentsData.delete(id);
   }
 
   /* Payment Methods */
@@ -732,16 +739,29 @@ export class MemStorage implements IStorage {
     return this.completedServicesData.get(id);
   }
   
-  async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> {
-    return Array.from(this.completedServicesData.values())
+  async getCompletedServicesByBarber(barberId: number): Promise<CompletedServiceWithDetails[]> {
+    const services = Array.from(this.completedServicesData.values())
       .filter(cs => cs.barberId === barberId);
-  }
-  
-  async getCompletedServicesForDateRange(barberId: number, startDate: Date, endDate: Date): Promise<CompletedService[]> {
-    return Array.from(this.completedServicesData.values())
-      .filter(cs => cs.barberId === barberId &&
-                    cs.date >= startDate &&
-                    cs.date <= endDate);
+    
+    const result: CompletedServiceWithDetails[] = [];
+    
+    for (const service of services) {
+      const barber = await this.getBarber(service.barberId);
+      const serviceData = await this.getService(service.serviceId);
+      const client = await this.getUser(service.clientId);
+      
+      if (barber && serviceData && client) {
+        result.push({
+          ...service,
+          barber,
+          service: serviceData,
+          client,
+          validatedByAdmin: service.validatedByAdmin || false // Incluir o campo validatedByAdmin
+        });
+      }
+    }
+    
+    return result;
   }
   
   async getAllCompletedServices(): Promise<any[]> {
@@ -758,7 +778,8 @@ export class MemStorage implements IStorage {
           ...service,
           barber,
           service: serviceData,
-          client
+          client,
+          validatedByAdmin: service.validatedByAdmin || false // Incluir o campo validatedByAdmin
         });
       }
     }
@@ -785,6 +806,11 @@ export class MemStorage implements IStorage {
   async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> {
     const service = this.completedServicesData.get(id);
     if (!service) return undefined;
+    
+    // Garantir que validatedByAdmin seja um booleano
+    if ('validatedByAdmin' in data) {
+      data.validatedByAdmin = Boolean(data.validatedByAdmin);
+    }
     
     const updatedService = { ...service, ...data };
     this.completedServicesData.set(id, updatedService);
@@ -1024,14 +1050,20 @@ export class MemStorage implements IStorage {
   async getRecentClients(limit: number = 10): Promise<ClientWithProfile[]> {
     const clients = await this.getAllClientsWithProfiles();
     
-    // Sort by last visit date if available, otherwise by createdAt
+    // Sort by creation date (newest first)
     clients.sort((a, b) => {
-      const dateA = a.profile.lastVisit || a.createdAt;
-      const dateB = b.profile.lastVisit || b.createdAt;
-      return dateB.getTime() - dateA.getTime();
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
     });
     
     return clients.slice(0, limit);
+  }
+  
+  async getClientsForBarber(barberId: number): Promise<ClientWithProfile[]> {
+    // Na implementação de memória, vamos retornar todos os clientes
+    // Em uma implementação real, filtraríamos por clientes atendidos pelo barbeiro
+    return this.getAllClientsWithProfiles();
   }
 
   /* Barber Invite Methods */
@@ -1370,7 +1402,7 @@ export class MemStorage implements IStorage {
       }
     }
     
-    // Buscar informações completas de cada cliente com ID
+    // Buscar informações completas de cada cliente
     const clientsWithIds = [];
     for (const clientId of clientIds) {
       const user = await this.getUserById(clientId);
@@ -1524,22 +1556,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Set up Supabase PostgreSQL connection if URL is available
-let db;
-let dbConnectionFailed = false;
-
-if (process.env.DATABASE_URL) {
-  try {
-    console.log('Using PostgreSQL with Drizzle ORM');
-    const connectionString = process.env.DATABASE_URL;
-    const client = postgres(connectionString);
-    db = drizzle(client);
-  } catch (error) {
-    console.error('Failed to connect to PostgreSQL database:', error);
-    dbConnectionFailed = true;
-  }
-}
-
 // DrizzleStorage implementation for PostgreSQL
 export class DrizzleStorage implements IStorage {
   private db: ReturnType<typeof drizzle>;
@@ -1563,6 +1579,11 @@ export class DrizzleStorage implements IStorage {
     const result = await this.db.select().from(users).where(eq(users.email, email));
     return result[0];
   }
+  
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.phone, phone));
+    return result[0];
+  }
 
   async getAllUsers(): Promise<User[]> {
     return await this.db.select().from(users);
@@ -1572,12 +1593,12 @@ export class DrizzleStorage implements IStorage {
     const result = await this.db.insert(users).values(user).returning();
     return result[0];
   }
-
+  
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
     const result = await this.db.update(users).set(userData).where(eq(users.id, id)).returning();
     return result[0];
   }
-
+  
   async deleteUser(id: number): Promise<void> {
     await this.db.delete(users).where(eq(users.id, id));
   }
@@ -1590,6 +1611,8 @@ export class DrizzleStorage implements IStorage {
     
     // Parse existing metadata or create new object
     let metadata = {};
+    
+    // Se o usuário já tiver metadata, tentamos fazer o parse
     if (user.metadata) {
       try {
         metadata = JSON.parse(user.metadata);
@@ -1764,6 +1787,19 @@ export class DrizzleStorage implements IStorage {
     }
   }
   
+  async getBarberWithUser(barberId: number): Promise<BarberWithUser | undefined> {
+    // Buscar o barbeiro pelo ID
+    const barber = this.barbersData.get(barberId);
+    if (!barber) return undefined;
+    
+    // Buscar o usuário associado
+    const user = this.usersData.get(barber.userId);
+    if (!user) return undefined;
+    
+    // Retornar o barbeiro com os dados do usuário
+    return { ...barber, user };
+  }
+  
   async createBarber(barber: InsertBarber): Promise<Barber> {
     try {
       const result = await this.db.insert(barbers).values(barber).returning();
@@ -1907,7 +1943,10 @@ export class DrizzleStorage implements IStorage {
   
   async updateCommission(id: number, commission: Partial<InsertCommission>): Promise<Commission | undefined> {
     try {
-      const result = await this.db.update(commissions).set(commission).where(eq(commissions.id, id)).returning();
+      const result = await this.db.update(commissions)
+        .set(commission)
+        .where(eq(commissions.id, id))
+        .returning();
       return result[0];
     } catch (error) {
       console.error("Error in updateCommission:", error);
@@ -1970,7 +2009,27 @@ export class DrizzleStorage implements IStorage {
     }
   }
   async updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
-  async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> { throw new Error("Not implemented"); }
+  async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> {
+    try {
+      // Validar o status
+      if (!["pending", "confirmed", "completed", "canceled"].includes(status)) {
+        throw new Error(`Status inválido: ${status}`);
+      }
+      
+      const result = await this.db.update(appointments)
+        .set({ 
+          status: status as "pending" | "confirmed" | "completed" | "canceled" 
+        })
+        .where(eq(appointments.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erro em updateAppointmentStatus:', error);
+      // Fallback para implementação em memória
+      return new MemStorage().updateAppointmentStatus(id, status);
+    }
+  }
   async deleteAppointment(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getPayment(id: number): Promise<PaymentWithBarber | undefined> { throw new Error("Not implemented"); }
   async getPaymentsByBarber(barberId: number): Promise<PaymentWithBarber[]> { throw new Error("Not implemented"); }
@@ -1992,15 +2051,8 @@ export class DrizzleStorage implements IStorage {
   async deletePayment(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getCompletedService(id: number): Promise<CompletedService | undefined> { 
     try {
-      const result = await db.select().from(completedServices)
-        .where(eq(completedServices.id, id))
-        .limit(1);
-      
-      if (result.length > 0) {
-        return result[0];
-      }
-      
-      return undefined;
+      const result = await this.db.select().from(completedServices).where(eq(completedServices.id, id));
+      return result[0];
     } catch (error) {
       console.error("Error in getCompletedService:", error);
       // Fall back to in-memory implementation during development
@@ -2008,7 +2060,7 @@ export class DrizzleStorage implements IStorage {
     }
   }
   
-  async updateCompletedService(id: number, data: Partial<InsertCompletedService>): Promise<CompletedService | undefined> {
+  async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> {
     try {
       // Verificar se o serviço existe
       const existingService = await this.getCompletedService(id);
@@ -2016,8 +2068,13 @@ export class DrizzleStorage implements IStorage {
         return undefined;
       }
       
+      // Garantir que validatedByAdmin seja um booleano
+      if ('validatedByAdmin' in data) {
+        data.validatedByAdmin = Boolean(data.validatedByAdmin);
+      }
+      
       // Atualizar o serviço no banco de dados
-      await db.update(completedServices)
+      await this.db.update(completedServices)
         .set(data)
         .where(eq(completedServices.id, id));
       
@@ -2029,34 +2086,70 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().updateCompletedService(id, data);
     }
   }
-  async getCompletedServicesByBarber(barberId: number): Promise<CompletedService[]> { 
+  async getCompletedServicesByBarber(barberId: number): Promise<CompletedServiceWithDetails[]> {
     try {
-      // Implementação simplificada para buscar do banco de dados
-      const services = await db.select().from(completedServices)
-        .where(eq(completedServices.barberId, barberId));
-      
-      // Para cada serviço, buscar o detalhe do serviço
-      const enhancedServices = [];
-      for (const service of services) {
-        // Buscar o serviço relacionado
-        const serviceInfo = await db.select().from(services)
-          .where(eq(services.id, service.serviceId))
-          .limit(1);
-          
-        enhancedServices.push({
-          ...service,
-          service: serviceInfo.length > 0 ? serviceInfo[0] : null
-        });
-      }
-      
-      return enhancedServices;
+      const result = await this.db
+        .select({
+          id: completedServices.id,
+          barberId: completedServices.barberId,
+          serviceId: completedServices.serviceId,
+          clientId: completedServices.clientId,
+          clientName: completedServices.clientName,
+          price: completedServices.price,
+          date: completedServices.date,
+          appointmentId: completedServices.appointmentId,
+          validatedByAdmin: completedServices.validatedByAdmin,
+          createdAt: completedServices.createdAt,
+          barber: {
+            id: barbers.id,
+            userId: barbers.userId,
+            nif: barbers.nif,
+            iban: barbers.iban,
+            paymentPeriod: barbers.paymentPeriod,
+            active: barbers.active,
+            calendarVisibility: barbers.calendarVisibility,
+            profileImage: barbers.profileImage,
+            user: {
+              id: users.id,
+              username: users.username,
+              email: users.email,
+              fullName: users.fullName,
+              phone: users.phone,
+              role: users.role,
+              createdAt: users.createdAt
+            }
+          },
+          service: {
+            id: services.id,
+            name: services.name,
+            description: services.description,
+            price: services.price,
+            duration: services.duration,
+            active: services.active,
+            createdAt: services.createdAt
+          }
+        })
+        .from(completedServices)
+        .innerJoin(barbers, eq(completedServices.barberId, barbers.id))
+        .innerJoin(users, eq(barbers.userId, users.id))
+        .innerJoin(services, eq(completedServices.serviceId, services.id))
+        .where(eq(completedServices.barberId, barberId))
+        .orderBy(desc(completedServices.date));
+
+      return result.map(item => ({
+        ...item,
+        barber: {
+          ...item.barber,
+          user: item.barber.user
+        },
+        service: item.service
+      }));
     } catch (error) {
-      console.error("Error in getCompletedServicesByBarber:", error);
-      // Fallback para implementação em memória
-      return new MemStorage().getCompletedServicesByBarber(barberId);
+      console.error('Erro ao buscar serviços do barbeiro:', error);
+      throw new Error('Erro ao buscar serviços do barbeiro');
     }
   }
-  async getAllCompletedServices(): Promise<CompletedService[]> {
+  async getAllCompletedServices(): Promise<any[]> {
     try {
       // Na implementação com memória, usamos o Map existente
       if (this instanceof MemStorage) {
@@ -2064,33 +2157,119 @@ export class DrizzleStorage implements IStorage {
       }
       
       // Na implementação com banco de dados, usamos o Drizzle
-      const services = await db.select().from(completedServices);
+      const result = await this.db.select({
+        id: completedServices.id,
+        barberId: completedServices.barberId,
+        serviceId: completedServices.serviceId,
+        clientId: completedServices.clientId,
+        clientName: completedServices.clientName,
+        price: completedServices.price,
+        date: completedServices.date,
+        appointmentId: completedServices.appointmentId,
+        validatedByAdmin: completedServices.validatedByAdmin,
+        notes: completedServices.notes,
+        createdAt: completedServices.createdAt,
+        // Incluir relações
+        service: {
+          name: services.name,
+        },
+        barber: {
+          userId: barbers.userId,
+          user: {
+            fullName: users.fullName,
+          },
+        },
+      }).from(completedServices)
+        .leftJoin(services, eq(completedServices.serviceId, services.id))
+        .leftJoin(barbers, eq(completedServices.barberId, barbers.id))
+        .leftJoin(users, eq(barbers.userId, users.id));
       
       // Mapear para o formato esperado
-      return services.map(s => ({
+      return result.map(s => ({
         id: s.id,
-        serviceId: s.serviceId,
         barberId: s.barberId,
+        serviceId: s.serviceId,
         clientId: s.clientId,
-        date: s.date,
+        clientName: s.clientName,
         price: s.price,
-        commission: s.commission,
-        status: s.status,
-        paymentId: s.paymentId,
+        date: s.date,
+        appointmentId: s.appointmentId,
+        validatedByAdmin: s.validatedByAdmin || false,
+        notes: s.notes,
         createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
         serviceName: s.service?.name || 'Serviço desconhecido',
-        barberName: s.barber?.userId ? `Barbeiro #${s.barber.userId}` : 'Desconhecido'
+        barberName: s.barber?.user?.fullName || `Barbeiro #${s.barberId}`,
       }));
     } catch (error) {
       console.error("Error in getAllCompletedServices:", error);
       return [];
     }
   }
+  
+  async getRecentClients(limit = 5): Promise<ClientWithProfile[]> {
+    try {
+      // Buscar os clientes mais recentes
+      const result = await this.db.select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        fullName: users.fullName,
+        role: users.role,
+        phone: users.phone,
+        createdAt: users.createdAt,
+        profile: clientProfiles,
+      })
+      .from(users)
+      .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+      .where(eq(users.role, 'client'))
+      .orderBy(desc(users.createdAt))
+      .limit(limit);
+      
+      return result.map(user => ({
+        ...user,
+        profile: user.profile || { userId: user.id }
+      }));
+    } catch (error) {
+      console.error('Erro ao buscar clientes recentes:', error);
+      return [];
+    }
+  }
+  
+  async getClientsForBarber(barberId: number): Promise<ClientWithProfile[]> {
+    try {
+      // Buscar todos os clientes atendidos pelo barbeiro
+      // Isso é uma simplificação - em um cenário real, precisaríamos de uma tabela
+      // de relacionamento entre barbeiros e clientes ou usar os agendamentos
+      
+      // Por enquanto, retornaremos todos os clientes
+      const result = await this.db.select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        fullName: users.fullName,
+        role: users.role,
+        phone: users.phone,
+        createdAt: users.createdAt,
+        profile: clientProfiles,
+      })
+      .from(users)
+      .leftJoin(clientProfiles, eq(users.id, clientProfiles.userId))
+      .where(eq(users.role, 'client'));
+      
+      return result.map(user => ({
+        ...user,
+        profile: user.profile || { userId: user.id }
+      }));
+    } catch (error) {
+      console.error(`Erro ao buscar clientes para o barbeiro ${barberId}:`, error);
+      return [];
+    }
+  }
   async createCompletedService(service: InsertCompletedService): Promise<CompletedService> {
     try {
+{{ ... }}
       // Inserir no banco de dados - versão simplificada sem consultas adicionais
-      const result = await db.insert(completedServices).values({
+      const result = await this.db.insert(completedServices).values({
         serviceId: service.serviceId,
         barberId: service.barberId,
         clientId: service.clientId,
@@ -2118,7 +2297,7 @@ export class DrizzleStorage implements IStorage {
   }
   async updateCompletedService(id: number, data: Partial<CompletedService>): Promise<CompletedService | undefined> {
     try {
-      const result = await db.update(completedServices)
+      const result = await this.db.update(completedServices)
         .set(data)
         .where(eq(completedServices.id, id))
         .returning();
@@ -2137,7 +2316,7 @@ export class DrizzleStorage implements IStorage {
   }
   async deleteCompletedService(id: number): Promise<void> {
     try {
-      await db.delete(completedServices).where(eq(completedServices.id, id));
+      await this.db.delete(completedServices).where(eq(completedServices.id, id));
       console.log(`Serviço ID ${id} excluído com sucesso`);
     } catch (error) {
       console.error("Error in deleteCompletedService:", error);
@@ -2155,15 +2334,103 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().createActionLog(log);
     }
   }
-  async getClientProfile(userId: number): Promise<ClientProfile | undefined> { throw new Error("Not implemented"); }
-  async createClientProfile(profile: InsertClientProfile): Promise<ClientProfile> { throw new Error("Not implemented"); }
-  async updateClientProfile(userId: number, profile: Partial<InsertClientProfile>): Promise<ClientProfile | undefined> { throw new Error("Not implemented"); }
+  async getClientProfile(userId: number): Promise<ClientProfile | undefined> { 
+    try {
+      const result = await this.db
+        .select()
+        .from(clientProfiles)
+        .where(eq(clientProfiles.userId, userId))
+        .limit(1);
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erro em getClientProfile:', error);
+      // Fallback para implementação em memória
+      return new MemStorage().getClientProfile(userId);
+    }
+  }
+  async createClientProfile(profile: InsertClientProfile): Promise<ClientProfile> {
+    try {
+      const result = await this.db.insert(clientProfiles)
+        .values({
+          userId: profile.userId,
+          birthdate: profile.birthdate || null,
+          address: profile.address || null,
+          city: profile.city || null,
+          postalCode: profile.postalCode || null,
+          notes: profile.notes || null,
+          referralSource: profile.referralSource || null,
+          lastVisit: profile.lastVisit || null,
+          createdAt: new Date()
+        })
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error('Falha ao criar perfil do cliente');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erro em createClientProfile:', error);
+      throw error; // Re-throw para que o chamador possa lidar com o erro
+    }
+  }
+  async updateClientProfile(userId: number, profile: Partial<InsertClientProfile>): Promise<ClientProfile | undefined> { 
+    try {
+      // First check if the profile exists
+      const existingProfile = await this.getClientProfile(userId);
+      
+      if (!existingProfile) {
+        return undefined;
+      }
+      
+      // Update the profile
+      const result = await this.db.update(clientProfiles)
+        .set({
+          birthdate: profile.birthdate !== undefined ? profile.birthdate : existingProfile.birthdate,
+          address: profile.address !== undefined ? profile.address : existingProfile.address,
+          city: profile.city !== undefined ? profile.city : existingProfile.city,
+          postalCode: profile.postalCode !== undefined ? profile.postalCode : existingProfile.postalCode,
+          notes: profile.notes !== undefined ? profile.notes : existingProfile.notes,
+          referralSource: profile.referralSource !== undefined ? profile.referralSource : existingProfile.referralSource,
+          lastVisit: profile.lastVisit !== undefined ? profile.lastVisit : existingProfile.lastVisit
+        })
+        .where(eq(clientProfiles.userId, userId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erro em updateClientProfile:', error);
+      // Fallback para implementação em memória
+      return new MemStorage().updateClientProfile(userId, profile);
+    }
+  }
   async getClientPreferences(clientId: number): Promise<ClientPreference | undefined> { throw new Error("Not implemented"); }
   async createClientPreferences(preferences: InsertClientPreference): Promise<ClientPreference> { throw new Error("Not implemented"); }
   async updateClientPreferences(clientId: number, preferences: Partial<InsertClientPreference>): Promise<ClientPreference | undefined> { throw new Error("Not implemented"); }
   async getClientNotes(clientId: number): Promise<ClientNote[]> { throw new Error("Not implemented"); }
   async getClientNotesByBarber(clientId: number, barberId: number): Promise<ClientNote[]> { throw new Error("Not implemented"); }
-  async createClientNote(note: InsertClientNote): Promise<ClientNote> { throw new Error("Not implemented"); }
+  async createClientNote(note: InsertClientNote): Promise<ClientNote> { 
+    try {
+      const result = await this.db.insert(clientNotes)
+        .values({
+          clientId: note.clientId,
+          barberId: note.barberId,
+          note: note.note,
+          createdAt: new Date()
+        })
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error('Falha ao criar nota do cliente');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erro em createClientNote:', error);
+      throw error;
+    }
+  }
   async deleteClientNote(id: number): Promise<void> { throw new Error("Not implemented"); }
   async getClientFavoriteServices(clientId: number): Promise<(ClientFavoriteService & { service: Service })[]> { throw new Error("Not implemented"); }
   async addClientFavoriteService(favorite: InsertClientFavoriteService): Promise<ClientFavoriteService> { throw new Error("Not implemented"); }
@@ -2367,9 +2634,7 @@ export class DrizzleStorage implements IStorage {
       }
       
       // Ordenar por data (mais recente primeiro)
-      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      return result;
+      return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } catch (error) {
       console.error("Error in getWeeklyProductSales:", error);
       return [];
@@ -2422,9 +2687,7 @@ export class DrizzleStorage implements IStorage {
       }
       
       // Ordenar por data (mais recente primeiro)
-      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      return result;
+      return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } catch (error) {
       console.error("Error in getWeeklyProductSalesByBarber:", error);
       return [];
@@ -2459,7 +2722,7 @@ export class DrizzleStorage implements IStorage {
   async validateProductSale(id: number): Promise<ProductSale | undefined> {
     try {
       const result = await this.db.update(productSales)
-        .set({ validated: true, validationDate: new Date() })
+        .set({ validatedByAdmin: true, validationDate: new Date() })
         .where(eq(productSales.id, id))
         .returning();
       return result[0];
@@ -2479,7 +2742,8 @@ export class DrizzleStorage implements IStorage {
       return new MemStorage().deleteProductSale(id);
     }
   }
-  
+
+  /* Products with Commissions */
   async getProductsWithCommissionsForBarber(barberId: number): Promise<ProductWithCommission[]> {
     try {
       // Buscar todos os produtos
@@ -2504,7 +2768,7 @@ export class DrizzleStorage implements IStorage {
         
         result.push({
           ...product,
-          commission: commission || null
+          commission
         });
       }
       
@@ -2514,6 +2778,22 @@ export class DrizzleStorage implements IStorage {
       // Fall back to in-memory implementation during development
       return new MemStorage().getProductsWithCommissionsForBarber(barberId);
     }
+  }
+}
+
+// Set up NeonDB PostgreSQL connection if URL is available
+let db;
+let dbConnectionFailed = false;
+
+if (process.env.DATABASE_URL) {
+  try {
+    console.log('Connecting to NeonDB with Drizzle ORM');
+    const connectionString = process.env.DATABASE_URL;
+    const client = postgres(connectionString);
+    db = drizzle(client);
+  } catch (error) {
+    console.error('Failed to connect to NeonDB:', error);
+    dbConnectionFailed = true;
   }
 }
 

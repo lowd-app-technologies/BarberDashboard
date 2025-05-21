@@ -60,16 +60,31 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Esquema de validação para adicionar cliente
 const clientSchema = z.object({
   fullName: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
   email: z.string().email({ message: "Email inválido" }),
   phone: z.string().min(9, { message: "Telefone deve ter pelo menos 9 dígitos" }),
+  barberId: z.string().optional(),
   notes: z.string().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
+
+type Barber = {
+  id: number;
+  user: {
+    fullName: string;
+  };
+};
 
 export default function Clients() {
   const { user } = useAuth();
@@ -82,6 +97,12 @@ export default function Clients() {
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['/api/clients', user?.role],
     enabled: true,
+  });
+
+  // Buscar barbeiros (apenas para admin)
+  const { data: barbers = [] } = useQuery<Barber[]>({
+    queryKey: ['/api/barbers'],
+    enabled: user?.role === 'admin',
   });
 
   // Filtrar clientes com base na busca
@@ -98,6 +119,7 @@ export default function Clients() {
       fullName: "",
       email: "",
       phone: "",
+      barberId: "",
       notes: "",
     },
   });
@@ -105,7 +127,10 @@ export default function Clients() {
   // Mutation para adicionar cliente
   const addClientMutation = useMutation({
     mutationFn: (data: ClientFormValues) => 
-      apiRequest("POST", "/api/clients", data),
+      apiRequest("POST", "/api/clients", {
+        ...data,
+        barberId: data.barberId ? parseInt(data.barberId) : undefined
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
       toast({
@@ -238,6 +263,36 @@ export default function Clients() {
                         </FormItem>
                       )}
                     />
+                    
+                    {user?.role === 'admin' && (
+                      <FormField
+                        control={form.control}
+                        name="barberId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Barbeiro Responsável</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <div className="flex items-center gap-2">
+                                    <UserCog className="h-4 w-4 text-muted-foreground" />
+                                    <SelectValue placeholder="Selecione um barbeiro" />
+                                  </div>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {barbers.map((barber) => (
+                                  <SelectItem key={barber.id} value={barber.id.toString()}>
+                                    {barber.user.fullName}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                     
                     <FormField
                       control={form.control}
